@@ -1,0 +1,53 @@
+# ------------------
+# Node modules
+# ------------------
+node_modules/
+
+# Backend
+Backend/node_modules/
+
+# Frontend
+Frontend/node_modules/
+
+# ------------------
+# Environment variables
+# ------------------
+.env
+Backend/.env
+Frontend/.env
+
+# ------------------
+# Logs
+# ------------------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ------------------
+# OS files
+# ------------------
+.DS_Store
+Thumbs.db
+
+# ------------------
+# Nodemon PID files
+# ------------------
+*.pid
+
+# ------------------
+# Frontend build/dist
+# ------------------
+Frontend/dist/
+Frontend/build/
+
+# ------------------
+# IDE/editor settings
+# ------------------
+.vscode/
+.idea/
+
+# ------------------
+# Coverage (if you add testing)
+# ------------------
+Backend/coverage/
+Frontend/coverage/

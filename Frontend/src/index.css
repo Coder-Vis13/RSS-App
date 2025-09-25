@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+.img{
+  size: 30px;
+}
+
+
+@theme {
+  --radius: 0.625rem;
+
+  /*core colour palette*/
+  --navyblue: #2F4156;
+  --beige: #F5EFEB;     /* #F5EFEB - beige */
+  --grey: #f9fafb;           
+  --teal: #567CBD;     /* #567CBD - teal */
+  --text: #070D0D;     /* near black */
+  --skyblue: #CBD9E6;
+  --white: #ffffff;
+  --light-grey: #e5e5e5;
+
+  /*general use*/
+  --background: var(--white);
+  --secondary-background: var(--skyblue);
+  --foreground: var(--text);
+  --primary: var(--navyblue);
+  --primary-foreground: var(--beige);
+
+  /*sidebar*/
+  --sidebar: var(--grey);
+  --sidebar-foreground: var(--text);
+  --sidebar-hover: var(--grey);
+  --sidebar-active: var(--teal);
+  --sidebar-active-foreground: var(--beige);
+}
+
+.dark {
+  --background: var(--teal);
+  --foreground: var(--beige);
+
+  --sidebar: var(--teal);
+  --sidebar-foreground: var(--beige);
+  --sidebar-hover: var(--grey);
+  --sidebar-active: var(--beige);
+  --sidebar-active-foreground: var(--teal);
+}
+
+
