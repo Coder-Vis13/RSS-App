@@ -51,3 +51,6 @@ Frontend/build/
 # ------------------
 Backend/coverage/
 Frontend/coverage/
+
+# Vite cache
+Frontend/.Vite
