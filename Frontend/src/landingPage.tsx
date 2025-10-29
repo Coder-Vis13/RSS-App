@@ -4,10 +4,6 @@ import { SiteShowcase } from "./components/sites"
 import { Benefits } from "./components/benefits"
 import { ArticlesAnimation } from "./components/animations";
 
-
-
-
-
 export default function App() {
   return (
     <div className="bg-base min-h-screen text-primary">
@@ -99,7 +95,7 @@ export default function App() {
   );
 }
 
-// Feature Card Component (Notion-style)
+//Feature Card Component
 function FeatureCard({
   title,
   desc,
