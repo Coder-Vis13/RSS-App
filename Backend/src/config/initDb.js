@@ -1,6 +1,9 @@
-//psql -U myprojectuser -d myprojectdb -h localhost
-// \pset pager off
-// \dt - to see table
+/*
+psql -U myprojectuser -d myprojectdb -h localhost
+\pset pager off
+\dt - to see table
+
+*/
 
 import { query } from "./db";
 

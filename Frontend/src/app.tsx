@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import SidebarLayout from "./components/sidebar"; // <-- use the layout
+import SidebarLayout from "./components/sidebar"; 
 import Sites from "./components/web_sites";
 import FeedPage from "./app/feed/page";
 import SavedPage from "./app/saved/page";
@@ -10,22 +10,24 @@ import { Toaster } from "./components/ui/sonner";
 
 function Home() {
   const userId = 3;
+  const readingStreak = 5; // example value — replace with real data later
+
   return (
     <main className="flex-1 p-2 overflow-y-auto">
       <section className="mb-3">
         <h2 className="text-2xl font-bold mb-1">Welcome, User!</h2>
-        {/* <p className="text-gray-600 text-xl mb-6">
-          Meet your all-in-one feed: your favourite news, articles and blogs delivered your way. <br />
-          Save your favourites, add them to folders, keep track of what you've read and stay on top of what matters most.
-        </p> */}
-        <div className="flex items-center mb-4">
-          {/* <FullFeed /> */}
-        </div>
       </section>
+
       <section className="mt-2">
-        <h2 className="text-l font-bold text-gray-800 mb-2">
-          Stay Updated Your Way
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-l font-bold text-gray-800">
+            Stay Updated Your Way
+          </h2>
+          {/* Reading Streak */}
+          <div className="flex items-center gap-2 mr-13 bg-orange-100 text-orange-700 px-3 py-2 rounded-full text-sm font-medium">
+            🔥 <span>{readingStreak}-day streak</span>
+          </div>
+        </div>
         <p className="text-gray-600">
           Choose a source from below or add one by URL
         </p>

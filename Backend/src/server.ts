@@ -47,6 +47,7 @@ import { Feed } from 'podcast';
 import { corsHandler } from "./middleware/corsHandler";
 import { routeNotFound } from './middleware/routeNotFound';
 
+
 const PORT = process.env.PORT;
 
 const app = express();
@@ -56,6 +57,276 @@ app.use(corsHandler);
 app.use(express.json());
 
 app.use(loggingHandler);
+
+// import { categorizeArticle } from "../src/utils/categorizer";
+
+// (async () => {
+//   const title = "NASA discovers new exoplanet";
+//     const category = await categorizeArticle(title);
+//     console.log(`"${title}" → ${category}`);
+// })();
+
+
+//FINAL PODCAST PACKAGE
+import getPodcastFromFeed from "podparse";
+
+const FEED_URL = "https://feeds.megaphone.fm/YMRT7068253588"; // replace with your feed
+const PROXY = "https://api.allorigins.win/raw?url=" + encodeURIComponent(FEED_URL);
+
+async function run() {
+  try {
+    const response = await fetch(FEED_URL , {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Node.js; RSS Parser Test)"
+  }});
+    // const response = await fetch(PROXY);
+    const xml = await response.text();
+
+    const podcast = getPodcastFromFeed(xml);
+
+    console.log("🎧 Podcast title:", podcast.meta.title);
+    console.log("Number of episodes:", podcast.episodes.length);
+
+    podcast.episodes.slice(0, 9).forEach((ep, i) => {
+      console.log(`${i + 1}. ${ep.title}`);
+      console.log(`${i + 1}. ${ep.link}`);
+
+      
+
+    });
+  } catch (err) {
+    console.error("❌ Error parsing podcast feed:", err);
+  }
+}
+
+run();
+
+
+
+
+// 'use strict';
+
+// import { find  } from 'feedfinder-ts';
+
+// async function testFeedFinder(url: string) {
+//   try {
+//     const feed = await find(url);
+//     if (feed) {
+//       console.log('RSS Feed found:', feed);
+//     } else {
+//       console.log('No RSS feed found at this URL.');
+//     }
+//   } catch (error) {
+//     console.error('Error fetching RSS feed:', error);
+//   }
+// }
+
+// // Test with a known RSS feed URL
+// testFeedFinder('https://www.npr.org');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import getPodcastFromFeed from "podparse";
+
+// const FEED_URL = "https://feeds.npr.org/510333/podcast.xml"; // replace with your feed
+// const PROXY = "https://api.allorigins.win/raw?url=" + encodeURIComponent(FEED_URL);
+
+// async function run() {
+//   try {
+//     const response = await fetch(FEED_URL , {
+//       headers: {
+//         "User-Agent": "Mozilla/5.0 (Node.js; RSS Parser Test)"
+//   }});
+//     // const response = await fetch(PROXY);
+//     const xml = await response.text();
+
+//     const podcast = getPodcastFromFeed(xml);
+
+//     console.log("🎧 Podcast title:", podcast.meta.title);
+//     console.log("Number of episodes:", podcast.episodes.length);
+
+//     podcast.episodes.slice(0, 9).forEach((ep, i) => {
+//       console.log(`${i + 1}. ${ep.title}`);
+//       console.log(`${i + 1}. ${ep.link}`);
+
+//     });
+//   } catch (err) {
+//     console.error("❌ Error parsing podcast feed:", err);
+//   }
+// }
+
+// run();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// test-podparse-url.js
+// import fetch from "node-fetch";
+// import getPodcastFromFeed from "podparse";
+
+// const FEED_URL = "http://feeds.thememorypalace.us/thememorypalace"; // replace with your feed
+// const PROXY = "https://api.allorigins.win/raw?url=" + encodeURIComponent(FEED_URL);
+
+// async function run() {
+//   try {
+//     const response = await fetch(FEED_URL , {
+//       headers: {
+//         "User-Agent": "Mozilla/5.0 (Node.js; RSS Parser Test)"
+//   }});
+//     // const response = await fetch(PROXY);
+//     const xml = await response.text();
+
+//     const podcast = getPodcastFromFeed(xml);
+
+//     console.log("🎧 Podcast title:", podcast.meta.title);
+//     console.log("Number of episodes:", podcast.episodes.length);
+
+//     podcast.episodes.forEach((ep, i) => {
+//       console.log(`${i + 1}. ${ep.title}`);
+//     });
+//   } catch (err) {
+//     console.error("❌ Error parsing podcast feed:", err);
+//   }
+// }
+
+// run();
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // test-podparse.js
+// import getPodcastFromFeed from "podparse";
+// const FEED_URL = "https://feeds.npr.org/510333/podcast.xml​";
+// import fs from 'fs';
+
+// const podcastFeed = fs.readFileSync('path/to/podcast-feed.xml', 'utf8')
+// const podcast = getPodcastFromFeed(podcastFeed)
+
+// console.log(podcast.meta.title)
+// // "My Podcast"
+
+// podcast.episodes.forEach( (episode) => {
+// 	console.log(episode.title)
+// })
+
+
+
+
+
+
+
+
+
+
+
+// async function run() {
+//   try {
+//     const response = await fetch(FEED_URL);
+//     const xml = await response.text();
+
+//     // parse returns parsed feed data
+//     const feed = await getPodcastFromFeed(xml);
+//     console.log("Feed title:", feed.title);
+//     console.log("Number of items:", feed.items?.length);
+//     console.log("First item:", feed.items?.[0]);
+//   } catch (err) {
+//     console.error("Error with podparse:", err);
+//   }
+// }
+
+// run();
+
+
+
+
+
+
+
+
+
+
+
+
+// import { parseFeedToJson, parseFeedToSesamy } from "@sesamy/podcast-parser";
+
+// const FEED_URL = "https://feeds.npr.org/510333/podcast.xml​";
+
+// async function run() {
+//   try {
+//     const response = await fetch(FEED_URL);
+//     const xml = await response.text();
+
+//     // parseFeedToJson expects XML string (or maybe URL?) — typically you pass XML
+//     const podcastFeedJson = await parseFeedToJson(xml);
+
+//     // Then convert to Sesamy format
+//     const sesamyPodcastFeed = await parseFeedToSesamy(podcastFeedJson);
+
+//     console.log("Products:", sesamyPodcastFeed.products);
+//     console.log("Episodes:", sesamyPodcastFeed.episodes);
+//   } catch (err) {
+//     console.error("Error parsing feed:", err);
+//   }
+// }
+
+// run();
+
+
+// import { parseFeedToJson } from '@sesamy/podcast-parser';
+// import { parseFeedToSesamy } from '@sesamy/podcast-parser';
+
+
+// // Parse from a URL
+// const podcastFeed = parseFeedToJson('https://feeds.simplecast.com/54nAGcIl');
+
+// (async () => {
+// // Convert the JSON feed to Sesamy format
+// const sesamyPodcastFeed = parseFeedToSesamy(podcastFeed);
+
+// // This provides access to Sesamy-specific features like:
+// console.log(sesamyPodcastFeed.products); // Product information
+// console.log(sesamyPodcastFeed.episodes);
+// })();
+
+
 
 app.use("/", router);
 
@@ -68,6 +339,15 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
 });
 
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
+
+
+
+
+
+
+
+
+
 
 
 // import Parser from "rss-parser";
@@ -145,25 +425,25 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // ---BELOW IS THE TESTING OF THE NPM PACKAGE USED TO GET RSS FEED URL FROM WEBSITE URL
 
-'use strict';
+// 'use strict';
 
-import { find  } from 'feedfinder-ts';
+// import { find  } from 'feedfinder-ts';
 
-async function testFeedFinder(url: string) {
-  try {
-    const feed = await find(url);
-    if (feed) {
-      console.log('RSS Feed found:', feed);
-    } else {
-      console.log('No RSS feed found at this URL.');
-    }
-  } catch (error) {
-    console.error('Error fetching RSS feed:', error);
-  }
-}
+// async function testFeedFinder(url: string) {
+//   try {
+//     const feed = await find(url);
+//     if (feed) {
+//       console.log('RSS Feed found:', feed);
+//     } else {
+//       console.log('No RSS feed found at this URL.');
+//     }
+//   } catch (error) {
+//     console.error('Error fetching RSS feed:', error);
+//   }
+// }
 
-// Test with a known RSS feed URL
-testFeedFinder('https://joerogan.com');
+// // Test with a known RSS feed URL
+// testFeedFinder('https://joerogan.com');
 
 
 

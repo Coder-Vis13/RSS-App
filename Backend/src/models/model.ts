@@ -180,12 +180,12 @@ const addUserSource = async (userId: number, sourceId: number):Promise<AddUserSo
         FROM user_source 
         WHERE user_id = $1 AND source_id = $2`, [userId, sourceId]
     );
-    const existingUserSource = getFirstRow(selectResult);
+    const existingUserPodcast = getFirstRow(selectResult);
 
-    if (existingUserSource) {
+    if (existingUserPodcast) {
         logAction(`Source=${sourceId} for the User=${userId} already exists `);
-        return { ...existingUserSource, created: false };
-  }
+        return { ...existingUserPodcast, created: false };
+    }
     //get a new default priority for the source
     const priorityResult: QueryResult<{new_priority: number}> = await query(
         `SELECT COALESCE(MAX(priority),0)+1 AS new_priority FROM user_source
@@ -203,6 +203,37 @@ const addUserSource = async (userId: number, sourceId: number):Promise<AddUserSo
     logAction(`Added a new Source=${sourceId} for User=${userId} with a default Priority=${newUserSource?.priority}`);
     return markAsCreated(newUserSource);
 };
+
+// interface PodcastResult {
+//   user_id: number;
+//   source_id: number;
+// }
+
+// const addUserPodcast = async (userId: number, sourceId: number):Promise<PodcastResult> => {
+//   const selectResult: QueryResult<PodcastResult> = await query(
+//     `SELECT user_id, source_id, priority
+//         FROM user_source 
+//         WHERE user_id = $1 AND source_id = $2`, [userId, sourceId]
+//   );
+//     const existingUserPodcast = getFirstRow(selectResult);
+//     if (existingUserPodcast) {
+//         logAction(`Source=${sourceId} for the User=${userId} already exists `);
+//         return existingUserPodcast;
+//     }
+//     const insertResult: QueryResult<UserSource> = await query(
+//         `INSERT INTO user_source(user_id, source_id, priority)
+//         VALUES ($1, $2, $3)
+//         RETURNING user_id, source_id`, [userId, sourceId]
+//     );   
+//     const newUserSource = getFirstRow(insertResult);
+
+
+// }
+
+
+
+
+
 
 interface UserSourcePriority {
   priority: number;
@@ -378,7 +409,7 @@ const userFeedItems = async (userId: number): Promise<Items[]> => {
   const result: QueryResult<Items> = await query(
     `SELECT 
         i.item_id, i.title, i.link, i.description, i.pub_date, i.source_id, s.source_name,
-        COALESCE(uim.is_save, false) AS is_save
+        COALESCE(uim.is_save, false) AS is_save      --“If uim.is_save is not null, use its value. If it is null, use false instead.”
      FROM item i
      INNER JOIN source s ON i.source_id = s.source_id
      INNER JOIN user_source us ON us.source_id = i.source_id
