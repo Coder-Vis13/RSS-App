@@ -12,16 +12,18 @@ const createTables = async() => {
         await query(`
             CREATE TABLE IF NOT EXISTS users(
             user_id SERIAL PRIMARY KEY, 
-            name VARCHAR(30) NOT NULL, 
+            name VARCHAR(30), 
             email VARCHAR(50) UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
+            password_hash,
+            supabase_uid UUID UNIQUE;
             created_at TIMESTAMP NOT NULL DEFAULT now()
             );
 
-            CREATE TABLE IF NOT EXISTS source(
+            CREATE TABLE IF NOT EXISTS source (
             source_id SERIAL PRIMARY KEY,
             source_name TEXT NOT NULL,
-            url TEXT UNIQUE NOT NULL
+            url TEXT UNIQUE NOT NULL,
+            feed_type TEXT NOT NULL DEFAULT 'rss' CHECK (feed_type IN ('rss', 'podcast'))
             );
 
             CREATE TABLE IF NOT EXISTS folder(
@@ -49,6 +51,14 @@ const createTables = async() => {
             UNIQUE(user_id, priority)
             );
 
+            CREATE TABLE IF NOT EXISTS user_podcast (
+            user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+            podcast_id INT NOT NULL REFERENCES source(source_id) ON DELETE CASCADE ON UPDATE CASCADE,
+            priority INT,
+            PRIMARY KEY (user_id, podcast_id),
+            UNIQUE (user_id, priority)
+            );
+
             CREATE TABLE IF NOT EXISTS item(
             item_id SERIAL PRIMARY KEY,
             source_id INT NOT NULL REFERENCES source(source_id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -57,6 +67,7 @@ const createTables = async() => {
             description TEXT,
             pub_date TIMESTAMP NOT NULL
             UNIQUE(source_id, link)  --avoiding duplicates so only new items are inserted
+            is_categorized BOOLEAN DEFAULT false;
             );
 
             CREATE TABLE IF NOT EXISTS user_item_metadata(
@@ -66,6 +77,19 @@ const createTables = async() => {
             read_time TIMESTAMP,
             PRIMARY KEY(user_id, item_id)
             );
+
+            CREATE TABLE IF NOT EXISTS category (
+            category_id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            color TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS item_category (
+            item_id INT REFERENCES item(item_id) ON DELETE CASCADE,
+            category_id INT REFERENCES category(category_id) ON DELETE CASCADE,
+            PRIMARY KEY (item_id, category_id)
+            );
+
             `);
             console.log("All tables created!!");
 

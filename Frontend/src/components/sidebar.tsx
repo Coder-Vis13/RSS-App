@@ -46,6 +46,8 @@ import {
   deleteFolder,
 } from "../services/api";
 
+// import { useAuth } from "../authContext";
+
 const navbarItems = [
   { label: "Home", icon: Home, path: "/home" },
   { label: "Feed", icon: List, path: "/feed" },
@@ -59,6 +61,16 @@ interface UserFolders {
   name: string;
 }
 
+// export interface DBUser {
+//   user_id: number;
+//   email: string;
+//   supabase_uid: string;
+//   created_at: string;
+//   created: boolean;
+// }
+
+
+
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [isSmallOpen, setIsSmallOpen] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -69,30 +81,41 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState<number | null>(null);
   const [renameError, setRenameError] = useState<string | null>(null);
+  // const [dbUser, setDbUser] = useState<DBUser | null>(null);
   const navigate = useNavigate();
-  const userId = 3;
+
+  // const { dbUser, loading } = useAuth();
+  // const userId = dbUser?.user_id;
+  // console.log("dbUser = ", dbUser, "loading =", loading);
+  // if (loading || !dbUser) return <div>Loading...</div>;
+  const userId= 25;
 
   useEffect(() => {
-    const fetchFolders = async () => {
-      try {
-        const data = await getUserFolders(userId);
-        const formatted = data.map((f: any) => ({
-          folderId: f.folder_id,
-          name: f.name,
-        }));
-        setUserFolders(formatted);
-      } catch (err) {
-        console.error("Failed to load user folders:", err);
-      }
-    };
-    fetchFolders();
-  }, [userId]);
+  if (!userId) return; // wait for context to load
+
+  const fetchFolders = async () => {
+    try {
+      const data = await getUserFolders(userId);
+      const formatted = data.map((f: any) => ({
+        folderId: f.folder_id,
+        name: f.name,
+      }));
+      setUserFolders(formatted);
+    } catch (err) {
+      console.error("Failed to load user folders:", err);
+    }
+  };
+
+  fetchFolders();
+}, [userId]);
+
 
   const handleCreateFolder = async () => {
     if (!folderName.trim()) return;
     setFolderName("");
     setOpenModal(false);
     try {
+      if (!userId) return;
       const newFolder = await createFolder(userId, folderName);
       setUserFolders((prev) => [
         ...prev,
@@ -107,6 +130,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const handleRenameFolder = async () => {
     if (!renameUserFolder.trim() || selectedFolderId === null) return;
     try {
+      if (!userId) return;
       const updatedFolder = await renameFolder(
         userId,
         selectedFolderId,
@@ -133,6 +157,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   const handleDeleteFolder = async (folderId: number) => {
     try {
+      if (!userId) return;
       await deleteFolder(userId, folderId);
       setUserFolders((prev) => prev.filter((f) => f.folderId !== folderId));
     } catch (error) {
@@ -226,7 +251,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               key={folder.folderId}
               to={`/folders/${folder.folderId}`}
               className={({ isActive }) =>
-                `group w-full flex items-center rounded-md px-2 py-1 transition-colors
+                `group w-full flex items-center rounded-md px-2 py-2 transition-colors
                 ${isSmallOpen ? "justify-center" : "justify-start"}
                 ${
                   isActive

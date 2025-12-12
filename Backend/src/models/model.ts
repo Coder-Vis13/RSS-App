@@ -3,52 +3,97 @@ import { query } from "../config/db";
 import { getFirstRow, logAction, markAsCreated } from "../utils/helpers";
 import { QueryResult } from "../utils/helpers";
 import { getLogo } from "../utils/getLogo";
+import { categorizeItem } from "../utils/categorizer";
+import pLimit from "p-limit";
+
+import dotenv from "dotenv";
+dotenv.config();
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === "true";
 
 export interface DBUser {
-user_id: number;
-name: string;
-email: string;
-password_hash?: string;
-created_at: string;  //should this be date?
+  user_id: string;
+  email: string;
+  supabase_uid: string;
+  created_at: string;
 }
+
 
 export interface User extends DBUser {
     created: boolean;
 }
 
-export type NewUser = Omit<DBUser, "user_id" | "created_at">;
+// export type NewUser = Omit<DBUser, "user_id" | "created_at">;
 
 
 //create a new user
-const addUser = async (user: NewUser): Promise<User> => {
+const addUser = async (email: string, supabase_uid: string): Promise<User> => {
   //try to insert. if it exists, select it  
-  const insertResult: QueryResult<DBUser> = await query(
-    `INSERT INTO users (name, email, password_hash)
-     VALUES ($1, $2, $3)
+  const insertResult = await query(
+    `INSERT INTO users (email, supabase_uid)
+     VALUES ($1, $2)
      ON CONFLICT (email) DO NOTHING
-     RETURNING user_id, name, email, password_hash, created_at`,
-    [user.name, user.email, user.password_hash]
+     RETURNING user_id, email, supabase_uid, created_at`,
+    [email, supabase_uid]
   );
-    const insertedUser = getFirstRow(insertResult);
 
-    if (insertedUser) {
-        logAction(`Registered new user with Email=${user.email}`);
-        return markAsCreated(insertedUser);
+  const insertedUser = getFirstRow(insertResult);
+
+  if (insertedUser) {
+    return { ...insertedUser, created: true };
   }
 
-  // If email already exists, fetch existing user details
-  const selectResult: QueryResult<DBUser> = await query(
-    `SELECT user_id, name, email, created_at FROM users WHERE email = $1`,
-    [user.email]
+  // user already exists
+  const selectResult = await query(
+    `SELECT user_id, email, supabase_uid, created_at
+     FROM users
+     WHERE email = $1`,
+    [email]
   );
+
   const existingUser = getFirstRow(selectResult);
-   if (!existingUser) {
-    throw new Error(`User with email ${user.email} not found`);
+  if (!existingUser) {
+    throw new Error("Could not find existing user after conflict");
   }
-  logAction(`Existing user with Email=${user.email}`);
+
   return { ...existingUser, created: false };
 };
 
+
+export const getUserBySupabaseUID = async ( supabase_uid: string ): Promise<User | null> => {
+  const result = await query(
+    `SELECT user_id, email, supabase_uid, created_at
+     FROM users
+     WHERE supabase_uid = $1`,
+    [supabase_uid]
+  );
+
+  if (!result.rows || result.rows.length === 0) {
+    return null;
+  }
+
+  const user = result.rows[0];
+
+  return { ...user, created: false };
+};
+
+
+
+// export const getUserBySupabaseUID = async (
+//   supabase_uid: string
+// ): Promise<User | null> => {
+//   const result = await query(
+//     `SELECT user_id, email, supabase_uid, created_at
+//      FROM users
+//      WHERE supabase_uid = $1`,
+//     [supabase_uid]
+//   );
+
+//   const user = getFirstRow(result);
+
+//   if (!user) return null;
+
+//   return { ...user, created: false }; 
+// };
 
 
 export interface Folder {
@@ -134,7 +179,7 @@ interface AddSource extends Source {
 }
 
 //add a new source to the source table. if it already exists, get it
-const addSource = async (sourceName: string, sourceURL: string): Promise<AddSource> => {
+const addSource = async (sourceName: string, sourceURL: string, feedType: "rss" | "podcast"= "rss"): Promise<AddSource> => {
 
     //if source already exists
     const selectResult: QueryResult<Pick<Source, "source_id" | "source_name">> = await query(
@@ -150,12 +195,12 @@ const addSource = async (sourceName: string, sourceURL: string): Promise<AddSour
     
     //if source doesn't already exist, add a new row
     const insertResult: QueryResult<Pick<Source, "source_id" | "source_name">>  = await query(
-        `INSERT INTO source(source_name, url)
-        VALUES ($1, $2)
-        RETURNING source_id, source_name`, [sourceName, sourceURL]
+        `INSERT INTO source(source_name, url, feed_type)
+        VALUES ($1, $2, $3)
+        RETURNING source_id, source_name`, [sourceName, sourceURL, feedType]
     );
     const newSource = getFirstRow(insertResult);
-    logAction(`Added new source: Name=${sourceName} URL=${sourceURL}`);
+    logAction(`Added new source: Name=${sourceName} URL=${sourceURL} type=${feedType}`);
     return markAsCreated(newSource);
 };
 
@@ -204,35 +249,46 @@ const addUserSource = async (userId: number, sourceId: number):Promise<AddUserSo
     return markAsCreated(newUserSource);
 };
 
-// interface PodcastResult {
-//   user_id: number;
-//   source_id: number;
-// }
+const addUserPodcast = async (userId: number, sourceId: number): Promise<AddUserSourceResult> => {
+  const selectResult: QueryResult<UserSource> = await query(
+    `SELECT user_id, podcast_id AS source_id, priority
+     FROM user_podcast 
+     WHERE user_id = $1 AND podcast_id = $2`,
+    [userId, sourceId]
+  );
+  const existingUserPodcast = getFirstRow(selectResult);
 
-// const addUserPodcast = async (userId: number, sourceId: number):Promise<PodcastResult> => {
-//   const selectResult: QueryResult<PodcastResult> = await query(
-//     `SELECT user_id, source_id, priority
-//         FROM user_source 
-//         WHERE user_id = $1 AND source_id = $2`, [userId, sourceId]
-//   );
-//     const existingUserPodcast = getFirstRow(selectResult);
-//     if (existingUserPodcast) {
-//         logAction(`Source=${sourceId} for the User=${userId} already exists `);
-//         return existingUserPodcast;
-//     }
-//     const insertResult: QueryResult<UserSource> = await query(
-//         `INSERT INTO user_source(user_id, source_id, priority)
-//         VALUES ($1, $2, $3)
-//         RETURNING user_id, source_id`, [userId, sourceId]
-//     );   
-//     const newUserSource = getFirstRow(insertResult);
+  if (existingUserPodcast) {
+    logAction(`Podcast Source=${sourceId} for User=${userId} already exists`);
+    return { ...existingUserPodcast, created: false };
+  }
 
+  const priorityResult: QueryResult<{ new_priority: number }> = await query(
+    `SELECT COALESCE(MAX(priority), 0) + 1 AS new_priority
+     FROM user_podcast up
+     JOIN source s ON up.podcast_id = s.source_id
+     WHERE up.user_id = $1 AND s.feed_type = 'podcast'`,
+    [userId]
+  );
 
-// }
+  const { new_priority } = getFirstRow(priorityResult) || { new_priority: 1 };
+  const newPriority = new_priority || 1;
 
+  const insertResult: QueryResult<UserSource> = await query(
+    `INSERT INTO user_podcast (user_id, podcast_id, priority)
+     VALUES ($1, $2, $3)
+     RETURNING user_id, podcast_id AS source_id, priority`,
+    [userId, sourceId, newPriority]
+  );
 
+  const newUserPodcast = getFirstRow(insertResult);
 
+  logAction(
+    `Added new Podcast Source=${sourceId} for User=${userId} with Priority=${newUserPodcast?.priority}`
+  );
 
+  return markAsCreated(newUserPodcast);
+};
 
 
 interface UserSourcePriority {
@@ -242,87 +298,82 @@ interface UserSourcePriority {
 type AllUserSources = Omit<UserSource, "user_id">;
 
 
-//remove a source for a user
-const removeUserSource = async (
-  userId: number,
-  sourceId: number
-): Promise<AllUserSources[]> => {
-  // Get the priority of the source being removed
+//remove a source for a user -> rss + podcast
+const removeUserSource = async (userId: number, sourceId: number, feedType: "rss" | "podcast" = "rss"): Promise<AllUserSources[]> => {
+  //table based on feed type
+  const table = feedType === "podcast" ? "user_podcast" : "user_source";
+  const idColumn = feedType === "podcast" ? "podcast_id" : "source_id";
+
+  //get the priority of the source being removed
   const userPriority: QueryResult<UserSourcePriority> = await query(
-    `SELECT priority FROM user_source WHERE user_id = $1 AND source_id = $2`,
+    `SELECT priority FROM ${table} WHERE user_id = $1 AND ${idColumn} = $2`,
     [userId, sourceId]
   );
-  const removedPriorityRow = getFirstRow(userPriority);
-  const removedPriority = removedPriorityRow?.priority ?? null;
+  const removedPriority = getFirstRow(userPriority)?.priority ?? null;
 
-  // Delete the source for the user
+  //delete the source entry for the user
   await query(
-    `DELETE FROM user_source WHERE user_id = $1 AND source_id = $2`,
+    `DELETE FROM ${table} WHERE user_id = $1 AND ${idColumn} = $2`,
     [userId, sourceId]
   );
 
-  // Delete unread items of that source that aren't saved
+  //delete unread + unsaved items for that source
   await query(
     `DELETE FROM user_item_metadata 
      WHERE user_id = $1 
-       AND item_id IN (SELECT item_id FROM item WHERE source_id = $2) 
+       AND item_id IN (SELECT item_id FROM item WHERE source_id = $2)
        AND read_time IS NULL 
        AND is_save IS FALSE`,
     [userId, sourceId]
   );
 
-  // Fix all priorities
+  //fix priorities
   if (removedPriority !== null) {
     await query(
-      `UPDATE user_source 
+      `UPDATE ${table}
        SET priority = priority - 1 
-       WHERE user_id = $1 
-         AND priority > $2`,
+       WHERE user_id = $1 AND priority > $2`,
       [userId, removedPriority]
     );
   }
 
-  // If no users are still subscribed to the source and no metadata exists, delete the source
-  const stillUsedSource = await query(
-    `SELECT 1 FROM user_source WHERE source_id = $1 LIMIT 1`,
+  //check if the source is still used or has metadata
+  const stillUsed = await query(
+    `SELECT 1 FROM ${table} WHERE ${idColumn} = $1 LIMIT 1`,
     [sourceId]
   );
   const metadataExists = await query(
-    `SELECT 1 FROM user_item_metadata uim 
-     INNER JOIN item i ON uim.item_id = i.item_id 
+    `SELECT 1 FROM user_item_metadata uim
+     INNER JOIN item i ON uim.item_id = i.item_id
      WHERE i.source_id = $1 LIMIT 1`,
     [sourceId]
   );
 
-  if (stillUsedSource.rowCount === 0 && metadataExists.rowCount === 0) {
-    await query(
-      `DELETE FROM source WHERE source_id = $1`,
-      [sourceId]
-    );
-    logAction(`Deleted source that no users are subscribed to: Source=${sourceId}`);
+  if (stillUsed.rowCount === 0 && metadataExists.rowCount === 0) {
+    await query(`DELETE FROM source WHERE source_id = $1`, [sourceId]);
+    logAction(`Deleted ${feedType} source not used by any user: Source=${sourceId}`);
   }
 
-  // Get all sources of the user
+  //return updated list
   const sourcesResult = await query<AllUserSources>(
-    `SELECT source_id, priority FROM user_source WHERE user_id = $1 ORDER BY priority ASC`,
+    `SELECT ${idColumn} AS source_id, priority FROM ${table} WHERE user_id = $1 ORDER BY priority ASC`,
     [userId]
   );
 
-  logAction(`Updated list of sources after removal of a source: User=${userId} Source=${sourceId}`);
+  logAction(`Removed ${feedType} source: User=${userId} Source=${sourceId}`);
   return sourcesResult.rows;
 };
 
-interface UserSources {
+
+interface UserRSSSources {
     source_id: number;
     source_name: string;
     url: string;
 }
 
 //get all the sources for a user
-
-
-const allUserSources = async (userId: number): Promise<UserSources[]> => {
-    const result: QueryResult<UserSources> = await query(
+const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
+    const result: QueryResult<UserRSSSources> = await query(
         `SELECT s.source_id, s.source_name, s.url FROM user_source us
         JOIN source s ON s.source_id = us.source_id
         WHERE us.user_id = $1
@@ -339,6 +390,33 @@ const allUserSources = async (userId: number): Promise<UserSources[]> => {
   return sourcesWithLogos;
 };
 
+
+interface UserPodcastSources {
+    source_id: number;
+    source_name: string;
+    url: string;
+}
+
+const allUserPodcastSources = async (userId: number): Promise<UserPodcastSources[]> => {
+    const result: QueryResult<UserPodcastSources> = await query(
+        `SELECT s.source_id, s.source_name, s.url FROM user_podcast up
+        JOIN source s ON s.source_id = up.podcast_id
+        WHERE up.user_id = $1
+        ORDER BY up.priority ASC`, [userId]
+    ); 
+    logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
+    const sourcesWithLogos = await Promise.all(
+    result.rows.map(async (source) => {
+      const logo = await getLogo(source.url);
+      return { ...source, logo_url: logo };
+    })
+  );
+
+  return sourcesWithLogos;
+};
+
+
+
 // const allUserSources = async (userId: number): Promise<UserSources[]> => {
 //     const result: QueryResult<UserSources> = await query(
 //         `SELECT s.source_id, s.source_name FROM user_source us
@@ -352,6 +430,7 @@ const allUserSources = async (userId: number): Promise<UserSources[]> => {
 
 interface InsertedItem {
   item_id: number;
+  title: string;
 }
 
 export interface AddItemResult {
@@ -360,6 +439,9 @@ export interface AddItemResult {
 }
 
 //add an item into the item table
+// const limit = pLimit(5);  //limit to 5 concurrent AI category calls
+
+
 const addItem = async (sourceId: number, items:{
   link: string;
   title: string;
@@ -391,6 +473,12 @@ const addItem = async (sourceId: number, items:{
   return { insertCount, insertedIds };
 };
 
+interface Category {
+  name: string;
+  color: string;
+}
+
+
 interface Items{
     item_id: number;
     title: string;
@@ -398,65 +486,276 @@ interface Items{
     description: string;
     pub_date: string | Date;
     source_name: string;
+    categories: Category[];
+    is_categorized: boolean;
 }
 
 interface FeedItems extends Items {
   is_save: boolean;
 }
 
-//get all unread items sorted by priority
-const userFeedItems = async (userId: number): Promise<Items[]> => {
-  const result: QueryResult<Items> = await query(
-    `SELECT 
-        i.item_id, i.title, i.link, i.description, i.pub_date, i.source_id, s.source_name,
-        COALESCE(uim.is_save, false) AS is_save      --“If uim.is_save is not null, use its value. If it is null, use false instead.”
-     FROM item i
-     INNER JOIN source s ON i.source_id = s.source_id
-     INNER JOIN user_source us ON us.source_id = i.source_id
-     LEFT JOIN user_item_metadata uim
-       ON uim.item_id = i.item_id AND uim.user_id = us.user_id AND uim.read_time IS NULL
-     WHERE us.user_id = $1
-       AND i.pub_date >= NOW() - interval '2 days'
-     ORDER BY us.priority, i.pub_date DESC`,
-    [userId]
-  );
+
+//get all unread items of all sources
+const userFeedItems = async (userId: number, feedType: "rss" | "podcast" = "rss"): Promise<FeedItems[]> => {
+  const interval = feedType === "podcast" ? "6 months" : "2 days";
+  const table = feedType === "podcast" ? "user_podcast" : "user_source";
+
+  const baseQuery = `SELECT 
+      i.item_id,
+      i.title,
+      i.link,
+      i.description,
+      i.pub_date,
+      i.source_id,
+      s.source_name,
+      s.feed_type,
+      COALESCE(uim.is_save, false) AS is_save,
+      i.is_categorized,
+      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
+           FILTER (WHERE c.name IS NOT NULL), '[]') AS categories    FROM item i
+    INNER JOIN source s ON i.source_id = s.source_id
+    INNER JOIN ${table} us ON us.${feedType === "podcast" ? "podcast_id" : "source_id"} = i.source_id
+    LEFT JOIN user_item_metadata uim
+      ON uim.item_id = i.item_id AND uim.user_id = us.user_id
+    LEFT JOIN item_category ic ON i.item_id = ic.item_id
+    LEFT JOIN category c ON ic.category_id = c.category_id
+    WHERE us.user_id = $1
+      AND i.pub_date >= NOW() - interval '${interval}'
+      AND (uim.read_time IS NULL)
+    ${feedType ? "AND s.feed_type = $2" : ""}
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save
+    ORDER BY us.priority, i.pub_date DESC`;
+
+  const params = feedType ? [userId, feedType] : [userId];
+  const result = await query(baseQuery, params);
+  console.log(
+  "CATEGORY TEST → FULL CATEGORIES:",
+  JSON.stringify(
+    result.rows.map(r => ({
+      item_id: r.item_id,
+      categories: r.categories
+    })),
+    null,
+    2
+  )
+);
+  const uncategorized = result.rows.filter(item => !item.is_categorized);
+
+  for (const item of uncategorized) {
+    await categorizeItem(item.item_id, item.title);
+    await query(`UPDATE item SET is_categorized = true WHERE item_id = $1`, [item.item_id]);
+  }
+  if (uncategorized.length > 0) {
+  // re-run query to include newly added categories
+  const refreshed = await query(baseQuery, params);
+  return refreshed.rows;
+}
   return result.rows;
 };
+
+const getItemsByCategory = async (userId: number, categoryName: string, feedType: "rss" | "podcast" = "rss"): Promise<Items[]> => {
+  const interval = feedType === "podcast" ? "6 months" : "2 days";
+  const table = feedType === "podcast" ? "user_podcast" : "user_source";
+  const joinKey = feedType === "podcast" ? "podcast_id" : "source_id";
+
+  const baseQuery = `
+    SELECT 
+      i.item_id,
+      i.title,
+      i.link,
+      i.description,
+      i.pub_date,
+      i.source_id,
+      s.source_name,
+      s.feed_type,
+      COALESCE(uim.is_save, false) AS is_save,
+      i.is_categorized,
+      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
+           FILTER (WHERE c.name IS NOT NULL), '[]') AS categories    
+           FROM item i
+    INNER JOIN source s ON i.source_id = s.source_id
+    INNER JOIN ${table} us ON us.${joinKey} = i.source_id
+    LEFT JOIN user_item_metadata uim 
+      ON uim.item_id = i.item_id AND uim.user_id = us.user_id
+    LEFT JOIN item_category ic ON ic.item_id = i.item_id
+    LEFT JOIN category c ON ic.category_id = c.category_id
+    WHERE us.user_id = $1
+      AND i.pub_date >= NOW() - interval '${interval}'
+      AND c.name = $2
+      AND s.feed_type = $3
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
+    ORDER BY us.priority, i.pub_date DESC;
+  `;
+
+  const params = [userId, categoryName, feedType];
+  const result = await query(baseQuery, params);
+
+  // Auto-categorize any uncategorized items safely
+  for (const item of result.rows.filter((i) => !i.is_categorized)) {
+    try {
+      await categorizeItem(item.item_id, item.title, item.description);
+    } catch (err) {
+      console.error(`Failed to categorize item ${item.item_id}:`, err);
+    }
+  }
+
+  return result.rows;
+};
+
+
+
+const getSavedItemsByCategory = async (
+  userId: number,
+  categoryName: string,
+  feedType?: "rss" | "podcast"
+): Promise<Items[]> => {
+  const baseQuery = `
+    SELECT 
+      s.source_name,
+      s.feed_type,
+      i.item_id,
+      i.title,
+      i.link,
+      i.description,
+      i.pub_date,
+      i.is_categorized,
+      COALESCE(
+        json_agg(
+          DISTINCT jsonb_build_object('name', c.name, 'color', c.color)
+        ) FILTER (WHERE c.name IS NOT NULL),
+      '[]') AS categories
+    FROM user_item_metadata uim
+    JOIN item i ON uim.item_id = i.item_id
+    JOIN source s ON i.source_id = s.source_id
+    LEFT JOIN item_category ic ON i.item_id = ic.item_id
+    LEFT JOIN category c ON ic.category_id = c.category_id
+    WHERE uim.user_id = $1
+      AND uim.is_save = TRUE
+      AND c.name = $2
+      ${feedType ? "AND s.feed_type = $3" : ""}
+    GROUP BY i.item_id, s.source_name, s.feed_type, i.is_categorized
+    ORDER BY i.pub_date DESC
+  `;
+
+  const params = feedType ? [userId, categoryName, feedType] : [userId, categoryName];
+  const result = await query(baseQuery, params);
+
+  // Auto-categorize uncategorized saved items
+  const uncategorized = result.rows.filter(item => !item.is_categorized);
+  for (const item of uncategorized) {
+    try {
+      await categorizeItem(item.item_id, item.title, item.description);
+    } catch (err) {
+      console.error(`Error categorizing saved item ${item.item_id}:`, err);
+    }
+  }
+
+  return result.rows;
+};
+
 
 
 
 interface FolderItems extends Items {
     source_id: number;
     is_save: boolean;
+    
 }
 
-//get all unread items for a folder for a user
+
 const folderItems = async (userId: number, folderId: number): Promise<FolderItems[]> => {
-  const result: QueryResult<FolderItems> = await query(
-    `SELECT i.item_id, i.title, i.link, i.description, i.pub_date, s.source_id, s.source_name,
-      COALESCE(uim.is_save, false) AS is_save
-     FROM item i
-     INNER JOIN source s 
-        ON i.source_id = s.source_id
-     INNER JOIN user_source_folder usf 
-        ON usf.source_id = s.source_id 
-        AND usf.user_id = $1 
-        AND usf.folder_id = $2
-     INNER JOIN user_source us 
-        ON us.user_id = $1 
-        AND us.source_id = s.source_id
-     LEFT JOIN user_item_metadata uim 
-        ON uim.user_id = $1 
-        AND uim.item_id = i.item_id
-     WHERE i.pub_date >= NOW() - interval '2 days'
-       AND (uim.read_time IS NULL)
-     ORDER BY us.priority, i.pub_date DESC`,
-    [userId, folderId]
-  );
+const baseQuery = `SELECT 
+      i.item_id,
+      i.title,
+      i.link,
+      i.description,
+      i.pub_date,
+      s.source_id,
+      s.source_name,
+      i.is_categorized,
+      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
+           FILTER (WHERE c.name IS NOT NULL), '[]') AS categories    
+      FROM item i
+    INNER JOIN source s 
+      ON i.source_id = s.source_id
+    INNER JOIN user_source_folder usf 
+      ON usf.source_id = s.source_id 
+      AND usf.user_id = $1 
+      AND usf.folder_id = $2
+    INNER JOIN user_source us 
+      ON us.user_id = $1 
+      AND us.source_id = s.source_id
+    LEFT JOIN user_item_metadata uim 
+      ON uim.user_id = $1 
+      AND uim.item_id = i.item_id
+    LEFT JOIN item_category ic ON i.item_id = ic.item_id
+    LEFT JOIN category c ON ic.category_id = c.category_id
+    WHERE i.pub_date >= NOW() - interval '2 days'
+      AND (uim.read_time IS NULL)
+    GROUP BY i.item_id, s.source_name, s.source_id, us.priority, uim.is_save, i.is_categorized
+    ORDER BY us.priority, i.pub_date DESC`;
+
+  const params = [userId, folderId];
+  const result: QueryResult<FolderItems> = await query(baseQuery, params);
+  // Categorize items that aren’t categorized yet
+  const uncategorized = result.rows.filter(item => !item.is_categorized);
+  if (uncategorized.length) {
+    for (const item of uncategorized) {
+      try {
+        await categorizeItem(item.item_id, item.title, item.description); 
+      } catch (err) {
+        console.error(`Error categorizing item ${item.item_id}:`, err);
+      }
+    }
+    const refreshed = await query(baseQuery, params);
+    logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${refreshed.rows.length} (refreshed after categorization)`);
+    return refreshed.rows;
+  }
 
   logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${result.rows.length}`);
   return result.rows;
 };
+
+
+
+// //get all unread items for a folder for a user
+// const folderItems = async (userId: number, folderId: number): Promise<FolderItems[]> => {
+//   const result: QueryResult<FolderItems> = await query(
+//     `SELECT 
+//       i.item_id,
+//       i.title,
+//       i.link,
+//       i.description,
+//       i.pub_date,
+//       s.source_id,
+//       s.source_name,
+//       COALESCE(uim.is_save, false) AS is_save,
+//       COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') AS categories
+//     FROM item i
+//     INNER JOIN source s 
+//       ON i.source_id = s.source_id
+//     INNER JOIN user_source_folder usf 
+//       ON usf.source_id = s.source_id 
+//       AND usf.user_id = $1 
+//       AND usf.folder_id = $2
+//     INNER JOIN user_source us 
+//       ON us.user_id = $1 
+//       AND us.source_id = s.source_id
+//     LEFT JOIN user_item_metadata uim 
+//       ON uim.user_id = $1 
+//       AND uim.item_id = i.item_id
+//     LEFT JOIN item_category ic ON i.item_id = ic.item_id
+//     LEFT JOIN category c ON ic.category_id = c.category_id
+//     WHERE i.pub_date >= NOW() - interval '2 days'
+//       AND (uim.read_time IS NULL)
+//     GROUP BY i.item_id, s.source_name, s.source_id, us.priority, uim.is_save
+//     ORDER BY us.priority, i.pub_date DESC`, [userId, folderId]
+//   );
+
+//   logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${result.rows.length}`);
+//   return result.rows;
+// };
+
 
 
 interface AddSourceToFolder extends Omit<Folder, 'name'> {
@@ -544,21 +843,28 @@ interface MarkRead extends MarkReadRow {
 
 //mark an item as read
 //handles both “insert if missing” and “update if exists” in one query.
-const markItemRead = async (userId: number, itemId: number): Promise<MarkRead> => {
-    const insertResult: QueryResult<MarkReadRow> = await query(
-        `INSERT INTO user_item_metadata (user_id, item_id, read_time)
-        VALUES($1, $2, NOW())
-        ON CONFLICT (user_id, item_id) DO UPDATE
-            SET read_time = EXCLUDED.read_time --overwrite old timestamp if a row already exists
-        RETURNING user_id, item_id, read_time`, [userId, itemId]
-    );
-    const markedItem = getFirstRow(insertResult);
-    logAction(`Marked item as read: User=${userId} Item=${itemId}`);
+const markItemRead = async (userId: number,itemId: number, feedType: "rss" | "podcast" = "rss"): Promise<MarkRead & { feed_type: "rss" | "podcast" }> => {
+  const insertResult: QueryResult<MarkReadRow> = await query(
+    `INSERT INTO user_item_metadata (user_id, item_id, read_time)
+    VALUES ($1, $2, NOW())
+    ON CONFLICT (user_id, item_id) DO UPDATE
+      SET read_time = EXCLUDED.read_time
+    RETURNING user_id, item_id, read_time`,
+    [userId, itemId]
+  );
 
-    if (!markedItem) 
-        return { user_id: userId, item_id: itemId, read: false };
-    return { ...markedItem, read: true }; 
+  const markedItem = getFirstRow(insertResult);
+
+  // feedType is already provided, so no need for another query
+  logAction(`Marked ${feedType} item as read: User=${userId} Item=${itemId}`);
+
+  if (!markedItem)
+    return { user_id: userId, item_id: itemId, read: false, feed_type: feedType };
+
+  return { ...markedItem, read: true, feed_type: feedType };
 };
+
+
 
 interface ReadItems {
     readCount: number | null;
@@ -566,21 +872,31 @@ interface ReadItems {
 
 //mark all unread items of all sources read
 //Handles both “insert if missing” and “update if exists” in one query.
-const markuserFeedItemsRead = async (userId: number): Promise<ReadItems> => {
+const markUserFeedItemsRead = async (userId: number, feedType: "rss" | "podcast" = "rss"): Promise<ReadItems> => {
+  const table = feedType === "podcast" ? "user_podcast" : "user_source";
+  const idColumn = feedType === "podcast" ? "podcast_id" : "source_id";
+  const interval = feedType === "podcast" ? "6 months" : "2 days";
+
   const result = await query(
     `INSERT INTO user_item_metadata (user_id, item_id, read_time)
-     SELECT $1, i.item_id, NOW()
-     FROM item i
-     JOIN user_source us ON us.source_id = i.source_id
-     WHERE us.user_id = $1
-       AND i.pub_date >= NOW() - interval '2 days'
-     ON CONFLICT (user_id, item_id) DO UPDATE SET read_time = EXCLUDED.read_time
-     RETURNING user_id, item_id, read_time`,
+    SELECT $1, i.item_id, NOW()
+    FROM item i
+    JOIN ${table} us ON us.${idColumn} = i.source_id
+    WHERE us.user_id = $1
+      AND i.pub_date >= NOW() - interval '${interval}'
+    ON CONFLICT (user_id, item_id)
+      DO UPDATE SET read_time = EXCLUDED.read_time
+    RETURNING user_id, item_id, read_time`,
     [userId]
   );
-  logAction(`Marked items as read: User=${userId} itemCount=${result.rowCount}`);
+
+  logAction(
+    `Marked ${feedType} items as read: User=${userId} itemCount=${result.rowCount}`
+  );
+
   return { readCount: result.rowCount };
 };
+
 
 const markFolderItemsRead = async (userId: number, folderId: number): Promise<ReadItems> => {
   const result = await query(
@@ -614,20 +930,24 @@ interface Save {
 
 //save or unsave an item
 //Handles both “insert if missing” and “update if exists” in one query
-const saveItem = async (userId: number, itemId: number, save: boolean): Promise<Save> => {
-    const insertResult: QueryResult<Save> = await query(
-        `INSERT INTO user_item_metadata (user_id, item_id, is_save)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (user_id, item_id) DO UPDATE
-            SET is_save = EXCLUDED.is_save
-        RETURNING user_id, item_id, is_save`, [userId, itemId, save]
-    );
-    const savedRow = getFirstRow(insertResult) as  Save | undefined;
-    logAction(`Saved/unsaved item: User=${userId} Item=${itemId} Save=${!!save}`);
-    if (!savedRow) 
-        return { user_id: userId, item_id: itemId, is_save: false };
-    return savedRow;
-  };
+const saveItem = async (userId: number,itemId: number,save: boolean, feedType: "rss" | "podcast" = "rss"): Promise<Save & { feed_type: "rss" | "podcast" }> => {
+  const insertResult: QueryResult<Save> = await query(
+    `INSERT INTO user_item_metadata (user_id, item_id, is_save)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, item_id) DO UPDATE
+       SET is_save = EXCLUDED.is_save
+     RETURNING user_id, item_id, is_save`,
+    [userId, itemId, save]
+  );
+
+  const savedItem = getFirstRow(insertResult);
+  logAction(`Saved/unsaved ${feedType} item: User=${userId} Item=${itemId} Save=${!!save}`);
+  if (!savedItem)
+    return { user_id: userId, item_id: itemId, is_save: save, feed_type: feedType };
+
+  return { ...savedItem, feed_type: feedType };
+};
+
 
 
 //get all items published in the past 2 days
@@ -643,67 +963,156 @@ const getRecentItems = async (sourceId: number, days = 2): Promise<number[]> => 
 };
 
 //get all saved items for a user
-const allSavedItems = async (userId: number): Promise<Items[]> => {
-    const result: QueryResult<Items> = await query(
-        `SELECT s.source_name, i.item_id, i.title, i.link, i.description, i.pub_date
-        FROM user_item_metadata uim
-        JOIN item i ON uim.item_id = i.item_id
-        JOIN source s ON i.source_id = s.source_id
-        WHERE uim.is_save = TRUE
-        AND uim.user_id = $1
-        ORDER BY i.pub_date DESC`, [userId]
-    );
-    logAction(`Saved items: User=${userId} itemCount=${result.rows.length}`);
-    return result.rows;
+const allSavedItems = async (userId: number, feedType?: "podcast" | "rss" | string): Promise<Items[]> => {
+  const baseQuery = `
+    SELECT 
+      s.source_name, 
+      s.feed_type,
+      i.item_id, 
+      i.title, 
+      i.link, 
+      i.description, 
+      i.pub_date,
+      i.is_categorized,
+      COALESCE(
+        json_agg(
+          DISTINCT jsonb_build_object(
+            'name', c.name,
+            'color', c.color
+          )
+        ) FILTER (WHERE c.name IS NOT NULL),
+        '[]'
+      ) AS categories
+    FROM user_item_metadata uim
+    JOIN item i ON uim.item_id = i.item_id
+    JOIN source s ON i.source_id = s.source_id
+    LEFT JOIN item_category ic ON i.item_id = ic.item_id
+    LEFT JOIN category c ON ic.category_id = c.category_id
+    WHERE uim.is_save = TRUE
+      AND uim.user_id = $1
+      ${feedType ? "AND s.feed_type = $2" : ""}
+    GROUP BY i.item_id, s.source_name, s.feed_type, i.is_categorized
+    ORDER BY i.pub_date DESC
+  `;
+
+
+  const params = feedType ? [userId, feedType] : [userId];
+  const result: QueryResult<Items> = await query(baseQuery, params);
+
+  // Find items not yet categorized
+  const uncategorized = result.rows.filter(item => !item.is_categorized);
+  if (uncategorized.length > 0) {
+    for (const item of uncategorized) {
+      try {
+        await categorizeItem(item.item_id, item.title, item.description);
+      } catch (err) {
+        console.error(`Error categorizing saved item ${item.item_id}:`, err);
+      }
+    }
+    const refreshed = await query(baseQuery, params);
+    logAction(`Saved items: User=${userId} feedType=${feedType || "all"} itemCount=${refreshed.rows.length} (refreshed after categorization)`);
+    return refreshed.rows;
+  }
+
+  logAction(
+    `Saved items: User=${userId} feedType=${feedType || "all"} itemCount=${result.rows.length}`
+  );
+  return result.rows;
 };
+
+// const allSavedItems = async (userId: number, feedType?: "podcast" | "rss" | string): Promise<Items[]> => {
+//   const baseQuery = `SELECT 
+//       s.source_name, 
+//       s.feed_type,
+//       i.item_id, 
+//       i.title, 
+//       i.link, 
+//       i.description, 
+//       i.pub_date,
+//       COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') AS categories
+//     FROM user_item_metadata uim
+//     JOIN item i ON uim.item_id = i.item_id
+//     JOIN source s ON i.source_id = s.source_id
+//     LEFT JOIN item_category ic ON i.item_id = ic.item_id
+//     LEFT JOIN category c ON ic.category_id = c.category_id
+//     WHERE uim.is_save = TRUE
+//       AND uim.user_id = $1
+//     ${feedType ? "AND s.feed_type = $2" : ""}
+//     GROUP BY i.item_id, s.source_name, s.feed_type
+//     ORDER BY i.pub_date DESC`;
+
+//   const params = feedType ? [userId, feedType] : [userId];
+//   const result: QueryResult<Items> = await query(baseQuery, params);
+
+//   logAction(
+//     `Saved items: User=${userId} feedType=${feedType || "all"} itemCount=${result.rows.length}`
+//   );
+//   return result.rows;
+// };
+
+
 
 interface SourceWithPriority extends Source {
   priority: number;
 }
 
 //get all sources for a user ordered by priority
-const sourcePriority = async (userId: number): Promise<SourceWithPriority[]> => {
-    const result: QueryResult<SourceWithPriority>  = await query(
-        `SELECT us.source_id, us.priority, s.source_name
-        FROM user_source us
-        JOIN source s ON us.source_id = s.source_id
-        WHERE us.user_id = $1
-        ORDER BY priority ASC`, [userId]
-    );
-    logAction(`Source priorities: User=${userId} sourceCount=${result.rows.length}`);
-    return result.rows;
+const sourcePriority = async (userId: number, feedType?: string): Promise<SourceWithPriority[]> => {
+  // Decide which table to use based on feed type
+  const table = feedType === "podcast" ? "user_podcast" : "user_source";
+
+  const result: QueryResult<SourceWithPriority> = await query(
+    `
+    SELECT us.${feedType === "podcast" ? "podcast_id" : "source_id"} AS source_id,
+           us.priority,
+           s.source_name
+    FROM ${table} us
+    JOIN source s ON us.${feedType === "podcast" ? "podcast_id" : "source_id"} = s.source_id
+    WHERE us.user_id = $1
+    ORDER BY us.priority ASC
+    `,
+    [userId]
+  );
+
+  logAction(
+    `Source priorities (${feedType || "all"}): User=${userId} count=${result.rows.length}`
+  );
+
+  return result.rows;
 };
+
 
 export interface SourcePriorityUpdate {
   source_id: number;
   priority: number;
 }
 
-const updateSourcePriorities = async (
-  userId: number,
-  sources: SourcePriorityUpdate[]
-): Promise<void> => {
+const updateSourcePriorities = async (userId: number, sources: SourcePriorityUpdate[], feedType: "podcast" | "rss" = "rss"): Promise<void> => {
   if (!sources.length) return;
+
+  const table = feedType === "podcast" ? "user_podcast" : "user_source";
+  const idColumn = feedType === "podcast" ? "podcast_id" : "source_id";
 
   const client = await (await import("../config/db")).default.connect();
   try {
     await client.query("BEGIN");
+    await client.query(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
 
-    // Delete all user's sources
-    await client.query(`DELETE FROM user_source WHERE user_id = $1`, [userId]);
-
-    // Re-insert in new priority order
+    //re-insert in new priority order
     for (const s of sources) {
       await client.query(
-        `INSERT INTO user_source(user_id, source_id, priority) VALUES ($1, $2, $3)`,
+        `INSERT INTO ${table}(user_id, ${idColumn}, priority) VALUES ($1, $2, $3)`,
         [userId, s.source_id, s.priority]
       );
     }
 
     await client.query("COMMIT");
+    console.info(
+      `INFO: Updated ${feedType} priorities for user ${userId} (count=${sources.length}).`
+    );
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("Failed to update source priorities:", err);
+    console.error(`Failed to update ${feedType} priorities:`, err);
     throw err;
   } finally {
     client.release();
@@ -711,27 +1120,75 @@ const updateSourcePriorities = async (
 };
 
 
+
 interface AllReadItems extends Items {
   read_time: string | Date;
 }
 
 //get all read items of a user
-const readItems = async (userId: number): Promise<AllReadItems[]> => {
-    const result: QueryResult<AllReadItems> = await query (
-        `SELECT s.source_name, i.item_id, i.title, i.link, i.description, i.pub_date, uim.read_time
-        FROM user_item_metadata uim
-        JOIN item i ON uim.item_id = i.item_id
-        JOIN source s ON i.source_id = s.source_id
-        WHERE uim.read_time IS NOT NULL
-        AND uim.user_id = $1
-        ORDER BY i.pub_date DESC`, [userId]
-    );
-    logAction(`Read items: User=${userId} itemCount=${result.rows.length}`);
-    return result.rows;
+const readItems = async (userId: number, feedType?: "rss" | "podcast"): Promise<AllReadItems[]> => {
+  const baseQuery = `
+    SELECT 
+      s.source_name,
+      s.feed_type,
+      i.item_id,
+      i.title,
+      i.link,
+      i.description,
+      i.pub_date,
+      i.is_categorized,
+      uim.read_time,
+      COALESCE(
+        json_agg(
+          DISTINCT jsonb_build_object(
+            'name', c.name,
+            'color', c.color
+          )
+        ) FILTER (WHERE c.name IS NOT NULL),
+        '[]'
+      ) AS categories
+    FROM user_item_metadata uim
+    JOIN item i ON uim.item_id = i.item_id
+    JOIN source s ON i.source_id = s.source_id
+    LEFT JOIN item_category ic ON i.item_id = ic.item_id
+    LEFT JOIN category c ON ic.category_id = c.category_id
+    WHERE uim.read_time IS NOT NULL
+      AND uim.user_id = $1
+      ${feedType ? "AND s.feed_type = $2" : ""}
+    GROUP BY i.item_id, s.source_name, s.feed_type, uim.read_time, i.is_categorized
+    ORDER BY i.pub_date DESC
+  `;
+
+  const params = feedType ? [userId, feedType] : [userId];
+  const result: QueryResult<AllReadItems> = await query(baseQuery, params);
+
+  // Only categorize uncategorized items
+  const uncategorized = result.rows.filter(item => !item.is_categorized);
+  if (uncategorized.length) {
+    for (const item of uncategorized) {
+      try {
+        await categorizeItem(item.item_id, item.title, item.description);
+      } catch (err) {
+        console.error(`Error categorizing read item ${item.item_id}:`, err);
+      }
+    }
+    const refreshed = await query(baseQuery, params);
+    logAction(`Saved items: User=${userId} feedType=${feedType || "all"} itemCount=${refreshed.rows.length} (refreshed after categorization)`);
+    return refreshed.rows;
+  }
+
+  logAction(
+    `Read items: User=${userId} feedType=${feedType || "all"} itemCount=${result.rows.length}`
+  );
+  return result.rows;
 };
 
-export { addUser, createFolder, renameFolder, addSource, addUserSource, addItem, 
+
+
+
+
+export { addUser, createFolder, renameFolder, addSource, addUserSource, addUserPodcast, addItem, 
 userFeedItems, addSourceIntoFolder, folderItems, markItemRead, saveItem,
-markuserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder, 
-allUserSources, getUserFolders, allSavedItems, sourcePriority, updateSourcePriorities, readItems, addUserItemMetadata,
-getRecentItems };
+markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder,
+getUserFolders, allSavedItems, sourcePriority, updateSourcePriorities, readItems, addUserItemMetadata,
+getRecentItems, getItemsByCategory, getSavedItemsByCategory, allUserPodcastSources, allUserRSSSources };

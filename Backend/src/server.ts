@@ -35,6 +35,50 @@
 //Website URLs that do not work: naukri, https://highonscore.com, vijayakarnataka, espn, nat geo, india today, bbc, cnn, vogue.com, forbes, hindustan times
 
 
+/*PODCAST URLS:
+Dan Carlin’s Hardcore History:
+https://feeds.feedburner.com/dancarlin/history?format=xml​
+
+Lore:
+https://feeds.megaphone.fm/lore​
+
+Revisionist History:
+https://feeds.megaphone.fm/revisionisthistory​
+
+Throughline (NPR):
+https://feeds.npr.org/510333/podcast.xml​
+
+You Must Remember This:    ///
+https://feeds.megaphone.fm/YMRT7068253588​
+
+The Memory Palace:
+http://feeds.thememorypalace.us/thememorypalace​
+
+The Joe Rogan Experience:
+https://joeroganexp.joerogan.libsynpro.com/rss​
+
+The Daily (The New York Times):
+https://feeds.simplecast.com/54nAGcIl​
+
+Crime Junkie:
+https://feeds.simplecast.com/qm_9xx0g​
+
+Call Her Daddy:
+https://rss.art19.com/call-her-daddy​
+
+This Past Weekend with Theo Von:
+https://rss.art19.com/this-past-weekend​
+
+Dateline NBC:
+https://feeds.megaphone.fm/dateline​
+
+My Favorite Murder:
+https://feeds.megaphone.fm/WWO8086402096​
+*/
+
+
+
+
 // STRING MATCHING: https://www.npmjs.com/package/string-similarity-js
 
 
@@ -58,48 +102,61 @@ app.use(express.json());
 
 app.use(loggingHandler);
 
+app.use("/", router);
+
+app.use(routeNotFound);
+
+//Error handler
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
+
+app.listen(PORT, () => console.log('Server running on port ' + PORT));
+
+
+
 // import { categorizeArticle } from "../src/utils/categorizer";
 
 // (async () => {
-//   const title = "NASA discovers new exoplanet";
+//   const title = "Catherine Paiz: My Husband Cheated with 20 Women (Full Episode)";
 //     const category = await categorizeArticle(title);
 //     console.log(`"${title}" → ${category}`);
 // })();
 
 
 //FINAL PODCAST PACKAGE
-import getPodcastFromFeed from "podparse";
+// import getPodcastFromFeed from "podparse";
 
-const FEED_URL = "https://feeds.megaphone.fm/YMRT7068253588"; // replace with your feed
-const PROXY = "https://api.allorigins.win/raw?url=" + encodeURIComponent(FEED_URL);
+// const FEED_URL = "https://feeds.megaphone.fm/YMRT7068253588"; // replace with your feed
 
-async function run() {
-  try {
-    const response = await fetch(FEED_URL , {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Node.js; RSS Parser Test)"
-  }});
-    // const response = await fetch(PROXY);
-    const xml = await response.text();
+// async function run() {
+//   try {
+//     const response = await fetch(FEED_URL , {
+//       headers: {
+//         "User-Agent": "Mozilla/5.0 (Node.js; RSS Parser Test)"
+//   }});
+//     // const response = await fetch(PROXY);
+//     const xml = await response.text();
 
-    const podcast = getPodcastFromFeed(xml);
+//     const podcast = getPodcastFromFeed(xml);
 
-    console.log("🎧 Podcast title:", podcast.meta.title);
-    console.log("Number of episodes:", podcast.episodes.length);
+//     console.log("Podcast title:", podcast.meta.title);
+//     console.log("Number of episodes:", podcast.episodes.length);
 
-    podcast.episodes.slice(0, 9).forEach((ep, i) => {
-      console.log(`${i + 1}. ${ep.title}`);
-      console.log(`${i + 1}. ${ep.link}`);
+//     podcast.episodes.slice(0, 9).forEach((ep, i) => {
+//       console.log(`${i + 1}. ${ep.title}`);
+//       console.log(`${i + 1}. ${ep.link}`);
 
       
 
-    });
-  } catch (err) {
-    console.error("❌ Error parsing podcast feed:", err);
-  }
-}
+//     });
+//   } catch (err) {
+//     console.error("Error parsing podcast feed:", err);
+//   }
+// }
 
-run();
+// run();
 
 
 
@@ -327,18 +384,6 @@ run();
 // })();
 
 
-
-app.use("/", router);
-
-app.use(routeNotFound);
-
-//Error handler
-app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
-});
-
-app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 
 

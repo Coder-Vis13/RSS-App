@@ -1,114 +1,479 @@
+import { useState, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { allSavedItems, markItemRead, getSavedItemsByCategory } from "../../services/api";
+import { getCategoryPresentation } from "../../lib/categoryColors";
 
-import { useState, useEffect } from "react"
-// import { X } from "lucide-react"
-import { allSavedItems, markItemRead } from "../../services/api";
-
-
-
-interface SavedItems{
-    item_id: number;
-    title: string;
-    link: string;
-    description: string;
-    pub_date: string | Date;
-    source_name: string;
+interface SavedItems {
+  item_id: number;
+  title: string;
+  link: string;
+  description: string;
+  pub_date: string | Date;
+  source_name: string;
+  categories?: { name: string; color: string }[];
 }
 
 export default function SavedPage() {
-  // const [showBanner, setShowBanner] = useState(true);
-  const [savedItems, setSaveItems] = useState<SavedItems[]>([]);
+  const [savedItems, setSavedItems] = useState<SavedItems[]>([]);
   const [loading, setLoading] = useState(true);
-  const userId = 3;
+  const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [allCategories, setAllCategories] = useState<string[]>([]);
 
+  const userId = 25;
+
+  const noSavedItems = !loading && savedItems.length === 0;
+
+  // Fetch saved items
   useEffect(() => {
-      const fetchSavedItems = async () => {
-        try {
-          const data = await allSavedItems(userId);
-          setSaveItems(data);
-        } catch (err) {
-          console.error("Failed to load saved items:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
-  
-      fetchSavedItems();
-    }, [userId]);
-
-    if (loading) return <p>Loading saved items...</p>;
-    if (savedItems.length === 0) return <p>No items saved yet.</p>;
-
-    const handleMarkAsRead = async (itemId: number) => {
+    const fetchSavedItems = async () => {
+      setLoading(true);
       try {
-        await markItemRead(userId, itemId);
-        setSaveItems((prev) => prev.filter((item) => item.item_id !== itemId));
+        const data = await allSavedItems(userId, feedType);
+        setSavedItems(data);
+
+        const uniqueCategories: string[] = Array.from(
+          new Set(
+            data.flatMap((i: any) =>
+              (i.categories || []).map((c: any) => (c && c.name ? c.name : "Uncategorized"))
+            )
+          )
+        );
+        setAllCategories(uniqueCategories);
       } catch (err) {
-        console.error("Failed to mark as read:", err);
+        console.error("Failed to load saved items:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-     return (
+    fetchSavedItems();
+  }, [userId, feedType]);
+
+  const handleMarkAsRead = async (itemId: number) => {
+    try {
+      await markItemRead(userId, itemId, feedType);
+      setSavedItems((prev) => prev.filter((item) => item.item_id !== itemId));
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
+    }
+  };
+
+  const handleCategorySelect = async (category: string) => {
+    setSelectedCategory(category);
+    setLoading(true);
+    try {
+      if (category === "All") {
+        const allItems = await allSavedItems(userId, feedType);
+        setSavedItems(allItems);
+      } else {
+        const filtered = await getSavedItemsByCategory(userId, category, feedType);
+        setSavedItems(filtered);
+      }
+    } catch (err) {
+      console.error("Failed to fetch saved items by category:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
     <div className="p-6 w-full">
-      {/* Welcome Banner */}
-      {/* {showBanner && (
-        <div className="relative w-full ml-0 bg-[var(--skyblue)] rounded-[var(--radius)] p-6 mb-8">
-          <button
-            onClick={() => setShowBanner(false)}
-            className="absolute top-3 right-3 text-[var(--text)] hover:opacity-70"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <h2 className="text-xl font-semibold mb-2 text-[var(--text)]">
-            Saved
-          </h2>
-          <p className="text-[var(--text)]">
+      {/* If user has no saved items, show only the banner */}
+      {noSavedItems ? (
+        <div className="flex flex-col items-center justify-center w-full mt-10">
+          <img
+      src="/savedImage.png" // replace with your actual image path
+      alt="Empty Saved Items"
+      className="w-80 h-auto mb-6 mt-10" // adjust size as needed
+    />
+    <div className=" w-1/2 bg-[var(--skyblue)] rounded-[var(--radius)] p-6">
+          {/* <h2 className="text-xl font-semibold mb-2 text-[var(--text)]">Saved</h2> */}
+          <p className="text-[var(--text)] text-center">
             Found something worth keeping? Save it to build your personal library right here
           </p>
         </div>
-      )} */}
+        </div>
+      ) : (
+        <section className="mt-0 w-full max-w-full">
+          {/* Header row */}
+          <div className="flex items-center justify-between w-full mb-8">
+            <div className="flex items-center gap-3">
+              {/* Feed type dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-2 text-md hover:bg-transparent hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
+                  >
+                    Saved Items ({savedItems.length})
+                    <ChevronDown className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
 
-      {/*Saved items*/}
-      <section className="mt-0">
-        <h3 className="text-lg font-bold text-[var(--text)] mb-4">Your Saved Items</h3>
+                <DropdownMenuContent align="start" className="bg-white border border-gray-100">
+                  <DropdownMenuItem onClick={() => setFeedType("rss")}>📰 Blogs / Articles</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFeedType("podcast")}>🎧 Podcasts</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-        {loading ? (
-          <p className="text-[var(--text-light)]">Loading saved items...</p>
-        ) : savedItems.length === 0 ? (
-          <p className="text-[var(--text-light)]">No saved items yet.</p>
-        ) : (
-          <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-            {savedItems.map((item) => (
-              <div
-                key={item.item_id}
-                className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
-              >
-                <div className="flex-1 pr-4">
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => handleMarkAsRead(item.item_id)}
-                  className="text-[var(--accent)] hover:underline font-medium"
-                >
-                  {item.title}
-                </a>
-                {item.description && (
-                  <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
-                    {item.description}
-                  </p>
-                )}
-                {item.pub_date && (
-                        <p className="text-xs text-[var(--text-light)] mt-4">
-                          {item.source_name} •{" "}
-                          {new Date(item.pub_date).toLocaleDateString()}
-                        </p>
-                      )}
-                </div>
-              </div>
-            ))}
+              {/* Category dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center text-md font-semibold hover:bg-[var(--light-grey)] hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
+                  >
+                    Category
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="bg-white border border-gray-100 rounded-md shadow-md">
+                  <DropdownMenuItem
+                    onClick={() => handleCategorySelect("All")}
+                    className={`cursor-pointer transition-colors ${
+                      selectedCategory === "All" ? "bg-[var(--navyblue)] text-white" : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+                    }`}
+                  >
+                    All Categories
+                  </DropdownMenuItem>
+                  {allCategories.map((cat) => (
+                    <DropdownMenuItem
+                      key={cat}
+                      onClick={() => handleCategorySelect(cat)}
+                      className={`cursor-pointer transition-colors ${
+                        selectedCategory === cat ? "bg-[var(--navyblue)] text-white" : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+                      }`}
+                    >
+                      {cat}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              Showing: <span className="font-medium text-[var(--accent)]">{feedType === "rss" ? "Blogs / Articles" : "Podcasts"}</span>
+            </p>
           </div>
-        )}
-      </section>
-    </div>
-) }
 
+          {/* Saved items */}
+          {loading ? (
+            <p className="text-[var(--text-light)]">Loading saved items...</p>
+          ) : (
+            <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
+              {savedItems.map((item) => (
+                <div
+                  key={item.item_id}
+                  className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
+                >
+                  <div className="flex-1 pr-4">
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {item.categories?.map((cat) => {
+                        const { className: backendClasses, style: backendStyle } = getCategoryPresentation(cat.color, cat.name);
+                        return (
+                          <span
+                            key={cat.name}
+                            className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
+                            style={backendStyle}
+                          >
+                            {cat.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => handleMarkAsRead(item.item_id)}
+                      className="text-[var(--accent)] hover:underline font-medium"
+                    >
+                      {item.title}
+                    </a>
+                    {item.description && (
+                      <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">{item.description}</p>
+                    )}
+                    {item.pub_date && (
+                      <p className="text-xs text-[var(--text-light)] mt-4">
+                        {item.source_name} • {new Date(item.pub_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { useState, useEffect } from "react";
+// import { ChevronDown } from "lucide-react";
+// import { Button } from "../../components/ui/button";
+// import {
+//   DropdownMenu,
+//   DropdownMenuTrigger,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+// } from "@/components/ui/dropdown-menu";
+// import { allSavedItems, markItemRead, getSavedItemsByCategory } from "../../services/api";
+// import { getCategoryPresentation } from "../../lib/categoryColors";
+// import { X } from "lucide-react"
+
+// interface SavedItems {
+//   item_id: number;
+//   title: string;
+//   link: string;
+//   description: string;
+//   pub_date: string | Date;
+//   source_name: string;
+//   categories?: { name: string; color: string }[];
+// }
+
+// export default function SavedPage() {
+//   const [savedItems, setSavedItems] = useState<SavedItems[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
+//   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+//   const [allCategories, setAllCategories] = useState<string[]>([]);
+//   const [showBanner, setShowBanner] = useState(true);
+
+//   const noSavedItems = !loading && savedItems.length === 0;
+
+//   const userId = 8;
+
+//   useEffect(() => {
+//     const fetchSavedItems = async () => {
+//       setLoading(true);
+//       try {
+//         const data = await allSavedItems(userId, feedType);
+//         setSavedItems(data);
+//         const uniqueCategories: string[] = Array.from(
+//         new Set(
+//           data.flatMap((i: any) =>
+//             (i.categories || []).map((c: any) => (c && c.name ? c.name : "Uncategorized"))
+//           )
+//         )
+//         );
+
+// setAllCategories(uniqueCategories);
+
+//       } catch (err) {
+//         console.error("Failed to load saved items:", err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     fetchSavedItems();
+//   }, [userId, feedType]);
+
+//   const handleMarkAsRead = async (itemId: number) => {
+//     try {
+//       await markItemRead(userId, itemId, feedType);
+//       setSavedItems((prev) => prev.filter((item) => item.item_id !== itemId));
+//     } catch (err) {
+//       console.error("Failed to mark as read:", err);
+//     }
+//   };
+
+//   const handleCategorySelect = async (category: string) => {
+//   setSelectedCategory(category);
+//   setLoading(true);
+
+//   try {
+//     if (category === "All") {
+//       const allItems = await allSavedItems(userId, feedType);
+//       setSavedItems(allItems);
+//     } else {
+//       const filtered = await getSavedItemsByCategory(userId, category, feedType);
+//       setSavedItems(filtered);
+//     }
+//   } catch (err) {
+//     console.error("Failed to fetch saved items by category:", err);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+//   return (
+//     <div className="p-6 w-full">
+      
+//       {/* Welcome Banner */}
+//       {showBanner && (
+//         <div className="relative w-full ml-0 bg-[var(--skyblue)] rounded-[var(--radius)] p-6 mb-8">
+//           <button
+//             onClick={() => setShowBanner(false)}
+//             className="absolute top-3 right-3 text-[var(--text)] hover:opacity-70"
+//           >
+//             <X className="h-5 w-5" />
+//           </button>
+//           <h2 className="text-xl font-semibold mb-2 text-[var(--text)]">
+//             Saved
+//           </h2>
+//           <p className="text-[var(--text)]">
+//             Found something worth keeping? Save it to build your personal library right here
+//           </p>
+//         </div>
+//       )}
+//       <section className="mt-0 w-full max-w-full">
+//         {/* Header row */}
+//         <div className="flex items-center justify-between w-full mb-8">
+//           <div className="flex items-center gap-3">
+//             <DropdownMenu>
+//             <DropdownMenuTrigger asChild>
+//               <Button
+//                 variant="ghost"
+//                 className="flex items-center gap-2 text-md hover:bg-transparent hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
+//               >
+//                 Saved Items
+//                 <ChevronDown className="h-5 w-5" />
+//               </Button>
+//             </DropdownMenuTrigger>
+
+//             <DropdownMenuContent align="start" className="bg-white border border-gray-100">
+//               <DropdownMenuItem onClick={() => setFeedType("rss")}>
+//                 📰 Blogs / Articles
+//               </DropdownMenuItem>
+//               <DropdownMenuItem onClick={() => setFeedType("podcast")}>
+//                 🎧 Podcasts
+//               </DropdownMenuItem>
+//             </DropdownMenuContent>
+//           </DropdownMenu>
+
+//           <DropdownMenu>
+//         <DropdownMenuTrigger asChild>
+//           <Button
+//             variant="ghost"
+//             className="flex items-center text-md font-semibold hover:bg-[var(--light-grey)] hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
+//           >
+//             Category
+//             <ChevronDown className="h-4 w-4" />
+//           </Button>
+//         </DropdownMenuTrigger>
+
+//   <DropdownMenuContent align="start" className="bg-white border border-gray-100 rounded-md shadow-md">
+//     <DropdownMenuItem
+//       onClick={() => handleCategorySelect("All")}
+//       className={`cursor-pointer transition-colors ${
+//         selectedCategory === "All"
+//           ? "bg-[var(--navyblue)] text-white"
+//           : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+//       }`}
+//     >
+//       All Categories
+//     </DropdownMenuItem>
+
+//     {allCategories.map((cat) => (
+//       <DropdownMenuItem
+//         key={cat}
+//         onClick={() => handleCategorySelect(cat)}
+//         className={`cursor-pointer transition-colors ${
+//           selectedCategory === cat
+//             ? "bg-[var(--navyblue)] text-white"
+//             : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+//         }`}
+//       >
+//         {cat}
+//       </DropdownMenuItem>
+//     ))}
+//   </DropdownMenuContent>
+// </DropdownMenu>
+
+//           </div>
+          
+
+
+
+        
+//           <p className="text-sm text-gray-500">
+//             Showing:{" "}
+//             <span className="font-medium text-[var(--accent)]">
+//               {feedType === "rss" ? "Blogs / Articles" : "Podcasts"}
+//             </span>
+//           </p>
+//         </div>
+
+//         {/* Saved Items */}
+//         {loading ? (
+//           <p className="text-[var(--text-light)]">Loading saved items...</p>
+//         ) : savedItems.length === 0 ? (
+//           <p className="text-[var(--text-light)]">No saved items yet.</p>
+//         ) : (
+//           <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
+//             {savedItems.map((item) => (
+//               <div
+//                 key={item.item_id}
+//                 className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
+//               >
+//                 <div className="flex-1 pr-4">
+//                   <div className="flex flex-wrap gap-2 mb-2">
+//                 {item.categories?.map((cat) => {
+//                   const { className: backendClasses, style: backendStyle } =
+//                     getCategoryPresentation(cat.color, cat.name);
+//                   return (
+//                     <span
+//                       key={cat.name}
+//                       className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
+//                       style={backendStyle}
+//                     >
+//                       {cat.name}
+//                     </span>
+//                   );
+//                 })}
+//               </div>
+
+//                   <a
+//                     href={item.link}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     onClick={() => handleMarkAsRead(item.item_id)}
+//                     className="text-[var(--accent)] hover:underline font-medium"
+//                   >
+//                     {item.title}
+//                   </a>
+//                   {item.description && (
+//                     <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
+//                       {item.description}
+//                     </p>
+//                   )}
+//                   {item.pub_date && (
+//                     <p className="text-xs text-[var(--text-light)] mt-4">
+//                       {item.source_name} •{" "}
+//                       {new Date(item.pub_date).toLocaleDateString()}
+//                     </p>
+//                   )}
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </section>
+//     </div>
+//   );
+// }

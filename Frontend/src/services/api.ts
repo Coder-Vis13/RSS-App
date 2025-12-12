@@ -1,76 +1,94 @@
 import { get, post, del, put } from "./apiHelper";
 
-export const addUser = (userName: string, userEmail: string, password: string) =>
-  post("/users/add", { userName, userEmail, password });
+ const addUser = (email: string, supabase_uid: string) =>
+  post("/users/add", { email, supabase_uid });
 
-export const createFolder = async (userId: number, folderName: string) =>
+ const getUserBySupabaseUID = (supabase_uid: string) =>
+  get(`/users/by-supabase-uid/${supabase_uid}`);
+
+ const createFolder = async (userId: number, folderName: string) =>
   post(`users/${userId}/folders`, { folderName });
 
-export const getUserFolders = (userId: number) =>
+ const getUserFolders = (userId: number) =>
   get(`users/${userId}/folders`);
 
-export const deleteFolder = (userId: number, folderId: number) => 
+ const deleteFolder = (userId: number, folderId: number) => 
     del(`/users/${userId}/folders/${folderId}`);
 
-export const renameFolder = (userId: number, folderId: number, name: string) =>
+ const renameFolder = (userId: number, folderId: number, name: string) =>
     put(`/users/${userId}/folders/${folderId}`, { name });
 
-export const addSourceIntoFolder = (userId: number, folderId: number, sourceId: number) =>
+ const addSourceIntoFolder = (userId: number, folderId: number, sourceId: number) =>
     post(`/users/${userId}/folders/${folderId}/sources`, { sourceId });
 
-export const delSourceFromFolder = (userId: number, folderId: number, sourceId: number) =>
+ const delSourceFromFolder = (userId: number, folderId: number, sourceId: number) =>
     del(`/users/${userId}/folders/${folderId}/sources/${sourceId}`);
 
-export const addUserSource = (userId: number, sourceURL: string) =>
+ const addUserSource = (userId: number, sourceURL: string) =>
     post(`/users/${userId}/sources`, { sourceURL });
 
-export const removeUserSource = (userId: number, sourceId: number) => 
-    del(`/users/${userId}/sources/${sourceId}`);
+  const addUserPodcast = (userId: number, sourceURL: string) =>
+    post(`/users/${userId}/sources`, { sourceURL });
 
-export const userFeedItems = (userId: number) =>
-    get(`/users/${userId}/feed`);
+ const removeUserSource = (userId: number, sourceId: number, feedType: "rss" | "podcast") => 
+    del(`/users/${userId}/sources/${sourceId}`, {feedType});
 
-export const allUserSources = (userId: number) =>
-    get(`/users/${userId}/sources`);
+ const userFeedItems = (userId: number, feedType: "rss" | "podcast") =>
+     get(`/users/${userId}/feed`, { feedType });
 
-export const folderItems = (userId: number, folderId: number) =>
+ const allUserRSSSources = (userId: number) =>
+    get(`/users/${userId}/blog/sources`);
+
+ const allUserPodcastSources = (userId: number) =>
+    get(`/users/${userId}/podcast/sources`);
+
+ const folderItems = (userId: number, folderId: number) =>
     get(`/users/${userId}/folders/${folderId}/feed`);
 
-export const markItemRead = (userId: number, itemId: number) =>
-    post(`/users/${userId}/items/${itemId}/read`);
+ const markItemRead = (userId: number, itemId: number, feedType: "rss" | "podcast") =>
+    post(`/users/${userId}/items/${itemId}/read`, {feedType});
 
-export const markUserFeedItemsRead = (userId: number) =>
-    post(`/users/${userId}/feed/read`);
+ const markUserFeedItemsRead = (userId: number, feedType: "rss" | "podcast") =>
+    post(`/users/${userId}/feed/read`, {feedType});
 
-export const markUserFolderItemsRead = (userId: number, folderId: number) =>
+ const markUserFolderItemsRead = (userId: number, folderId: number) =>
     post(`/users/${userId}/folders/${folderId}/read`);
 
-export const saveItem = (userId: number, itemId: number, save: boolean) =>
-    post(`/users/${userId}/items/save`, { userId, itemId, save });
+ const saveItem = (userId: number, itemId: number, save: boolean, feedType: "rss" | "podcast") =>
+    post(`/users/${userId}/items/save`, { userId, itemId, save, feedType });
 
-export const allSavedItems = (userId: number) =>
-    get(`/users/${userId}/saved`);
+ const allSavedItems = (userId: number, feedType: "rss" | "podcast") =>
+    get(`/users/${userId}/saved`, {feedType});
 
-export const sourcePriority = (userId: number) => 
-    get(`/users/${userId}/sources/priority`);
+ const sourcePriority = (userId: number, feedType: "rss" | "podcast") => 
+    get(`/users/${userId}/sources/priority`, {feedType});
 
-export interface SourcePriorityUpdate {
+ interface SourcePriorityUpdate {
   source_id: number;
   priority: number;
-}
+    }
 
-export const updateSourcePriorities = async (userId: number, sources: SourcePriorityUpdate[]) => {
-     post(`/users/${userId}/sources/priority`, { userId, sources });
-};
+ const updateSourcePriorities = async (userId: number, sources: SourcePriorityUpdate[], feedType: "rss" | "podcast") => 
+    post(`/users/${userId}/sources/priority`, { userId, sources, feedType });
+    
 
-export const readItems = (userId: number) =>
-    get(`/users/${userId}/read`);
+ const readItems = (userId: number, feedType: "rss" | "podcast") =>
+    get(`/users/${userId}/read`, {feedType});
 
-export const presetSources = (userId: number, sourceId: number) => {
-    post(`/users/sources/add`, {userId, sourceId});
-}
+ const presetSources = (userId: number, sourceId: number, feedType: "rss" | "podcast") => 
+    post(`/users/sources/add`, {userId, sourceId, feedType});
+    
+ const getItemsByCategory = (userId: number, categoryName: string, feedType: "rss" | "podcast"): Promise<any[]> => 
+   get(`/users/${userId}/category/${categoryName}`, {feedType});
+ 
+ const getSavedItemsByCategory = (userId: number, categoryName: string, feedType: "rss" | "podcast"): Promise<any[]> => 
+   get(`/users/${userId}/saved/category/${categoryName}`, {feedType});
 
 
-
+export {addUser, createFolder, getUserFolders, deleteFolder, renameFolder, addSourceIntoFolder, delSourceFromFolder, addUserSource, 
+    removeUserSource, userFeedItems, folderItems, markItemRead, markUserFeedItemsRead, markUserFolderItemsRead, saveItem, 
+    allSavedItems, sourcePriority, updateSourcePriorities, readItems, presetSources, addUserPodcast, getItemsByCategory, getSavedItemsByCategory, getUserBySupabaseUID,
+    allUserRSSSources, allUserPodcastSources
+ }
 
 

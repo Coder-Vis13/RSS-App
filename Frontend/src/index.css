@@ -5,6 +5,7 @@
 }
 
 
+
 @theme {
   --radius: 0.625rem;
 
@@ -45,4 +46,43 @@
   --sidebar-active-foreground: var(--teal);
 }
 
+/* --- Backend category colours (ensure Tailwind generates them) --- */
+
+@utility bg-blue-100 { background-color: #DBEAFE; }
+@utility text-blue-700 { color: #1D4ED8; }
+
+@utility bg-red-100 { background-color: #FEE2E2; }
+@utility text-red-700 { color: #B91C1C; }
+
+@utility bg-stone-100 { background-color: #F5F5F4; }
+@utility text-stone-700 { color: #444444; }
+
+@utility bg-orange-100 { background-color: #FFEDD5; }
+@utility text-orange-700 { color: #C2410C; }
+
+@utility bg-rose-200 { background-color: #FECDD3; }
+@utility text-rose-800 { color: #9F1239; }
+
+@utility bg-rose-100 { background-color: #FFE4E6; }
+@utility text-rose-700 { color: #BE123C; }
+
+@utility bg-sky-100 { background-color: #E0F2FE; }
+@utility text-sky-700 { color: #0369A1; }
+
+@utility bg-teal-200 { background-color: #99F6E4; }
+@utility text-teal-800 { color: #0F766E; }
+
+@utility bg-lime-200 { background-color: #D9F99D; }
+@utility text-lime-800 { color: #365314; }
+
+@utility bg-indigo-100 { background-color: #E0E7FF; }
+@utility text-indigo-700 { color: #3730A3; }
+
+@utility bg-cyan-200 { background-color: #A5F3FC; }
+@utility text-cyan-800 { color: #155E75; }
+
+@utility bg-fuchsia-100 { background-color: #FCE7F3; }
+@utility text-fuchsia-700 { color: #A21CAF; }
+
+/* History has no color — leave as default */
 

@@ -1,14 +1,18 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from "react-router-dom"
-import './index.css'
-import App from './app.tsx'
+// import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from "react-router-dom";
+import './index.css';
+import App from './app.tsx';
+import { AuthProvider } from "./authContext";
+import { BlocklistProvider } from './context/blocklistContext.tsx';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-        <App />
-    </BrowserRouter>
-  </StrictMode>,
-)
-
+  // <StrictMode>
+    <AuthProvider>
+      <BlocklistProvider>
+        <BrowserRouter>
+          <App />
+      </BrowserRouter>
+    </BlocklistProvider>
+    </AuthProvider>,
+);

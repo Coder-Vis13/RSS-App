@@ -1,16 +1,33 @@
 import axios from "axios";
+import { supabase } from "../lib/supabase";
 
 const API_BASE_URL = "http://localhost:5000"; 
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  // withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-export const get = async (url: string, params?: any) => {
+
+api.interceptors.request.use(async (config) => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const token = session?.access_token;
+
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export const get = async (url: string, params?: Record<string, any>) => {
   try {
     const response = await api.get(url, { params });
     return response.data;
@@ -20,9 +37,9 @@ export const get = async (url: string, params?: any) => {
   }
 };
 
-export const post = async (url: string, body?: any) => {
+export const post = async (url: string, body?: any, params?: Record<string, any>) => {
   try {
-    const response = await api.post(url, body);
+    const response = await api.post(url, body, { params });
     return response.data;
   } catch (error: any) {
     console.error("POST error:", error.response?.data || error.message);
@@ -30,9 +47,9 @@ export const post = async (url: string, body?: any) => {
   }
 };
 
-export const put = async (url: string, body?: any) => {
+export const put = async (url: string, body?: any, params?: Record<string, any>) => {
   try {
-    const response = await api.put(url, body);
+    const response = await api.put(url, body, { params });
     return response.data;
   } catch (error: any) {
     console.error("PUT error:", error.response?.data || error.message);
@@ -40,7 +57,7 @@ export const put = async (url: string, body?: any) => {
   }
 };
 
-export const del = async (url: string, params?: any) => {
+export const del = async (url: string, params?: Record<string, any>) => {
   try {
     const response = await api.delete(url, { params });
     return response.data;

@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
-import { allUserSources, addSourceIntoFolder, folderItems as getFolderItems, delSourceFromFolder, markItemRead, markUserFolderItemsRead, saveItem } from "../../services/api";
-import { Check, Bookmark } from "lucide-react";
+import { allUserRSSSources, addSourceIntoFolder, folderItems as getFolderItems, delSourceFromFolder, markItemRead, markUserFolderItemsRead, saveItem } from "../../services/api";
+import { Check, Bookmark, ChevronDown } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { getCategoryPresentation } from "../../lib/categoryColors";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 
 
@@ -20,6 +27,7 @@ interface FolderItems {
   source_name: string;
   source_id: number;
   is_save: boolean;
+  categories?: { name: string; color: string }[];
 }
 
 
@@ -29,14 +37,32 @@ export default function Folder1Page() {
   const [selectedSources, setSelectedSources] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const { folderId } = useParams<{ folderId: string }>();
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
+  const [blocklist, setBlocklist] = useState<string[]>([]);
 
-  const userId = 3;
+  
+  const feedType: "rss" = "rss";
 
+  const userId = 25;
+
+    useEffect(() => {
+  const stored = localStorage.getItem("blocklist");
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) setBlocklist(parsed);
+    } catch (e) {
+      console.warn("Corrupted blocklist, ignoring");
+    }
+  }
+}, []);
+  
   useEffect(() => {
     if (!folderId) return;
     const fetchSources = async () => {
       try {
-        const sourcedata = await allUserSources(userId);
+        const sourcedata = await allUserRSSSources(userId);
         setSources(sourcedata);
       } catch (err) {
         console.error("Failed to load sources:", err);
@@ -53,9 +79,15 @@ export default function Folder1Page() {
         is_save: Boolean(i.is_save),
       }));
       setFolderItems(normalized);
+      const allCats = normalized.flatMap((i: any) =>
+      i.categories?.map((cat: any) => cat.name) || []
+);
+setUniqueCategories(["all", ...Array.from(new Set(allCats)) as string[]]);
 
       //Pre-select sources already in this folder
-      const subscribedSources = Array.from(new Set(normalized.map((i: any) => i.source_id))) as number[];
+const subscribedSources = Array.from(new Set(
+  normalized.map((i: any) => i.source_id)
+)) as number[];
       setSelectedSources(subscribedSources);
     } catch (err) {
       console.error("Failed to load folder items:", err);
@@ -91,9 +123,21 @@ export default function Folder1Page() {
 
   if (loading) return <p>Loading...</p>;
 
+
+
+const filterWithBlocklist = (items: FolderItems[], blocklist: string[]) => {
+  return items.filter((item) => {
+    const title = (item.title || "").toLowerCase();
+    const desc = (item.description || "").toLowerCase();
+    return !blocklist.some((word) => title.includes(word) || desc.includes(word));
+  });
+};
+
+
+
   const handleMarkAsRead = async (itemId: number) => {
     try {
-      await markItemRead(userId, itemId);
+      await markItemRead(userId, itemId, feedType);
       setFolderItems((prev) => prev.filter((item) => item.item_id !== itemId));
     } catch (err) {
       console.error("Failed to mark as read:", err);
@@ -121,7 +165,7 @@ export default function Folder1Page() {
       );
     
       try {
-        await saveItem(userId, itemId, intended);
+        await saveItem(userId, itemId, intended, feedType);
         await fetchFolderItems();
       } catch (err) {
         console.error("Failed to toggle save:", err);
@@ -163,7 +207,51 @@ export default function Folder1Page() {
       {/*ITEMS*/}
       {folderItems.length > 0 ? (
         <div>
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex justify-end items-center gap-4">
+
+                  <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="flex items-center text-md font-semibold hover:bg-[var(--light-grey)] hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
+          >
+            Category
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="bg-white border border-gray-100 rounded-md shadow-md"
+        >
+          <DropdownMenuItem
+            onClick={() => setCategoryFilter("all")}
+            className={`cursor-pointer transition-colors ${
+              categoryFilter === "all"
+                ? "bg-[var(--navyblue)] text-white"
+                : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+            }`}
+          >
+            All Categories
+          </DropdownMenuItem>
+
+          {uniqueCategories
+            .filter((cat) => cat !== "all")
+            .map((cat) => (
+              <DropdownMenuItem
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`cursor-pointer transition-colors ${
+                  categoryFilter === cat
+                    ? "bg-[var(--navyblue)] text-white"
+                    : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+                }`}
+              >
+                {cat}
+              </DropdownMenuItem>
+            ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
               <Button
                 variant="ghost"
                 className="text-[var(--text)] bg-[var(--light-grey)] hover:text-[var(--sidebar-active-foreground)] hover:bg-[var(--navyblue)]"
@@ -173,14 +261,40 @@ export default function Folder1Page() {
               </Button>
             </div>
           <div className="flex flex-col divide-y divide-gray-300">
-            {folderItems
-              .filter((item) => selectedSources.includes(item.source_id))
-              .map((item) => (
+{filterWithBlocklist(folderItems, blocklist)
+  .filter((item) => {
+    const sourceMatch = selectedSources.includes(item.source_id);
+    const categoryMatch =
+      categoryFilter === "all" ||
+      item.categories?.some((c) => c.name === categoryFilter);
+
+    return sourceMatch && categoryMatch;
+  })
+            .map((item) => (
                 <div
                   key={item.item_id}
                   className="py-4 flex justify-between items-start hover:bg-[var(--hover)] transition"
                 >
                   <div className="flex-1 pr-4">
+                    {item.categories && item.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {item.categories.map((cat) => {
+                        const { className: backendClasses, style: backendStyle } =
+                          getCategoryPresentation(cat.color, cat.name);
+
+                        return (
+                          <span
+                            key={cat.name}
+                            className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
+                            style={backendStyle}
+                          >
+                            {cat.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
                     <a
                       href={item.link}
                       target="_blank"
@@ -212,7 +326,7 @@ export default function Folder1Page() {
                       className={
                         item.is_save
                           ? "text-[var(--accent)] fill-[var(--accent)]"
-                          : "text-[var(--text-light)]"
+                          : "text-gray-400"
                       }
                     />
                   </Button>
@@ -221,7 +335,7 @@ export default function Folder1Page() {
           </div>
         </div>
       ) : (
-        <p className="text-[var(--text-light)]">No items yet.</p>
+        <p className="text-[var(--text-light)]">This folder is empty. Start adding sources to fill it with content.</p>
       )}
     </section>
   );
