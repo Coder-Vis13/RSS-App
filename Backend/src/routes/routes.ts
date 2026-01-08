@@ -2,17 +2,11 @@ import express, { Router } from "express";
 import { addUserController, createFolderController, renameFolderController, addUserSourceController, addUserPodcastController, 
 userFeedItemsController, folderItemsController, markItemReadController, saveItemController, 
 markUserFeedItemsReadController, markUserFolderItemsReadController, addSourceIntoFolderController, removeUserSourceController, 
-deleteSourceFromFolderController, deleteFolderController,
+deleteSourceFromFolderController, deleteFolderController, allUserSourcesController,
 getUserFoldersController, allSavedItemsController, sourcePriorityController, updateSourcePrioritiesController, readItemsController, presetSources, getItemsByCategoryController, 
-getSavedItemsByCategoryController, getUserBySupabaseUIDController, allUserRSSSourcesController, allUserPodcastSourcesController} from "../controllers/controller";
-// import } from "../middleware/auth"
+getSavedItemsByCategoryController} from "../controllers/controller";
 
-// export const router: Router = express.Router();
-
-export const router = express.Router() as any;
-
-
-//add authenticateUser to all functions except first 2
+const router: Router = express.Router();
 
 
 // Home
@@ -20,12 +14,9 @@ export const router = express.Router() as any;
 
 //User
 router.post('/users/add', addUserController);
-router.get("/users/by-supabase-uid/:uid", getUserBySupabaseUIDController);
-
 
 // Sources
-router.get("/users/:userId/blog/sources", allUserRSSSourcesController);  // get all blog sources for a user
-router.get("/users/:userId/podcast/sources", allUserPodcastSourcesController);  // get all blog sources for a user
+router.get("/users/:userId/sources", allUserSourcesController);  // get all sources for a user
 router.post("/users/:userId/sources", addUserSourceController); // add a source for user
 router.delete("/users/:userId/sources/:sourceId", removeUserSourceController); // remove source for user
 router.post("/users/sources/add", presetSources); // add preset source to user's feed
@@ -33,7 +24,7 @@ router.post("/users/:userId/podcast", addUserPodcastController); //add a podcast
 
 // Items
 router.get("/users/:userId/feed", userFeedItemsController); // get unread home feed       //http://localhost:5000/users/11/feed?feedType=podcast
-router.post("/users/:userId/items/:itemId/read",  markItemReadController); // mark single item read
+router.post("/users/:userId/items/:itemId/read", markItemReadController); // mark single item read
 router.post("/users/:userId/items/save", saveItemController); // save/unsave item
 router.post("/users/:userId/feed/read", markUserFeedItemsReadController); // mark all home items read
 router.get("/users/:userId/saved", allSavedItemsController); // get saved items

@@ -15,7 +15,6 @@
     "@extractus/feed-extractor": "^7.1.7",
     "@rowanmanning/feed-parser": "^2.1.1",
     "@sesamy/podcast-parser": "^1.6.3",
-    "@supabase/supabase-js": "^2.84.0",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",

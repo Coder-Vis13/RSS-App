@@ -2,11 +2,11 @@ import { query } from "../config/db";
 import { Request, Response } from "express";
 import { addUser, createFolder, addSource, addUserSource, addUserPodcast, addItem, 
 userFeedItems, addSourceIntoFolder, folderItems, markItemRead, saveItem,
-markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder,
-getUserFolders, allSavedItems, sourcePriority, readItems, addUserItemMetadata,
+markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder, 
+allUserSources, getUserFolders, allSavedItems, sourcePriority, readItems, addUserItemMetadata,
 getRecentItems, renameFolder, updateSourcePriorities,
 SourcePriorityUpdate,
-getItemsByCategory, getSavedItemsByCategory, getUserBySupabaseUID, allUserPodcastSources, allUserRSSSources
+getItemsByCategory, getSavedItemsByCategory
 } from "../models/model";
 import { RSSParser } from '../services/rssService';
 import { handleError } from "../utils/helpers"
@@ -35,69 +35,37 @@ import { podcastParser } from "../services/podcastService";
 // };
 
 interface AddUser {
-  email: string;
-  supabase_uid: string; 
+  userName: string;
+  userEmail: string;
+  password: string;
 }
 
 //create a new user or get existing one
 const addUserController = async (req: Request<{}, {}, AddUser>, res: Response): Promise<void> => {
-  const { email, supabase_uid } = req.body;
+  const { userName, userEmail, password } = req.body;
 
-  if (!email || !supabase_uid) {
-    res.status(400).json({ error: "Missing email or supabase_uid" });
+  if (!userName || !userEmail || !password) {
+    console.warn("WARN: Missing registration params:", req.body);
+    res.status(400).json({ error: "Missing username or email or password" });
     return;
   }
 
   try {
-    const user = await addUser(email, supabase_uid);
+    const user = await addUser({name: userName, email: userEmail, password_hash: password});
 
     res.json({
-      message: user.created
-        ? "User inserted into DB"
-        : "User already existed",
-      user
+      message: user.created ? "User created successfully: " : "User already exists with this email: ", user
     });
-
-  } catch (err) {
-    res.status(500).json({ error: "DB user creation failed" });
+  } catch (error) {
+    handleError(res, error, 500, "Could not register user");
   }
 };
-
-
-export const getUserBySupabaseUIDController = async (
-  req: Request<{ uid: string }>,
-  res: Response
-): Promise<void> => {
-  const { uid } = req.params;
-
-  if (!uid) {
-    res.status(400).json({ error: "Missing supabase_uid" });
-    return;
-  }
-
-  try {
-    const user = await getUserBySupabaseUID(uid);
-    console.log("API CALL → UID =", uid);
-
-    if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-
-    console.log("API JSON:", user);
-    res.json(user);
-
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch user by Supabase UID" });
-  }
-};
-
 
 interface CreateFolderBody {
   folderName: string;
 }
 interface CreateFolderParams {
-  userId: string;
+  userId: string; //req.params are always strings
 }
 
 //creates a folder for a specific user
@@ -458,34 +426,18 @@ const getSavedItemsByCategoryController = async (req: Request<UserId & { categor
 
 
 
-//display all the blog sources the user follows in the home page above the feed
-const allUserRSSSourcesController = async (req: Request<UserId, {}, {}>, res: Response): Promise<void> => {
+//display all the sources the user follows in the home page above the feed
+const allUserSourcesController = async (req: Request<UserId, {}, {}>, res: Response): Promise<void> => {
   const { userId } = req.params;
 
   try{
-    const allSources = await allUserRSSSources(Number(userId));
+    const allSources = await allUserSources(Number(userId));
     console.info(`INFO: User ${userId} follows ${allSources.length} sources`);
     res.json(allSources);
   } catch (error) {
-    handleError(res, error, 500, "Error fetching blog sources for this user");
+    handleError(res, error, 500, "Error fetching sources for this user");
   }
 };
-
-//display all the podcast sources the user follows in the home page above the feed
-const allUserPodcastSourcesController = async (req: Request<UserId, {}, {}>, res: Response): Promise<void> => {
-  const { userId } = req.params;
-
-  try{
-    const allSources = await allUserPodcastSources(Number(userId));
-    console.info(`INFO: User ${userId} follows ${allSources.length} sources`);
-    res.json(allSources);
-  } catch (error) {
-    handleError(res, error, 500, "Error fetching podcast sources for this user");
-  }
-};
-
-
-
 
 interface FolderItem {
   userId: string;
@@ -718,5 +670,5 @@ const presetSources = async (req: Request<{},{},UserSource, { feedType?: "rss" |
 export { addUserController, createFolderController, renameFolderController, addUserSourceController, addUserPodcastController,
 userFeedItemsController, folderItemsController, markItemReadController, saveItemController, 
 markUserFeedItemsReadController, markUserFolderItemsReadController, addSourceIntoFolderController, removeUserSourceController, 
-deleteSourceFromFolderController, deleteFolderController, getUserFoldersController, allSavedItemsController, sourcePriorityController, 
-readItemsController, presetSources, getItemsByCategoryController, getSavedItemsByCategoryController, allUserRSSSourcesController, allUserPodcastSourcesController };
+deleteSourceFromFolderController, deleteFolderController, allUserSourcesController,
+getUserFoldersController, allSavedItemsController, sourcePriorityController, readItemsController, presetSources, getItemsByCategoryController, getSavedItemsByCategoryController };

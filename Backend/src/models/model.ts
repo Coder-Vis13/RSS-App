@@ -11,89 +11,50 @@ dotenv.config();
 const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === "true";
 
 export interface DBUser {
-  user_id: string;
-  email: string;
-  supabase_uid: string;
-  created_at: string;
+user_id: number;
+name: string;
+email: string;
+password_hash?: string;
+created_at: string;  //should this be date?
 }
-
 
 export interface User extends DBUser {
     created: boolean;
 }
 
-// export type NewUser = Omit<DBUser, "user_id" | "created_at">;
+export type NewUser = Omit<DBUser, "user_id" | "created_at">;
 
 
 //create a new user
-const addUser = async (email: string, supabase_uid: string): Promise<User> => {
+const addUser = async (user: NewUser): Promise<User> => {
   //try to insert. if it exists, select it  
-  const insertResult = await query(
-    `INSERT INTO users (email, supabase_uid)
-     VALUES ($1, $2)
+  const insertResult: QueryResult<DBUser> = await query(
+    `INSERT INTO users (name, email, password_hash)
+     VALUES ($1, $2, $3)
      ON CONFLICT (email) DO NOTHING
-     RETURNING user_id, email, supabase_uid, created_at`,
-    [email, supabase_uid]
+     RETURNING user_id, name, email, password_hash, created_at`,
+    [user.name, user.email, user.password_hash]
   );
+    const insertedUser = getFirstRow(insertResult);
 
-  const insertedUser = getFirstRow(insertResult);
-
-  if (insertedUser) {
-    return { ...insertedUser, created: true };
+    if (insertedUser) {
+        logAction(`Registered new user with Email=${user.email}`);
+        return markAsCreated(insertedUser);
   }
 
-  // user already exists
-  const selectResult = await query(
-    `SELECT user_id, email, supabase_uid, created_at
-     FROM users
-     WHERE email = $1`,
-    [email]
+  // If email already exists, fetch existing user details
+  const selectResult: QueryResult<DBUser> = await query(
+    `SELECT user_id, name, email, created_at FROM users WHERE email = $1`,
+    [user.email]
   );
-
   const existingUser = getFirstRow(selectResult);
-  if (!existingUser) {
-    throw new Error("Could not find existing user after conflict");
+   if (!existingUser) {
+    throw new Error(`User with email ${user.email} not found`);
   }
-
+  logAction(`Existing user with Email=${user.email}`);
   return { ...existingUser, created: false };
 };
 
-
-export const getUserBySupabaseUID = async ( supabase_uid: string ): Promise<User | null> => {
-  const result = await query(
-    `SELECT user_id, email, supabase_uid, created_at
-     FROM users
-     WHERE supabase_uid = $1`,
-    [supabase_uid]
-  );
-
-  if (!result.rows || result.rows.length === 0) {
-    return null;
-  }
-
-  const user = result.rows[0];
-
-  return { ...user, created: false };
-};
-
-
-
-// export const getUserBySupabaseUID = async (
-//   supabase_uid: string
-// ): Promise<User | null> => {
-//   const result = await query(
-//     `SELECT user_id, email, supabase_uid, created_at
-//      FROM users
-//      WHERE supabase_uid = $1`,
-//     [supabase_uid]
-//   );
-
-//   const user = getFirstRow(result);
-
-//   if (!user) return null;
-
-//   return { ...user, created: false }; 
-// };
 
 
 export interface Folder {
@@ -365,15 +326,15 @@ const removeUserSource = async (userId: number, sourceId: number, feedType: "rss
 };
 
 
-interface UserRSSSources {
+interface UserSources {
     source_id: number;
     source_name: string;
     url: string;
 }
 
 //get all the sources for a user
-const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
-    const result: QueryResult<UserRSSSources> = await query(
+const allUserSources = async (userId: number): Promise<UserSources[]> => {
+    const result: QueryResult<UserSources> = await query(
         `SELECT s.source_id, s.source_name, s.url FROM user_source us
         JOIN source s ON s.source_id = us.source_id
         WHERE us.user_id = $1
@@ -389,33 +350,6 @@ const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
 
   return sourcesWithLogos;
 };
-
-
-interface UserPodcastSources {
-    source_id: number;
-    source_name: string;
-    url: string;
-}
-
-const allUserPodcastSources = async (userId: number): Promise<UserPodcastSources[]> => {
-    const result: QueryResult<UserPodcastSources> = await query(
-        `SELECT s.source_id, s.source_name, s.url FROM user_podcast up
-        JOIN source s ON s.source_id = up.podcast_id
-        WHERE up.user_id = $1
-        ORDER BY up.priority ASC`, [userId]
-    ); 
-    logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
-    const sourcesWithLogos = await Promise.all(
-    result.rows.map(async (source) => {
-      const logo = await getLogo(source.url);
-      return { ...source, logo_url: logo };
-    })
-  );
-
-  return sourcesWithLogos;
-};
-
-
 
 // const allUserSources = async (userId: number): Promise<UserSources[]> => {
 //     const result: QueryResult<UserSources> = await query(
@@ -1186,9 +1120,73 @@ const readItems = async (userId: number, feedType?: "rss" | "podcast"): Promise<
 
 
 
+// //not being used right now
+// const sourceItems = async (userId: number, sourceId: number, feedType: "rss" | "podcast" = "rss"): Promise<AllReadItems[]> => {
+//   const queryStr = `
+//     SELECT s.source_name, s.feed_type, i.item_id, i.title, i.link, i.description, i.pub_date, uim.read_time
+//     FROM user_item_metadata uim
+//     JOIN item i ON uim.item_id = i.item_id
+//     JOIN source s ON i.source_id = s.source_id
+//     WHERE uim.user_id = $1
+//       AND s.source_id = $2
+//       AND s.feed_type = $3
+//       AND uim.read_time IS NULL
+//     ORDER BY i.pub_date DESC`;
+
+//   const params = [userId, sourceId, feedType];
+
+//   const result: QueryResult<AllReadItems> = await query(queryStr, params);
+
+//   logAction(
+//     `Unread items for User=${userId} Source=${sourceId} feedType=${feedType} itemCount=${result.rows.length}`
+//   );
+
+//   return result.rows;
+// };
+
+
+// interface ItemWithCategories {
+//   item_id: number;
+//   title: string;
+//   description: string | null;
+//   pub_date: Date;
+//   categories: string[] | null;
+// }
+
+// const getAllItemsWithCategories = async (): Promise<ItemWithCategories[]> => {
+//   const queryStr = 
+//   `SELECT i.item_id, i.title, i.description, i.pub_date, array_agg(c.name) AS categories
+//     FROM item i
+//     LEFT JOIN item_category ic 
+//       ON i.item_id = ic.item_id
+//     LEFT JOIN category c 
+//       ON ic.category_id = c.category_id
+//     GROUP BY i.item_id
+//     ORDER BY i.pub_date DESC;`;
+
+//   try {
+//     const result: QueryResult<ItemWithCategories> = await query(queryStr);
+
+//     logAction(`Fetched all items with categories (count=\${result.rows.length})`);
+
+//     return result.rows.map((row) => ({
+//       item_id: row.item_id,
+//       title: row.title,
+//       description: row.description,
+//       pub_date: row.pub_date,
+//       categories: row.categories || [],
+//     }));
+//   } catch (error) {
+//     console.error("Error fetching items with categories:", error);
+//     throw error;
+//   }
+// };
+
+
+
 
 export { addUser, createFolder, renameFolder, addSource, addUserSource, addUserPodcast, addItem, 
 userFeedItems, addSourceIntoFolder, folderItems, markItemRead, saveItem,
-markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder,
-getUserFolders, allSavedItems, sourcePriority, updateSourcePriorities, readItems, addUserItemMetadata,
-getRecentItems, getItemsByCategory, getSavedItemsByCategory, allUserPodcastSources, allUserRSSSources };
+markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder, 
+allUserSources, getUserFolders, allSavedItems, sourcePriority, updateSourcePriorities, readItems, addUserItemMetadata,
+getRecentItems, getItemsByCategory, getSavedItemsByCategory };

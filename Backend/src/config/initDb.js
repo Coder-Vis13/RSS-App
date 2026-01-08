@@ -12,10 +12,9 @@ const createTables = async() => {
         await query(`
             CREATE TABLE IF NOT EXISTS users(
             user_id SERIAL PRIMARY KEY, 
-            name VARCHAR(30), 
+            name VARCHAR(30) NOT NULL, 
             email VARCHAR(50) UNIQUE NOT NULL,
-            password_hash,
-            supabase_uid UUID UNIQUE;
+            password_hash TEXT NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT now()
             );
 
