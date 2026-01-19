@@ -1,7 +1,7 @@
 // RSS parsing
-import Parser from "rss-parser";
-import sanitizeHtml from "sanitize-html";
-import pkg from "he";
+import Parser from 'rss-parser';
+import sanitizeHtml from 'sanitize-html';
+import pkg from 'he';
 const { decode } = pkg;
 
 export interface RSSItem {
@@ -24,7 +24,7 @@ export async function RSSParser(sourceURL: string): Promise<ParsedRSS> {
 
     // Decode and sanitize source title
     const sourceName = decode(
-      sanitizeHtml(parsedSource.title || "Untitled Source", {
+      sanitizeHtml(parsedSource.title || 'Untitled Source', {
         allowedTags: [],
         allowedAttributes: {},
       })
@@ -35,23 +35,23 @@ export async function RSSParser(sourceURL: string): Promise<ParsedRSS> {
       .map((item) => ({
         link: item.link || item.guid!,
         title: decode(
-          sanitizeHtml(item.title || "Untitled", {
+          sanitizeHtml(item.title || 'Untitled', {
             allowedTags: [],
             allowedAttributes: {},
           })
         ),
         description: decode(
-          sanitizeHtml(
-            item.content || item.description || item.contentSnippet || "",
-            { allowedTags: [], allowedAttributes: {} }
-          )
+          sanitizeHtml(item.content || item.description || item.contentSnippet || '', {
+            allowedTags: [],
+            allowedAttributes: {},
+          })
         ),
         pubDate: item.pubDate ? new Date(item.pubDate) : null,
       }));
 
     return { sourceName, sourceItems };
   } catch (error: any) {
-    console.error("Error parsing RSS feed:", error?.message);
-    throw new Error("RSS parsing failed");
+    console.error('Error parsing RSS feed:', error?.message);
+    throw new Error('RSS parsing failed');
   }
 }

@@ -7,7 +7,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { allSavedItems, markItemRead, getSavedItemsByCategory } from "../../services/api";
+import {
+  allSavedItems,
+  markItemRead,
+  getSavedItemsByCategory,
+} from "../../services/api";
 import { getCategoryPresentation } from "../../lib/categoryColors";
 
 interface SavedItems {
@@ -42,9 +46,11 @@ export default function SavedPage() {
         const uniqueCategories: string[] = Array.from(
           new Set(
             data.flatMap((i: any) =>
-              (i.categories || []).map((c: any) => (c && c.name ? c.name : "Uncategorized"))
-            )
-          )
+              (i.categories || []).map((c: any) =>
+                c && c.name ? c.name : "Uncategorized",
+              ),
+            ),
+          ),
         );
         setAllCategories(uniqueCategories);
       } catch (err) {
@@ -74,7 +80,11 @@ export default function SavedPage() {
         const allItems = await allSavedItems(userId, feedType);
         setSavedItems(allItems);
       } else {
-        const filtered = await getSavedItemsByCategory(userId, category, feedType);
+        const filtered = await getSavedItemsByCategory(
+          userId,
+          category,
+          feedType,
+        );
         setSavedItems(filtered);
       }
     } catch (err) {
@@ -90,12 +100,13 @@ export default function SavedPage() {
       {noSavedItems ? (
         <div className="flex flex-col items-center justify-center w-full h-[90vh]">
           <img
-      src="/savedImage.png"
-      alt="Empty Saved Items"
-      className="w-80 h-auto mb-6" 
-    />
+            src="/savedImage.png"
+            alt="Empty Saved Items"
+            className="w-80 h-auto mb-6"
+          />
           <p className="text-[var(--text)] text-center">
-            Found something worth keeping? Save it to build your personal library right here
+            Found something worth keeping? Save it to build your personal
+            library right here
           </p>
         </div>
       ) : (
@@ -115,9 +126,16 @@ export default function SavedPage() {
                   </Button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="start" className="bg-white border border-gray-100">
-                  <DropdownMenuItem onClick={() => setFeedType("rss")}>📰 Blogs / Articles</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFeedType("podcast")}>🎧 Podcasts</DropdownMenuItem>
+                <DropdownMenuContent
+                  align="start"
+                  className="bg-white border border-gray-100"
+                >
+                  <DropdownMenuItem onClick={() => setFeedType("rss")}>
+                    📰 Blogs / Articles
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFeedType("podcast")}>
+                    🎧 Podcasts
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -132,11 +150,16 @@ export default function SavedPage() {
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="bg-white border border-gray-100 rounded-md shadow-md">
+                <DropdownMenuContent
+                  align="start"
+                  className="bg-white border border-gray-100 rounded-md shadow-md"
+                >
                   <DropdownMenuItem
                     onClick={() => handleCategorySelect("All")}
                     className={`cursor-pointer transition-colors ${
-                      selectedCategory === "All" ? "bg-[var(--navyblue)] text-white" : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+                      selectedCategory === "All"
+                        ? "bg-[var(--navyblue)] text-white"
+                        : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
                     }`}
                   >
                     All Categories
@@ -146,7 +169,9 @@ export default function SavedPage() {
                       key={cat}
                       onClick={() => handleCategorySelect(cat)}
                       className={`cursor-pointer transition-colors ${
-                        selectedCategory === cat ? "bg-[var(--navyblue)] text-white" : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
+                        selectedCategory === cat
+                          ? "bg-[var(--navyblue)] text-white"
+                          : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
                       }`}
                     >
                       {cat}
@@ -157,7 +182,10 @@ export default function SavedPage() {
             </div>
 
             <p className="text-sm text-gray-500">
-              Showing: <span className="font-medium text-[var(--accent)]">{feedType === "rss" ? "Blogs / Articles" : "Podcasts"}</span>
+              Showing:{" "}
+              <span className="font-medium text-[var(--accent)]">
+                {feedType === "rss" ? "Blogs / Articles" : "Podcasts"}
+              </span>
             </p>
           </div>
 
@@ -174,7 +202,10 @@ export default function SavedPage() {
                   <div className="flex-1 pr-4">
                     <div className="flex flex-wrap gap-2 mb-2">
                       {item.categories?.map((cat) => {
-                        const { className: backendClasses, style: backendStyle } = getCategoryPresentation(cat.color, cat.name);
+                        const {
+                          className: backendClasses,
+                          style: backendStyle,
+                        } = getCategoryPresentation(cat.color, cat.name);
                         return (
                           <span
                             key={cat.name}
@@ -196,11 +227,14 @@ export default function SavedPage() {
                       {item.title}
                     </a>
                     {item.description && (
-                      <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">{item.description}</p>
+                      <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
+                        {item.description}
+                      </p>
                     )}
                     {item.pub_date && (
                       <p className="text-xs text-[var(--text-light)] mt-4">
-                        {item.source_name} • {new Date(item.pub_date).toLocaleDateString()}
+                        {item.source_name} •{" "}
+                        {new Date(item.pub_date).toLocaleDateString()}
                       </p>
                     )}
                   </div>
@@ -213,4 +247,3 @@ export default function SavedPage() {
     </div>
   );
 }
-

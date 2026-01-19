@@ -6,7 +6,7 @@ import SavedPage from "./app/saved/page";
 import RulesPage from "./app/rules/page";
 import ReadPage from "./app/read/page";
 import Folder1Page from "./app/folders/folder1";
-import { Toaster } from "./components/ui/sonner";     
+import { Toaster } from "./components/ui/sonner";
 import { BlocklistProvider } from "./context/blocklistContext";
 import Landing from "./landingPage";
 import { readItems } from "./services/api";
@@ -24,7 +24,9 @@ function Home() {
       try {
         const rssItems = await readItems(userId, "rss");
         const podcastItems = await readItems(userId, "podcast");
-        const allItems = [...rssItems, ...podcastItems] as Array<{ read_time: string | null }>;
+        const allItems = [...rssItems, ...podcastItems] as Array<{
+          read_time: string | null;
+        }>;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -61,30 +63,29 @@ function Home() {
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [userId]);
-  
+
   return (
     <main className="flex-1 p-2 overflow-y-auto">
-      
-
       <section className="mb-3 flex items-center gap-4 w-full">
-  <h2 className="text-2xl font-bold mb-1">
-    Explore what’s new, just for you.
-  </h2>
+        <h2 className="text-2xl font-bold mb-1">
+          Explore what’s new, just for you.
+        </h2>
 
-  {/* Read count (today) */}
-  <div className="ml-auto mr-13 flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-2 rounded-full text-sm font-medium">
-    <span>Read today:</span>
-    <span className="tabular-nums">{readCount}</span>
-  </div>
-</section>
-
+        {/* Read count (today) */}
+        <div className="ml-auto mr-13 flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-2 rounded-full text-sm font-medium">
+          <span>Read today:</span>
+          <span className="tabular-nums">{readCount}</span>
+        </div>
+      </section>
 
       <section className="mt-2">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-l font-bold text-gray-800"></h2>
         </div>
 
-        <p className="text-gray-600">Pick a source to get started — or add one by URL.</p>
+        <p className="text-gray-600">
+          Pick a source to get started — or add one by URL.
+        </p>
 
         <Sites userId={userId} />
       </section>
@@ -111,7 +112,10 @@ export default function Dashboard() {
                   <Route path="priority" element={<RulesPage />} />
                   <Route path="recently-read" element={<ReadPage />} />
                   <Route path="folders/:folderId" element={<Folder1Page />} />
-                  <Route path="/" element={<Navigate to="/landing" replace />} />
+                  <Route
+                    path="/"
+                    element={<Navigate to="/landing" replace />}
+                  />
                 </Routes>
               </SidebarLayout>
             }
@@ -122,20 +126,8 @@ export default function Dashboard() {
   );
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 // import { Routes, Route, Navigate } from "react-router-dom";
-// import SidebarLayout from "./components/sidebar"; 
+// import SidebarLayout from "./components/sidebar";
 // import Sites from "./components/web_sites";
 // import FeedPage from "./app/feed/page";
 // import SavedPage from "./app/saved/page";
@@ -186,7 +178,6 @@ export default function Dashboard() {
 //   fetchReadItems();
 // }, [userId]);
 
-
 //   return (
 //     <main className="flex-1 p-2 overflow-y-auto">
 //       <section className="mb-3">
@@ -210,9 +201,6 @@ export default function Dashboard() {
 //     </main>
 //   );
 // }
-
-
-
 
 // export default function Dashboard() {
 //   return (
@@ -247,10 +235,3 @@ export default function Dashboard() {
 //     </>
 //   );
 // }
-
-
-
-
-
-
-

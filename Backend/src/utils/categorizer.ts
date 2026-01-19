@@ -1,19 +1,18 @@
-import OpenAI from "openai";
-import dotenv from "dotenv";
+import OpenAI from 'openai';
+import dotenv from 'dotenv';
 dotenv.config();
-import { CategoryModel } from "../models/categoryModel";
-import { query } from "../config/db"; 
+import { CategoryModel } from '../models/categoryModel';
+import { query } from '../config/db';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === "true";
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'true';
 
 function getCategoryPrompt(title: string, description?: string): string {
-  const context = description && description.length > 0
-    ? `\nDescription: "${description.slice(0, 300)}"`
-    : "";
+  const context =
+    description && description.length > 0 ? `\nDescription: "${description.slice(0, 300)}"` : '';
 
   return `
   You are a fast text classifier. 
@@ -34,19 +33,23 @@ function getCategoryPrompt(title: string, description?: string): string {
 async function askOpenAI(prompt: string): Promise<string> {
   try {
     const response = await client.responses.create({
-      model: "gpt-4.1-nano",
+      model: 'gpt-4.1-nano',
       input: prompt,
     });
 
-    const text = response.output_text?.trim() ?? "";
+    const text = response.output_text?.trim() ?? '';
     return text;
   } catch (error) {
-    console.error("Error calling OpenAI: ", error);
-    return "";
+    console.error('Error calling OpenAI: ', error);
+    return '';
   }
 }
 
-export async function categorizeItem(itemId: number, title: string | null, description?: string): Promise<void> {
+export async function categorizeItem(
+  itemId: number,
+  title: string | null,
+  description?: string
+): Promise<void> {
   if (!title || title.trim().length === 0) {
     console.log(`Skipping categorization for item ${itemId}: no title`);
     return;
@@ -59,24 +62,24 @@ export async function categorizeItem(itemId: number, title: string | null, descr
     return;
   }
 
-  let categoryString = "";
+  let categoryString = '';
 
   if (USE_AI_CATEGORY) {
     const prompt = getCategoryPrompt(title, description);
     categoryString = await askOpenAI(prompt);
   } else {
-    console.log("AI category generation disabled — skipping API call");
-    categoryString = "Uncategorized";
+    console.log('AI category generation disabled — skipping API call');
+    categoryString = 'Uncategorized';
   }
 
   // Parse and sanitize categories
   const categories = categoryString
-    .split(",")
+    .split(',')
     .map((c) => c.trim())
     .filter(Boolean);
 
   if (categories.length === 0) {
-    categories.push("Uncategorized");
+    categories.push('Uncategorized');
   }
 
   // Save categories (handled in your model)

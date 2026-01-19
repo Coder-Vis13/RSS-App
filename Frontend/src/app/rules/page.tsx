@@ -61,7 +61,7 @@ export default function RulesPage() {
   // Loading state
   if (loading) return <p>Loading subscribed sources...</p>;
 
-  // Empty-state banner 
+  // Empty-state banner
   if (!loading && sources.length === 0) {
     return (
       <div className="p-4 w-full">
@@ -71,11 +71,12 @@ export default function RulesPage() {
             alt="No Sources"
             className="w-80 h-auto mb-6"
           />
-            <p className="text-[var(--text)] text-center">
-              You haven't added any sources yet. Add sources to organize your feed priority.
-            </p>
-          </div>
+          <p className="text-[var(--text)] text-center">
+            You haven't added any sources yet. Add sources to organize your feed
+            priority.
+          </p>
         </div>
+      </div>
     );
   }
 
@@ -92,9 +93,16 @@ export default function RulesPage() {
             </h3>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="start" className="bg-white border border-gray-100">
-            <DropdownMenuItem onClick={() => setFeedType("rss")}>📰 Blogs / Articles</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFeedType("podcast")}>🎧 Podcasts</DropdownMenuItem>
+          <DropdownMenuContent
+            align="start"
+            className="bg-white border border-gray-100"
+          >
+            <DropdownMenuItem onClick={() => setFeedType("rss")}>
+              📰 Blogs / Articles
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFeedType("podcast")}>
+              🎧 Podcasts
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </section>
@@ -113,7 +121,9 @@ export default function RulesPage() {
                   <span className="font-semibold text-[var(--text)] w-6 text-center">
                     {s.priority}
                   </span>
-                  <span className="flex-1 text-[var(--text)] pl-3">{s.source_name}</span>
+                  <span className="flex-1 text-[var(--text)] pl-3">
+                    {s.source_name}
+                  </span>
                   <SortableItemHandle asChild>
                     <Button
                       variant="ghost"

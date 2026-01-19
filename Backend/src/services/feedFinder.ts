@@ -1,6 +1,6 @@
 // services/feedService.ts
-import fetch from "node-fetch";
-import { RSSParser } from "./rssService";
+import fetch from 'node-fetch';
+import { RSSParser } from './rssService';
 
 export interface FeedResult {
   feedUrl: string;
@@ -13,9 +13,9 @@ export interface FeedResult {
  */
 export const getWorkingFeed = async (siteUrl: string): Promise<FeedResult> => {
   // Step 1: call FeedFinder API
-  const resp = await fetch("http://localhost:5000/feed/find", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const resp = await fetch('http://localhost:5000/feed/find', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: siteUrl }),
   });
 
@@ -35,5 +35,5 @@ export const getWorkingFeed = async (siteUrl: string): Promise<FeedResult> => {
     }
   }
 
-  throw new Error("No working feed found");
+  throw new Error('No working feed found');
 };

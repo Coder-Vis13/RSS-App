@@ -1,8 +1,6 @@
- 
 import 'dotenv/config';
-import { Pool } from "pg";
-import type { QueryResult } from "pg";
-
+import { Pool } from 'pg';
+import type { QueryResult } from 'pg';
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -13,8 +11,10 @@ const pool = new Pool({
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });
 
-
-export const query = async <T extends object = any> (text: string, params?: any[]): Promise<QueryResult<T>> => {
+export const query = async <T extends object = any>(
+  text: string,
+  params?: any[]
+): Promise<QueryResult<T>> => {
   try {
     const res = await pool.query(text, params);
     return res;

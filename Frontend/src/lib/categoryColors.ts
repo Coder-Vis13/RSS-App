@@ -151,7 +151,6 @@ export const CATEGORY_COLOR_MAP: Record<string, CategoryColorEntry> = {
   },
 };
 
-
 const normalizeKey = (name: string | undefined) =>
   (name || "").toString().trim().toLowerCase().replace(/\s+/g, "");
 
@@ -169,29 +168,40 @@ const normalizeKey = (name: string | undefined) =>
  */
 export const getCategoryPresentation = (
   backendColorStr: string | null | undefined,
-  categoryName: string | null | undefined
+  categoryName: string | null | undefined,
 ): { className: string; style: React.CSSProperties } => {
   const defaultCls = "bg-gray-200 text-gray-700";
-  const defaultStyle: React.CSSProperties = { backgroundColor: "#E5E7EB", color: "#374151" };
+  const defaultStyle: React.CSSProperties = {
+    backgroundColor: "#E5E7EB",
+    color: "#374151",
+  };
 
   // parse backend classes (e.g. "bg-blue-100 text-blue-700")
   let backendClasses = "";
   let inlineStyle: React.CSSProperties = {};
 
-  if (backendColorStr && typeof backendColorStr === "string" && backendColorStr.trim()) {
+  if (
+    backendColorStr &&
+    typeof backendColorStr === "string" &&
+    backendColorStr.trim()
+  ) {
     backendClasses = backendColorStr.trim();
     // try to find matching hexs from our map using tokens (bg-... / text-...)
     const tokens = backendClasses.split(/\s+/);
-    const bgToken = tokens.find(t => t.startsWith("bg-"));
-    const textToken = tokens.find(t => t.startsWith("text-"));
+    const bgToken = tokens.find((t) => t.startsWith("bg-"));
+    const textToken = tokens.find((t) => t.startsWith("text-"));
 
     if (bgToken) {
       // find map entry that contains this bgToken in classes (fast heuristic)
-      const found = Object.values(CATEGORY_COLOR_MAP).find(e => e.classes && e.classes.includes(bgToken));
+      const found = Object.values(CATEGORY_COLOR_MAP).find(
+        (e) => e.classes && e.classes.includes(bgToken),
+      );
       if (found?.bg) inlineStyle.backgroundColor = found.bg;
     }
     if (textToken) {
-      const foundText = Object.values(CATEGORY_COLOR_MAP).find(e => e.classes && e.classes.includes(textToken));
+      const foundText = Object.values(CATEGORY_COLOR_MAP).find(
+        (e) => e.classes && e.classes.includes(textToken),
+      );
       if (foundText?.text) inlineStyle.color = foundText.text;
     }
   }
@@ -201,10 +211,13 @@ export const getCategoryPresentation = (
     const key = normalizeKey(categoryName);
     const mapEntry = CATEGORY_COLOR_MAP[key];
     if (mapEntry) {
-      if (!inlineStyle.backgroundColor && mapEntry.bg) inlineStyle.backgroundColor = mapEntry.bg;
-      if (!inlineStyle.color && mapEntry.text) inlineStyle.color = mapEntry.text;
+      if (!inlineStyle.backgroundColor && mapEntry.bg)
+        inlineStyle.backgroundColor = mapEntry.bg;
+      if (!inlineStyle.color && mapEntry.text)
+        inlineStyle.color = mapEntry.text;
       // if backend didn't provide classes, use map classes
-      if (!backendClasses && mapEntry.classes) backendClasses = mapEntry.classes;
+      if (!backendClasses && mapEntry.classes)
+        backendClasses = mapEntry.classes;
     }
   }
 

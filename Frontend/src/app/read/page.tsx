@@ -57,10 +57,11 @@ export default function ReadPage() {
             alt="Nothing Read Yet"
             className="w-80 h-auto mb-6"
           />
-            <p className="text-[var(--text)] text-center">
-              You haven’t read anything yet. Start exploring and your history will appear here.
-            </p>
-          </div>
+          <p className="text-[var(--text)] text-center">
+            You haven’t read anything yet. Start exploring and your history will
+            appear here.
+          </p>
+        </div>
       ) : (
         <section className="mt-0 w-full max-w-full">
           {/* Header Row */}
@@ -76,7 +77,10 @@ export default function ReadPage() {
                 </Button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="start" className="bg-white border border-gray-100">
+              <DropdownMenuContent
+                align="start"
+                className="bg-white border border-gray-100"
+              >
                 <DropdownMenuItem onClick={() => setFeedType("rss")}>
                   📰 Blogs / Articles
                 </DropdownMenuItem>
@@ -109,8 +113,10 @@ export default function ReadPage() {
                     {item.categories && item.categories.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
                         {item.categories.map((cat) => {
-                          const { className: backendClasses, style: backendStyle } =
-                            getCategoryPresentation(cat.color, cat.name);
+                          const {
+                            className: backendClasses,
+                            style: backendStyle,
+                          } = getCategoryPresentation(cat.color, cat.name);
 
                           return (
                             <span
@@ -160,16 +166,6 @@ export default function ReadPage() {
   );
 }
 
-
-
-
-
-
-
-
-
-
-
 // import { useState, useEffect } from "react";
 // import { ChevronDown } from "lucide-react";
 // import { Button } from "../../components/ui/button";
@@ -182,7 +178,6 @@ export default function ReadPage() {
 // import { readItems } from "../../services/api";
 // import { useLocation } from "react-router-dom";
 // import { getCategoryPresentation } from "../../lib/categoryColors";
-
 
 // interface ReadItems {
 //   item_id: number;
@@ -286,8 +281,6 @@ export default function ReadPage() {
 //   </div>
 // )}
 
-
-
 //                   <a
 //                     href={item.link}
 //                     target="_blank"
@@ -316,21 +309,6 @@ export default function ReadPage() {
 //     </div>
 //   );
 // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { useState, useEffect } from "react";
 // import { ChevronDown } from "lucide-react";
@@ -443,7 +421,7 @@ export default function ReadPage() {
 //                 className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
 //               >
 //                 <div className="flex-1 pr-4">
-                  
+
 //                   {/* Categories */}
 //                   {item.categories && item.categories.length > 0 && (
 //                     <div className="flex flex-wrap gap-2 mb-2">
@@ -495,27 +473,6 @@ export default function ReadPage() {
 //   );
 // }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import { useState, useEffect } from "react";
 // import { ChevronDown } from "lucide-react";
 // import { Button } from "../../components/ui/button";
@@ -528,7 +485,6 @@ export default function ReadPage() {
 // import { readItems } from "../../services/api";
 // import { useLocation } from "react-router-dom";
 // import { getCategoryPresentation } from "../../lib/categoryColors";
-
 
 // interface ReadItems {
 //   item_id: number;
@@ -631,8 +587,6 @@ export default function ReadPage() {
 //     })}
 //   </div>
 // )}
-
-
 
 //                   <a
 //                     href={item.link}

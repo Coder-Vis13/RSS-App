@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
 
 const logging = {
-  log: (message: string) => console.log(`[LOG] ${message}`)
+  log: (message: string) => console.log(`[LOG] ${message}`),
 };
 
 export function loggingHandler(req: Request, res: Response, next: NextFunction) {
@@ -13,7 +13,7 @@ export function loggingHandler(req: Request, res: Response, next: NextFunction) 
   );
 
   //when response ends
-  res.on("finish", () => {
+  res.on('finish', () => {
     const duration = Date.now() - start;
     logging.log(
       `Completed -> METHOD: [${req.method}] | URL: [${req.url}] | STATUS: [${res.statusCode}] | TIME: ${duration}ms`

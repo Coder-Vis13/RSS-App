@@ -1,25 +1,24 @@
-
-//WORKING BLOGS: 
+//WORKING BLOGS:
 //https://www.figma.com/blog/feed/atom.xml
-//https://timesofindia.indiatimes.com/rssfeedstopstories.cms  
-//https://www.thehindu.com/feeder/default.rss   
-//https://indianexpress.com -> https://indianexpress.com/feed/   
+//https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+//https://www.thehindu.com/feeder/default.rss
+//https://indianexpress.com -> https://indianexpress.com/feed/
 //https://fossbytes.com -> https://fossbytes.com/rss/
 //https://www.news18.com -> https://www.news18.com/commonfeeds/v1/eng/rss/text.xml
-//https://www.bollywoodhungama.com -> https://www.bollywoodhungama.com/rss/news.xml  
+//https://www.bollywoodhungama.com -> https://www.bollywoodhungama.com/rss/news.xml
 //https://www.techrytr.in -> https://www.techrytr.in/rss.xml
 //https://tv9kannada.com -> https://tv9kannada.com/feed
 //https://www.ndtv.com -> https://feeds.feedburner.com/NDTV-LatestNews
 //https://www.buzzfeed.com -> https://www.buzzfeed.com/feed.xml
-// business insider  
-// vogue.in 
+// business insider
+// vogue.in
 //harper's bazaar
-//erik kim - photog  
-//serious eats - food 
-//cal newport  - deep work, produc  
-//stratechery - tech 
-//stephanie walter - ux research  
-//the verge 
+//erik kim - photog
+//serious eats - food
+//cal newport  - deep work, produc
+//stratechery - tech
+//stephanie walter - ux research
+//the verge
 //the guardian
 //deccan herald
 //wired - tech
@@ -31,9 +30,7 @@
 //aeon
 //longreads - writing - articles
 
-
 //Website URLs that do not work: naukri, https://highonscore.com, vijayakarnataka, espn, nat geo, india today, bbc, cnn, vogue.com, forbes, hindustan times
-
 
 /*PODCAST URLS:
 Dan Carlin’s Hardcore History:
@@ -76,29 +73,22 @@ My Favorite Murder:
 https://feeds.megaphone.fm/WWO8086402096​
 */
 
-
-
-
-
-
 import express, { json, Request, Response, NextFunction } from 'express';
 import 'dotenv/config';
-import router from "./routes/routes";
+import router from './routes/routes';
 import './cron';
-import { loggingHandler } from "./middleware/loggingHandler";
+import { loggingHandler } from './middleware/loggingHandler';
 import { Feed } from 'podcast';
-import { corsHandler } from "./middleware/corsHandler";
+import { corsHandler } from './middleware/corsHandler';
 import { routeNotFound } from './middleware/routeNotFound';
-
 
 const PORT = process.env.PORT;
 
 const app = express();
 
-app.post("/_debug", (req, res) => {
+app.post('/_debug', (req, res) => {
   res.json({ ok: true, body: req.body, headers: req.headers });
 });
-
 
 app.use(corsHandler);
 
@@ -106,24 +96,21 @@ app.use(express.json());
 
 app.use(loggingHandler);
 
-app.get("/ping", (_, res) => {
-  res.send("ok");
+app.get('/ping', (_, res) => {
+  res.send('ok');
 });
 
-
-app.use("/", router);
+app.use('/', router);
 
 app.use(routeNotFound);
 
 //Error handler
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
-
-
 
 // import { categorizeArticle } from "../src/utils/categorizer";
 
@@ -132,7 +119,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 //     const category = await categorizeArticle(title);
 //     console.log(`"${title}" → ${category}`);
 // })();
-
 
 //FINAL PODCAST PACKAGE
 // import getPodcastFromFeed from "podparse";
@@ -157,8 +143,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 //       console.log(`${i + 1}. ${ep.title}`);
 //       console.log(`${i + 1}. ${ep.link}`);
 
-      
-
 //     });
 //   } catch (err) {
 //     console.error("Error parsing podcast feed:", err);
@@ -166,9 +150,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 // }
 
 // run();
-
-
-
 
 // 'use strict';
 
@@ -189,26 +170,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // // Test with a known RSS feed URL
 // testFeedFinder('https://www.npr.org');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import getPodcastFromFeed from "podparse";
 
@@ -241,20 +202,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // run();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // test-podparse-url.js
 // import fetch from "node-fetch";
 // import getPodcastFromFeed from "podparse";
@@ -286,18 +233,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // run();
 
-
-
-
-
-
-
-
-
-
-
-
-
 // // test-podparse.js
 // import getPodcastFromFeed from "podparse";
 // const FEED_URL = "https://feeds.npr.org/510333/podcast.xml​";
@@ -312,16 +247,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 // podcast.episodes.forEach( (episode) => {
 // 	console.log(episode.title)
 // })
-
-
-
-
-
-
-
-
-
-
 
 // async function run() {
 //   try {
@@ -339,17 +264,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 // }
 
 // run();
-
-
-
-
-
-
-
-
-
-
-
 
 // import { parseFeedToJson, parseFeedToSesamy } from "@sesamy/podcast-parser";
 
@@ -375,10 +289,8 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // run();
 
-
 // import { parseFeedToJson } from '@sesamy/podcast-parser';
 // import { parseFeedToSesamy } from '@sesamy/podcast-parser';
-
 
 // // Parse from a URL
 // const podcastFeed = parseFeedToJson('https://feeds.simplecast.com/54nAGcIl');
@@ -391,18 +303,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 // console.log(sesamyPodcastFeed.products); // Product information
 // console.log(sesamyPodcastFeed.episodes);
 // })();
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import Parser from "rss-parser";
 // const parser = new Parser();
@@ -426,16 +326,7 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // feeds.forEach(testFeed);
 
-
-
-
-
-
-
-
-
 // --- BELOW IS THE TESTING OF ITEM IMAGES FROM RSS PARSER
-
 
 // import Parser from "rss-parser";
 
@@ -473,10 +364,6 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 // testRssImages();
 
-
-
-
-
 // ---BELOW IS THE TESTING OF THE NPM PACKAGE USED TO GET RSS FEED URL FROM WEBSITE URL
 
 // 'use strict';
@@ -499,10 +386,7 @@ app.listen(PORT, () => console.log('Server running on port ' + PORT));
 // // Test with a known RSS feed URL
 // testFeedFinder('https://joerogan.com');
 
-
-
 // ---BELOW IS AN ONGOING TEST OF AN NPM PACKAGE TO GET PODCASTS
-
 
 // import * as PodcastModule from "podcast";
 

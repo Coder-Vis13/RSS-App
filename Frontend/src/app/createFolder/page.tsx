@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { createFolder } from "../../services/api";
 // import { Button } from './ui/button'
-
 
 interface NewFolder {
   user_id: number;
@@ -12,12 +10,12 @@ interface NewFolder {
 }
 
 export default function CreateFolderPage() {
-    const [folder, setFolder] = useState<NewFolder>();
-    const [loading, setLoading] = useState(true);
-    const userId = 1;
-    <section> 
-        <div>
-            {/* <input
+  const [folder, setFolder] = useState<NewFolder>();
+  const [loading, setLoading] = useState(true);
+  const userId = 1;
+  <section>
+    <div>
+      {/* <input
                     type="text"
                     placeholder="Enter the name of the folder"
                     className="border-secondary-border rounded-md border py-1 text-lg h-12 w-96 focus:border--grey px-4outline-none"
@@ -33,28 +31,27 @@ export default function CreateFolderPage() {
                     {loadingIcon ? (<Loader2 className='h-5 w-5 animate-spin' />
                     ) : ("Add Source")}
                   </Button> */}
-        </div>
-    </section>
+    </div>
+  </section>;
 
-    const folderName = "News";
+  const folderName = "News";
 
-    useEffect(() => {
-        const fetchNewFolder = async () => {
-          try {
-            const data = await createFolder(userId, folderName);
-            setFolder(data);
-          } catch (err) {
-            console.error("Failed to create folder:", err);
-          } finally {
-            setLoading(false);
-          }
-        };
-    
-        fetchNewFolder();
-      }, [userId]);
+  useEffect(() => {
+    const fetchNewFolder = async () => {
+      try {
+        const data = await createFolder(userId, folderName);
+        setFolder(data);
+      } catch (err) {
+        console.error("Failed to create folder:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        if (loading) return <p>Loading read items...</p>;
+    fetchNewFolder();
+  }, [userId]);
 
-    return (
-        <p>Hello</p>
-    )}
+  if (loading) return <p>Loading read items...</p>;
+
+  return <p>Hello</p>;
+}

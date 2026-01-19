@@ -7,12 +7,12 @@ import { useEffect, useRef } from "react";
 // }
 
 export function ArticlesAnimation() {
-  const lottieRef = useRef()
+  const lottieRef = useRef();
 
   useEffect(() => {
     // Skip first 3 seconds (~90 frames if 30fps)
-    lottieRef.current.goToAndPlay(90, true)
-  }, [])
+    lottieRef.current.goToAndPlay(90, true);
+  }, []);
 
   return (
     <Lottie
@@ -22,7 +22,5 @@ export function ArticlesAnimation() {
       autoplay={false} // we control start manually
       style={{ height: 250 }}
     />
-  )
+  );
 }
-
-

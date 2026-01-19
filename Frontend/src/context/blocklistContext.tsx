@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
 
 interface BlocklistContextType {
   blocklist: string[];
@@ -6,11 +12,14 @@ interface BlocklistContextType {
   removeWord: (word: string) => void;
 }
 
-const BlocklistContext = createContext<BlocklistContextType | undefined>(undefined);
+const BlocklistContext = createContext<BlocklistContextType | undefined>(
+  undefined,
+);
 
 export const useBlocklist = () => {
   const context = useContext(BlocklistContext);
-  if (!context) throw new Error("useBlocklist must be used within a BlocklistProvider");
+  if (!context)
+    throw new Error("useBlocklist must be used within a BlocklistProvider");
   return context;
 };
 

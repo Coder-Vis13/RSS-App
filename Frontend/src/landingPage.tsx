@@ -1,9 +1,16 @@
-
 import { motion } from "framer-motion";
 import { SiteShowcase } from "./components/sites";
 // import { Benefits } from "./components/benefits"
 import { Button } from "./components/ui/button";
-import { Sparkles, FolderOpen, Crosshair, Clock, ArrowUp, Filter, Bookmark } from "lucide-react";
+import {
+  Sparkles,
+  FolderOpen,
+  Crosshair,
+  Clock,
+  ArrowUp,
+  Filter,
+  Bookmark,
+} from "lucide-react";
 //import { signUp, signIn, signOut } from "./auth";
 import { useState } from "react";
 //import { supabase } from "./lib/supabase";
@@ -30,7 +37,7 @@ export default function App() {
     window.location.href = "/home";
   }
 
-    function handleFinishOnboarding() {
+  function handleFinishOnboarding() {
     if (!name.trim()) {
       alert("Please enter your name to continue.");
       return;
@@ -77,11 +84,10 @@ export default function App() {
               href="#features"
               className="text-sm font-medium text-gray-600 hover:text-[var(--navyblue)] transition-colors"
             >
-            Features
+              Features
             </a>
-            
 
-          {!user ? (
+            {!user ? (
               <>
                 <button
                   onClick={() => {
@@ -134,9 +140,12 @@ export default function App() {
               transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
               className="mx-auto lg:mx-0 mt-5 max-w-2xl text-[15px] sm:text-base leading-relaxed text-gray-600"
             >
-              ReadArchive brings the internet to you. Curate, filter, and organize content that matters.
+              ReadArchive brings the internet to you. Curate, filter, and
+              organize content that matters.
               <span className="hidden sm:inline"> </span>
-              <span className="block sm:inline">Powered by personalization, built for focus.</span>
+              <span className="block sm:inline">
+                Powered by personalization, built for focus.
+              </span>
             </motion.p>
 
             <motion.div
@@ -244,17 +253,17 @@ export default function App() {
       {/* Site Showcase */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="relative overflow-hidden rounded-3xl border border-black/5 bg-white/60 backdrop-blur shadow-sm">
-{/* Top gradient */}
-<div
-  aria-hidden
-  className="pointer-events-none absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[var(--skyblue)]/40 to-transparent"
-/>
+          {/* Top gradient */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[var(--skyblue)]/40 to-transparent"
+          />
 
-{/* Bottom gradient */}
-<div
-  aria-hidden
-  className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[var(--skyblue)]/40 to-transparent"
-/>
+          {/* Bottom gradient */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[var(--skyblue)]/40 to-transparent"
+          />
           <div className="relative p-6 sm:p-8">
             <SiteShowcase />
           </div>
@@ -264,7 +273,9 @@ export default function App() {
       {/* Features Preview */}
       <section id="features" className="mx-auto mt-16 max-w-6xl px-5 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-md font-semibold tracking-wide text-gray-500">Built for you</p>
+          <p className="text-md font-semibold tracking-wide text-gray-500">
+            Built for you
+          </p>
           <h3 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--navyblue)]">
             A calmer way to consume content
           </h3>
@@ -320,7 +331,6 @@ export default function App() {
         </div>
       </section>
 
-
       {/* Feed Transparency Section */}
       <section className="mt-20 max-w-6xl mx-auto px-5 sm:px-8">
         <div className="rounded-3xl bg-[#F0F7FF] px-6 py-14 sm:px-10">
@@ -330,167 +340,185 @@ export default function App() {
 
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex items-center gap-3 mb-3">
-        <FolderOpen className="w-6 h-6 text-[var(--navyblue)]" />
-        <h4 className="text-xl font-semibold text-[var(--navyblue)]">Adding Your Sources</h4>
-      </div>
-      <p className="text-gray-700">
-        Add any website or blog using its link. The app
-        fetches the articles/blogs/podcasts published in the past 2 days so that you can stay connected to your favourite content.
-      </p>
-    </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex items-center gap-3 mb-3">
-        <Clock className="w-6 h-6 text-[var(--navyblue)]" />
-        <h4 className="text-xl font-semibold text-[var(--navyblue)]">Automatic Refresh</h4>
-      </div>
-      <p className="text-gray-700">
-        Every 2 hours,the app checks all your sources and pulls
-        newly published articles/podcasts.
-      </p>
-    </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex items-center gap-3 mb-3">
-        <ArrowUp className="w-6 h-6 text-[var(--navyblue)]" />
-        <h4 className="text-xl font-semibold text-[var(--navyblue)]">Sorting & Priority</h4>
-      </div>
-      <p className="text-gray-700">
-        You control the order of your sources. Higher-priority sources appear
-        earlier in your feed. Articles/podcasts inside each source are always sorted
-        from newest to oldest.
-      </p>
-    </div>
+              <div className="flex items-center gap-3 mb-3">
+                <FolderOpen className="w-6 h-6 text-[var(--navyblue)]" />
+                <h4 className="text-xl font-semibold text-[var(--navyblue)]">
+                  Adding Your Sources
+                </h4>
+              </div>
+              <p className="text-gray-700">
+                Add any website or blog using its link. The app fetches the
+                articles/blogs/podcasts published in the past 2 days so that you
+                can stay connected to your favourite content.
+              </p>
+            </div>
 
             <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-3 mb-3">
-        <Filter className="w-6 h-6 text-[var(--navyblue)]" />
-        <h4 className="text-xl font-semibold text-[var(--navyblue)]">Categories & Filters</h4>
-      </div>
-      <p className="text-gray-700">
-        Articles are automatically categorized. Filter
-        your feed by topics like tech, business, news, or lifestyle to find what you love.
-      </p>
-    </div>
+                <Clock className="w-6 h-6 text-[var(--navyblue)]" />
+                <h4 className="text-xl font-semibold text-[var(--navyblue)]">
+                  Automatic Refresh
+                </h4>
+              </div>
+              <p className="text-gray-700">
+                Every 2 hours,the app checks all your sources and pulls newly
+                published articles/podcasts.
+              </p>
+            </div>
 
             <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
-  <div className="flex items-center gap-3 mb-3">
-        <Bookmark className="w-6 h-6 text-[var(--navyblue)]" />
-        <h4 className="text-xl font-semibold text-[var(--navyblue)]">Saved Articles</h4>
-      </div>
-      <p className="text-gray-700">
-        Organize your content into custom folders and save anything you love. Saved items never disappear.
-      </p>
-    </div>
+              <div className="flex items-center gap-3 mb-3">
+                <ArrowUp className="w-6 h-6 text-[var(--navyblue)]" />
+                <h4 className="text-xl font-semibold text-[var(--navyblue)]">
+                  Sorting & Priority
+                </h4>
+              </div>
+              <p className="text-gray-700">
+                You control the order of your sources. Higher-priority sources
+                appear earlier in your feed. Articles/podcasts inside each
+                source are always sorted from newest to oldest.
+              </p>
+            </div>
 
+            <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3">
+                <Filter className="w-6 h-6 text-[var(--navyblue)]" />
+                <h4 className="text-xl font-semibold text-[var(--navyblue)]">
+                  Categories & Filters
+                </h4>
+              </div>
+              <p className="text-gray-700">
+                Articles are automatically categorized. Filter your feed by
+                topics like tech, business, news, or lifestyle to find what you
+                love.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3">
+                <Bookmark className="w-6 h-6 text-[var(--navyblue)]" />
+                <h4 className="text-xl font-semibold text-[var(--navyblue)]">
+                  Saved Articles
+                </h4>
+              </div>
+              <p className="text-gray-700">
+                Organize your content into custom folders and save anything you
+                love. Saved items never disappear.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="mt-16 py-10 text-center text-sm text-gray-500">
+      <footer
+        id="contact"
+        className="mt-16 py-10 text-center text-sm text-gray-500"
+      >
         {/* © {new Date().getFullYear()} ReadArchive. All rights reserved. */}
       </footer>
-{/* Authentication Modal */}
-{showAuthModal && (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-    <div className="bg-white p-8 rounded-3xl shadow-2xl w-[420px] max-w-full border border-black/5">
-      <h2 className="text-2xl font-bold mb-2 text-center">
-        {mode === "signup" ? "Create Account" : "Sign In"}
-      </h2>
+      {/* Authentication Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-[420px] max-w-full border border-black/5">
+            <h2 className="text-2xl font-bold mb-2 text-center">
+              {mode === "signup" ? "Create Account" : "Sign In"}
+            </h2>
 
-      <p className="text-gray-600 text-center mb-6">
-        {mode === "signup"
-          ? "Start your journey with ReadArchive. Sign up to organize, filter, and access content that matters to you."
-          : "Welcome back! Access your personalized feed and continue where you left off."}
-      </p>
+            <p className="text-gray-600 text-center mb-6">
+              {mode === "signup"
+                ? "Start your journey with ReadArchive. Sign up to organize, filter, and access content that matters to you."
+                : "Welcome back! Access your personalized feed and continue where you left off."}
+            </p>
 
-<div className="flex flex-col gap-5">
-  {/* Email Field */}
-  <div className="flex flex-col">
-    <label className="mb-2 text-sm text-gray-500 font-medium">
-      Enter your email address
-    </label>
-    <input
-      type="email"
-      className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
-      value={email}
-      onChange={(e) => setEmail(e.target.value)}
-      required
-      autoComplete="new-email"  // Prevent autofill
-    />
-  </div>
+            <div className="flex flex-col gap-5">
+              {/* Email Field */}
+              <div className="flex flex-col">
+                <label className="mb-2 text-sm text-gray-500 font-medium">
+                  Enter your email address
+                </label>
+                <input
+                  type="email"
+                  className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="new-email" // Prevent autofill
+                />
+              </div>
 
-  {/* Password Field */}
-  <div className="flex flex-col">
-    <label className="mb-2 text-sm text-gray-500 font-medium">
-      {mode === "signup" ? "Create a secure password" : "Enter your password"}
-    </label>
-    <input
-      type="password"
-      className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      required
-      autoComplete="new-password"  // Prevent autofill
-    />
-  </div>
-</div>
+              {/* Password Field */}
+              <div className="flex flex-col">
+                <label className="mb-2 text-sm text-gray-500 font-medium">
+                  {mode === "signup"
+                    ? "Create a secure password"
+                    : "Enter your password"}
+                </label>
+                <input
+                  type="password"
+                  className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="new-password" // Prevent autofill
+                />
+              </div>
+            </div>
 
+            <Button
+              className="w-full mt-6 h-11 rounded-2xl"
+              onClick={handleAuth}
+            >
+              {mode === "signup" ? "Create Account" : "Sign In"}
+            </Button>
 
-
-
-
-      <Button className="w-full mt-6 h-11 rounded-2xl" onClick={handleAuth}>
-        {mode === "signup" ? "Create Account" : "Sign In"}
-      </Button>
-
-      {/* {mode === "login" && (
+            {/* {mode === "login" && (
         <p className="text-sm text-gray-500 text-center mt-2">
           Forgot your password? You can reset it anytime.
         </p>
       )} */}
 
-      <p className="text-sm text-center mt-4 text-gray-600">
-        {mode === "signup" ? (
-          <>
-            Already have an account?{" "}
-            <span
-              className="text-[var(--navyblue)] underline underline-offset-4 cursor-pointer"
-              onClick={() => setMode("login")}
-            >
-              Sign In
-            </span>
-          </>
-        ) : (
-          <>
-            Don’t have an account?{" "}
-            <span
-              className="text-[var(--navyblue)] underline underline-offset-4 cursor-pointer"
-              onClick={() => setMode("signup")}
-            >
-              Create Account
-            </span>
-          </>
-        )}
-      </p>
+            <p className="text-sm text-center mt-4 text-gray-600">
+              {mode === "signup" ? (
+                <>
+                  Already have an account?{" "}
+                  <span
+                    className="text-[var(--navyblue)] underline underline-offset-4 cursor-pointer"
+                    onClick={() => setMode("login")}
+                  >
+                    Sign In
+                  </span>
+                </>
+              ) : (
+                <>
+                  Don’t have an account?{" "}
+                  <span
+                    className="text-[var(--navyblue)] underline underline-offset-4 cursor-pointer"
+                    onClick={() => setMode("signup")}
+                  >
+                    Create Account
+                  </span>
+                </>
+              )}
+            </p>
 
-      <button
-        className="mt-5 w-full text-sm text-gray-500 hover:text-gray-900 transition-colors"
-        onClick={() => setShowAuthModal(false)}
-      >
-        Cancel
-      </button>
-    </div>
-  </div>
-)}
+            <button
+              className="mt-5 w-full text-sm text-gray-500 hover:text-gray-900 transition-colors"
+              onClick={() => setShowAuthModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Onboarding Modal */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl w-[420px] max-w-full text-center border border-black/5">
-            <h2 className="text-2xl font-bold mb-3 text-[var(--navyblue)]">Welcome to ReadArchive</h2>
+            <h2 className="text-2xl font-bold mb-3 text-[var(--navyblue)]">
+              Welcome to ReadArchive
+            </h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
               Let’s personalize your experience. Please tell us your name.
             </p>
@@ -501,7 +529,10 @@ export default function App() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Button className="w-full mb-3 h-11 rounded-2xl" onClick={handleFinishOnboarding}>
+            <Button
+              className="w-full mb-3 h-11 rounded-2xl"
+              onClick={handleFinishOnboarding}
+            >
               Continue
             </Button>
             <button
@@ -516,7 +547,6 @@ export default function App() {
     </div>
   );
 }
-
 
 // Feature Card Component
 function FeatureCard({
@@ -537,7 +567,10 @@ function FeatureCard({
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
       className={`group relative overflow-hidden rounded-3xl p-7 text-left border border-black/5 shadow-sm hover:shadow-md transition-shadow ${color}`}
     >
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-transparent opacity-70" />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-transparent opacity-70"
+      />
 
       <div className="relative flex items-center gap-3 mb-3">
         {Icon && (
@@ -549,7 +582,9 @@ function FeatureCard({
           {title}
         </h4>
       </div>
-      <p className="relative text-[15px] leading-relaxed text-gray-700">{desc}</p>
+      <p className="relative text-[15px] leading-relaxed text-gray-700">
+        {desc}
+      </p>
 
       <div
         aria-hidden
@@ -560,32 +595,27 @@ function FeatureCard({
 }
 
 // Step Component
-function Step({ number, title, desc }: { number: string; title: string; desc: string }) {
+function Step({
+  number,
+  title,
+  desc,
+}: {
+  number: string;
+  title: string;
+  desc: string;
+}) {
   return (
     <div className="flex flex-col items-center text-inherit max-w-[220px] mx-auto">
       <div className="w-12 h-12 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center text-2xl font-semibold">
         {number}
       </div>
       <h5 className="mt-4 text-base font-semibold tracking-tight">{title}</h5>
-      <p className="text-[var(--beige)]/90 mt-2 text-sm leading-relaxed">{desc}</p>
+      <p className="text-[var(--beige)]/90 mt-2 text-sm leading-relaxed">
+        {desc}
+      </p>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { motion } from "framer-motion";
 // import { SiteShowcase } from "./components/sites";
@@ -782,25 +812,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //   );
 // }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import { motion } from "framer-motion";
 // import { SiteShowcase } from "./components/sites"
 // // import { Benefits } from "./components/benefits"
@@ -810,7 +821,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 // import { useState, useEffect } from "react";
 // import { supabase } from "./lib/supabase";
 // import { addUser } from "./services/api";
-
 
 // const handleSignup = async () => {
 //   const { error } = await signUp(email, password);
@@ -827,9 +837,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //     setUser(session?.user ?? null);
 //   });
 // }, []);
-
-
-
 
 // export default function App() {
 //   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -851,9 +858,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //     return () => listener.subscription.unsubscribe();
 //   }, []);
 
-
-
-
 //   async function handleAuth() {
 //   if (mode === "signup") {
 //     const { data, error } = await signUp(email, password);
@@ -872,7 +876,7 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //     setShowAuthModal(false);
 //     return;
 //   }
-  
+
 //   if (mode === "login") {
 //     const { data, error } = await signIn(email, password);
 
@@ -903,7 +907,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //   }
 // }
 
-
 //  async function handleAuth() {
 //   if (mode === "signup") {
 //   const { data, error } = await signUp(email, password);
@@ -922,7 +925,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //   return;
 // }
 
-
 //   if (mode === "login") {
 //     const { data: _data, error } = await signIn(email, password);
 
@@ -934,7 +936,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //     setShowAuthModal(false);
 //   }
 // }
-
 
 // async function handleLogout() {
 //   const { error } = await signOut();
@@ -949,7 +950,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //   setUser(null);
 //   window.location.href = "/";
 // }
-
 
 //   return (
 //     <div className="bg-base mt-5 min-h-screen text-primary">
@@ -1122,7 +1122,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 
 //     </div>
 
-
 //   );
 // }
 
@@ -1137,7 +1136,7 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //   desc: string
 //   tag?: string
 //   color: string
-//   icon: React.ElementType 
+//   icon: React.ElementType
 // }) {
 //   return (
 //     <motion.div
@@ -1146,7 +1145,7 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 
 //      {/* Icon + Title */}
 //       <div className="flex items-center gap-3 mb-3">
-//         {Icon && <Icon className="w-6 h-6 text-[var(--navyblue)]" />}  
+//         {Icon && <Icon className="w-6 h-6 text-[var(--navyblue)]" />}
 //         <h4 className="text-2xl font-semibold text-[var(--navyblue)]">
 //           {title}
 //         </h4>
@@ -1157,7 +1156,6 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //     </motion.div>
 //   )
 // }
-
 
 // // Step Component
 // function Step({ number, title, desc }: { number: string; title: string; desc: string }) {
@@ -1171,4 +1169,3 @@ function Step({ number, title, desc }: { number: string; title: string; desc: st
 //     </div>
 //   );
 // }
-

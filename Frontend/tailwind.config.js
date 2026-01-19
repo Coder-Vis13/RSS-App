@@ -1,7 +1,6 @@
 //redundant in v4. use index.css
 
-
-import colors from "tailwindcss/colors"
+import colors from "tailwindcss/colors";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -32,11 +31,6 @@ export default {
   plugins: [],
 };
 
-
-
-
-
-
 // import colors from "tailwindcss/colors"
 
 // /** @type {import('tailwindcss').Config} */
@@ -59,26 +53,6 @@ export default {
 //   plugins: [],
 // }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import colors from "tailwindcss/colors"
 
 // /** @type {import ('tailwindcss').Config} */
@@ -94,7 +68,7 @@ export default {
 //                     border: colors.neutral[400],
 //                     text: colors.neutral[500],
 //                     dark: colors.neutral[800],
-//                 ["dark-hover"]: colors.neutral[900]                
+//                 ["dark-hover"]: colors.neutral[900]
 //                 }
 //             }
 //         }

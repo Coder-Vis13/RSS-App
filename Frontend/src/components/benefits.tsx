@@ -36,8 +36,6 @@ export function Benefits() {
         Turn scattered sources into your personal library
       </motion.h2>
 
-      
-
       {/* Values grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto text-left">
         {values.map((v, i) => (

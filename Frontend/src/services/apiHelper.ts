@@ -1,7 +1,7 @@
 import axios from "axios";
 import { supabase } from "../lib/supabase";
 
-const API_BASE_URL = "http://localhost:5001"; 
+const API_BASE_URL = "http://localhost:5001";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,7 +10,6 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
-
 
 api.interceptors.request.use(async (config) => {
   const {
@@ -37,7 +36,11 @@ export const get = async (url: string, params?: Record<string, any>) => {
   }
 };
 
-export const post = async (url: string, body?: any, params?: Record<string, any>) => {
+export const post = async (
+  url: string,
+  body?: any,
+  params?: Record<string, any>,
+) => {
   try {
     const response = await api.post(url, body, { params });
     return response.data;
@@ -47,7 +50,11 @@ export const post = async (url: string, body?: any, params?: Record<string, any>
   }
 };
 
-export const put = async (url: string, body?: any, params?: Record<string, any>) => {
+export const put = async (
+  url: string,
+  body?: any,
+  params?: Record<string, any>,
+) => {
   try {
     const response = await api.put(url, body, { params });
     return response.data;
@@ -68,13 +75,6 @@ export const del = async (url: string, params?: Record<string, any>) => {
 };
 
 export default api;
-
-
-
-
-
-
-
 
 // import httpClient from './httpClient';
 // import type { AxiosResponse } from 'axios';

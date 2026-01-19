@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios';
 
 export async function getLogo(url: string): Promise<string | null> {
   try {
@@ -6,7 +6,7 @@ export async function getLogo(url: string): Promise<string | null> {
     // Clearbit auto-finds logos for most domains
     return `https://logo.clearbit.com/${domain}`;
   } catch (err) {
-    console.error("Failed to get logo for:", url, err);
+    console.error('Failed to get logo for:', url, err);
     return null;
   }
 }

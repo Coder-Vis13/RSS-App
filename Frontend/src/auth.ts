@@ -15,14 +15,7 @@
 //   return { data: { user: { id: "8", email: "demo@example.com" } }, error: null };
 // }
 
-
-
-
-
-
-
 //previous code
-
 
 // import { supabase } from "./lib/supabase";
 
@@ -41,9 +34,8 @@
 
 // export async function signOut() {
 //   const { error } = await supabase.auth.signOut();
-//   return { error };  
+//   return { error };
 // }
-
 
 // export async function getCurrentUser() {
 //   const { data, error } = await supabase.auth.getUser();

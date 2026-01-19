@@ -57,23 +57,6 @@
 
 // export const useAuth = () => useContext(AuthContext);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import {
 //   createContext,
 //   useContext,
@@ -171,27 +154,12 @@
 
 // export const useAuth = () => useContext(AuthContext);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 // import { supabase } from "./lib/supabase";
 
 // interface AuthContextType {
-//   supabaseUser: any | null; 
-//   loading: boolean;         
+//   supabaseUser: any | null;
+//   loading: boolean;
 // }
 
 // const AuthContext = createContext<AuthContextType>({
@@ -230,27 +198,6 @@
 // };
 
 // export const useAuth = () => useContext(AuthContext);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { createContext, useContext, useEffect, useState } from "react";
 // import { supabase } from "./lib/supabase";
@@ -312,16 +259,6 @@
 // };
 
 // export const useAuth = () => useContext(AuthContext);
-
-
-
-
-
-
-
-
-
-
 
 // import { createContext, useContext, useState, type ReactNode } from "react";
 

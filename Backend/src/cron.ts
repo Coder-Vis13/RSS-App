@@ -1,14 +1,14 @@
-import { schedule } from "node-cron";
-import { query } from "./config/db";
-import { RSSParser, ParsedRSS, RSSItem } from "./services/rssService";
-import { podcastParser } from "./services/podcastService";
-import { QueryResult } from "./utils/helpers";
-import { addSource, addItem, addUserItemMetadata } from "./models/model";
+import { schedule } from 'node-cron';
+import { query } from './config/db';
+import { RSSParser, ParsedRSS, RSSItem } from './services/rssService';
+import { podcastParser } from './services/podcastService';
+import { QueryResult } from './utils/helpers';
+import { addSource, addItem, addUserItemMetadata } from './models/model';
 
 export interface SourceRow {
   source_id: number;
   url: string;
-  feed_type: "rss" | "podcast";
+  feed_type: 'rss' | 'podcast';
   rss_user_ids: number[] | null;
   podcast_user_ids: number[] | null;
 }
@@ -60,13 +60,17 @@ export async function runFeedRefresh(): Promise<void> {
       await Promise.allSettled(
         batch.map(async (row) => {
           const { source_id: sourceId, url, feed_type, rss_user_ids, podcast_user_ids } = row;
-          const userIds = feed_type === "podcast" ? podcast_user_ids : rss_user_ids;
+          const userIds = feed_type === 'podcast' ? podcast_user_ids : rss_user_ids;
 
           const feedStart = Date.now();
           try {
-            if (feed_type === "rss") {
+            if (feed_type === 'rss') {
               // --- RSS HANDLER ---
-              const { sourceName, sourceItems }: ParsedRSS = await withTimeout(RSSParser(url), TIMEOUT_MS, url);
+              const { sourceName, sourceItems }: ParsedRSS = await withTimeout(
+                RSSParser(url),
+                TIMEOUT_MS,
+                url
+              );
               console.log(`CRON -> Processing RSS: ${sourceName}`);
 
               // ensure source exists/updates its name
@@ -84,7 +88,10 @@ export async function runFeedRefresh(): Promise<void> {
                 return;
               }
 
-              const { insertedIds = [], insertCount = 0 }: AddItemResult = await addItem(sourceId, recentItems);
+              const { insertedIds = [], insertCount = 0 }: AddItemResult = await addItem(
+                sourceId,
+                recentItems
+              );
               if (insertCount > 0)
                 console.log(`CRON -> Inserted ${insertCount} RSS items for source ${sourceId}`);
 
@@ -93,12 +100,19 @@ export async function runFeedRefresh(): Promise<void> {
                   userIds.map((userId) => addUserItemMetadata(userId, insertedIds))
                 );
               }
-            } else if (feed_type === "podcast") {
+            } else if (feed_type === 'podcast') {
               // --- PODCAST HANDLER ---
-              const { podcastTitle, episodeItems } = await withTimeout(podcastParser(url), TIMEOUT_MS, url);
+              const { podcastTitle, episodeItems } = await withTimeout(
+                podcastParser(url),
+                TIMEOUT_MS,
+                url
+              );
               console.log(`CRON -> Processing Podcast: ${podcastTitle}`);
 
-              const { insertedIds = [], insertCount = 0 }: AddItemResult = await addItem(sourceId, episodeItems);
+              const { insertedIds = [], insertCount = 0 }: AddItemResult = await addItem(
+                sourceId,
+                episodeItems
+              );
               if (insertCount > 0)
                 console.log(`CRON -> Inserted ${insertCount} podcast episodes for ${podcastTitle}`);
 
@@ -122,7 +136,7 @@ export async function runFeedRefresh(): Promise<void> {
     console.log(`CRON -> Finished feed refresh at ${endTime.toISOString()}`);
   } catch (error: unknown) {
     const err = error as AppError;
-    console.error("CRON -> Fatal error:", err.message);
+    console.error('CRON -> Fatal error:', err.message);
   }
 }
 
@@ -132,21 +146,6 @@ schedule('0 */2 * * *', runFeedRefresh);
 
 // Also run immediately at startup for testing
 // runFeedRefresh();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { schedule } from "node-cron";
 // import { query } from "./config/db";
@@ -181,7 +180,7 @@ schedule('0 */2 * * *', runFeedRefresh);
 //   try {
 //     // Fetch all sources (RSS + Podcasts)
 //     const sourcesRes: QueryResult<SourceRow> = await query(
-//       `SELECT s.source_id, s.url, s.feed_type, 
+//       `SELECT s.source_id, s.url, s.feed_type,
 //               COALESCE(array_agg(DISTINCT us.user_id), array[]::int[]) AS rss_user_ids,
 //               COALESCE(array_agg(DISTINCT up.user_id), array[]::int[]) AS podcast_user_ids
 //        FROM source s
@@ -270,13 +269,6 @@ schedule('0 */2 * * *', runFeedRefresh);
 //   }
 // });
 
-
-
-
-
-
-
-
 // // Run every 2 hours
 // schedule('0 */2 * * *', async () => {
 //   // schedule('* * * * *', async () => {
@@ -314,7 +306,6 @@ schedule('0 */2 * * *', runFeedRefresh);
 //           //there is nothing new published for this source
 //           continue;
 //         }
-          
 
 //         //insert new items and get their IDs
 //         const { insertedIds = [], insertCount = 0 }: AddItemResult = await addItem(sourceId, recentItems);
@@ -339,7 +330,7 @@ schedule('0 */2 * * *', runFeedRefresh);
 //         console.error(`cron => Error processing source ${url}:`, error.stack || error.message);
 //       }
 //     }
-    
+
 //     const endTime = new Date();
 //     console.log(`CRON -> Finished feed refresh at ${endTime.toISOString()}`)
 //   } catch (error: unknown) {
@@ -347,5 +338,3 @@ schedule('0 */2 * * *', runFeedRefresh);
 //     console.error('cron => Error:', err.stack || err.message);
 //   }
 // });
-
-

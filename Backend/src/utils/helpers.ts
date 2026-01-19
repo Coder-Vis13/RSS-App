@@ -1,10 +1,7 @@
 //helper functions used in model and controller
 
-
-
-import { Response } from "express";
-// import { QueryResult } from "pg"; 
-
+import { Response } from 'express';
+// import { QueryResult } from "pg";
 
 export interface QueryResult<T> {
   rows: T[];
@@ -32,25 +29,12 @@ export function handleError(
   res: Response,
   error: unknown,
   status: number = 500,
-  msg: string = "Internal server error"
+  msg: string = 'Internal server error'
 ): Response {
   const errorMsg = error instanceof Error ? error.message : String(error);
   console.error(`ERROR: ${msg}: ${errorMsg}`);
   return res.status(status).json({ error: msg });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // export function getFirstRow(insertResult) {
 //   return insertResult && insertResult.rows && insertResult.rows.length > 0 ? insertResult.rows[0] : null;
@@ -69,4 +53,3 @@ export function handleError(
 //   console.error(`ERROR: ${msg}: ${error.message}`);
 //   return res.status(status).json({ error: msg });
 // }
-

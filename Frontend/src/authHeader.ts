@@ -2,14 +2,6 @@
 //   return {};
 // }
 
-
-
-
-
-
-
-
-
 // // authHeader.ts
 // import { supabase } from "./lib/supabase";
 

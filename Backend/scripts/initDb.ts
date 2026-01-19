@@ -5,7 +5,7 @@ psql -U myprojectuser -d myprojectdb -h localhost
 
 */
 
-import { query } from "../src/config/db";
+import { query } from '../src/config/db';
 
 const createTables = async () => {
   try {
@@ -109,9 +109,9 @@ const createTables = async () => {
       );
     `);
 
-    console.log("All tables created!");
+    console.log('All tables created!');
   } catch (error) {
-    console.error("Error creating tables:", error);
+    console.error('Error creating tables:', error);
   }
 };
 
