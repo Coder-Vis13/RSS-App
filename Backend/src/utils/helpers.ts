@@ -1,8 +1,10 @@
+//helper functions used in model and controller
+
+
 
 import { Response } from "express";
 // import { QueryResult } from "pg"; 
 
-//helper functions used in model and controller
 
 export interface QueryResult<T> {
   rows: T[];

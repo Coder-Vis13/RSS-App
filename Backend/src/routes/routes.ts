@@ -4,34 +4,34 @@ userFeedItemsController, folderItemsController, markItemReadController, saveItem
 markUserFeedItemsReadController, markUserFolderItemsReadController, addSourceIntoFolderController, removeUserSourceController, 
 deleteSourceFromFolderController, deleteFolderController, allUserSourcesController,
 getUserFoldersController, allSavedItemsController, sourcePriorityController, updateSourcePrioritiesController, readItemsController, presetSources, getItemsByCategoryController, 
-getSavedItemsByCategoryController} from "../controllers/controller";
+getSavedItemsByCategoryController, allUserRSSSourcesController, allUserPodcastSourcesController, getUnfolderedSourcesController, markSourceItemsReadController} from "../controllers/controller";
 
 const router: Router = express.Router();
-
-
-// Home
-// router.get("/", homePage);
 
 //User
 router.post('/users/add', addUserController);
 
 // Sources
 router.get("/users/:userId/sources", allUserSourcesController);  // get all sources for a user
+router.get("/users/:userId/sources/unfoldered", getUnfolderedSourcesController);  // get all unfoldered sources for a user
+router.get("/users/:userId/blog/sources", allUserRSSSourcesController);  // get all blog sources for a user
+router.get("/users/:userId/podcast/sources", allUserPodcastSourcesController);  // get all blog sources for a user
 router.post("/users/:userId/sources", addUserSourceController); // add a source for user
 router.delete("/users/:userId/sources/:sourceId", removeUserSourceController); // remove source for user
 router.post("/users/sources/add", presetSources); // add preset source to user's feed
 router.post("/users/:userId/podcast", addUserPodcastController); //add a podcast for user
 
 // Items
-router.get("/users/:userId/feed", userFeedItemsController); // get unread home feed       //http://localhost:5000/users/11/feed?feedType=podcast
+router.get("/users/:userId/feed", userFeedItemsController); // get unread home feed      
 router.post("/users/:userId/items/:itemId/read", markItemReadController); // mark single item read
 router.post("/users/:userId/items/save", saveItemController); // save/unsave item
 router.post("/users/:userId/feed/read", markUserFeedItemsReadController); // mark all home items read
 router.get("/users/:userId/saved", allSavedItemsController); // get saved items
 router.get("/users/:userId/read", readItemsController); // get read items
+router.get("/users/:userId/sources/:sourceId/read", markSourceItemsReadController); // mark all items from source as read
 router.post("/users/:userId/folders/:folderId/read", markUserFolderItemsReadController) //mark all folder items read
 router.get("/users/:userId/category/:categoryName", getItemsByCategoryController); // get items with categories   
-router.get("/users/:userId/saved/category/:categoryName", getSavedItemsByCategoryController);
+router.get("/users/:userId/saved/category/:categoryName", getSavedItemsByCategoryController);  // get saved items with categories
 
 // Folders
 router.get("/users/:userId/folders", getUserFoldersController); // get all user folders

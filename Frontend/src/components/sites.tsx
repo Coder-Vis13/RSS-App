@@ -36,8 +36,8 @@ const itemVariants = {
 
 export const SiteShowcase: React.FC = () => {
   return (
-    <section className="py-8 mt-15 mb-16">
-      <div className="py-6 max-w-6xl mx-auto text-center bg-gray-50 rounded-lg">
+    <section className="mb-1">
+      <div className="py-6 max-w-6xl mx-auto text-center rounded-lg">
         <h2 className="text-2xl font-bold text-gray-800 mb-12">
           Explore Content From Multiple Sources
         </h2>
@@ -64,10 +64,10 @@ export const SiteShowcase: React.FC = () => {
           ))}
 
           <motion.p
-            className="col-span-full mt-5 text-gray-500"
+            className="col-span-full mt-10 text-gray-500"
             variants={itemVariants as Variants}
           >
-            And many more
+            and many more
           </motion.p>
         </motion.div>
       </div>

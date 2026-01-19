@@ -27,7 +27,7 @@ export default function ReadPage() {
   const [loading, setLoading] = useState(true);
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const location = useLocation();
-  const userId = 25;
+  const userId = 1;
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -51,18 +51,16 @@ export default function ReadPage() {
     <div className="p-6 w-full">
       {/* Empty State Banner */}
       {noReadItems ? (
-        <div className="flex flex-col items-center justify-center w-full mt-10">
+        <div className="flex flex-col items-center justify-center w-full h-[90vh]">
           <img
-            src="/readImage.png" // Replace with your final image for read page
+            src="/readImage.png"
             alt="Nothing Read Yet"
-            className="w-80 h-auto mb-6 mt-10"
+            className="w-80 h-auto mb-6"
           />
-          <div className="w-1/2 bg-[var(--skyblue)] rounded-[var(--radius)] p-6">
             <p className="text-[var(--text)] text-center">
               You haven’t read anything yet. Start exploring and your history will appear here.
             </p>
           </div>
-        </div>
       ) : (
         <section className="mt-0 w-full max-w-full">
           {/* Header Row */}

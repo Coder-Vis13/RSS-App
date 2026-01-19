@@ -6,33 +6,14 @@ markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolde
 allUserSources, getUserFolders, allSavedItems, sourcePriority, readItems, addUserItemMetadata,
 getRecentItems, renameFolder, updateSourcePriorities,
 SourcePriorityUpdate,
-getItemsByCategory, getSavedItemsByCategory
+getItemsByCategory, getSavedItemsByCategory, allUserRSSSources, allUserPodcastSources,
+getUnfolderedSources, markSourceItemsRead
 } from "../models/model";
 import { RSSParser } from '../services/rssService';
 import { handleError } from "../utils/helpers"
 import { find } from "feedfinder-ts"
 import { podcastParser } from "../services/podcastService";
 
-
-// interface Time {
-//   now: string | Date;
-// }
-//just to test db connection - delete later
-// const homePage = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const result: QueryResult<Time> = await query("SELECT NOW()");
-//     console.info("INFO: Successfully fetched timestamp from DB");
-//     const timeRow = result.rows[0];
-//     if (!timeRow) {
-//       res.status(404).json({ error: "No timestamp found" });
-//       return;
-//     }
-
-//     res.json(timeRow);
-//   } catch (err) {
-//     handleError(res, err, 500, "Database error");
-//   }
-// };
 
 interface AddUser {
   userName: string;
@@ -78,8 +59,10 @@ const createFolderController = async (req: Request<CreateFolderParams, {}, Creat
     return;
   }
   try {
-    const folder = await createFolder({user_id: Number(userId), name: folderName} );
+    const folder = await createFolder({user_id: Number(userId), folder_name: folderName} );
     console.info(`INFO: Folder '${folderName}' created for user ${userId}`);
+
+
     res.json(folder);
   } catch (error){
     handleError(res, error, 500, "Error in creating folder");
@@ -131,6 +114,26 @@ const getUserFoldersController = async (req: Request<UserId,{},{}>, res: Respons
     res.json(folders);
   } catch (error) {
     handleError(res, error, 500, "Error in getting user's folders");
+  }
+};
+
+
+//get all unfoldered sources for a user
+const getUnfolderedSourcesController = async (req: Request<{ userId: string }, {}, {}>, res: Response): Promise<void> => {
+  const { userId } = req.params;
+  const numericUserId = Number(userId);
+
+  if (isNaN(numericUserId)) {
+    res.status(400).json({ error: "Invalid userId" });
+    return;
+  }
+
+  try {
+    const sources = await getUnfolderedSources(numericUserId);
+    console.info(`INFO: Fetched unfoldered sources for user ${userId}`);
+    res.json(sources);
+  } catch (error) {
+    handleError(res, error, 500, "Error in getting user's unfoldered sources");
   }
 };
 
@@ -202,7 +205,6 @@ const deleteSourceFromFolderController = async (req: Request<DelSourceFromFolder
 interface URL {
   sourceURL: string;
 }
-
 
 interface URLBody {
   sourceURL: string;
@@ -356,10 +358,12 @@ interface UserSource {
   sourceId: string;
 }
 
-//removes a source for a user
-const removeUserSourceController = async (req: Request<UserSource, {}, {}, { feedType?: "rss" | "podcast" }>,res: Response): Promise<void> => {
+// removes a source for a user
+const removeUserSourceController = async (
+  req: Request<UserSource>,
+  res: Response
+): Promise<void> => {
   const { userId, sourceId } = req.params;
-  const { feedType } = req.query;
 
   if (!userId || !sourceId) {
     res.status(400).json({ error: "Missing userId or sourceId" });
@@ -369,22 +373,22 @@ const removeUserSourceController = async (req: Request<UserSource, {}, {}, { fee
   try {
     const updatedSources = await removeUserSource(
       Number(userId),
-      Number(sourceId),
-      feedType || "rss"
+      Number(sourceId)
     );
 
     console.info(
-      `INFO: Removed ${feedType || "rss"} source ${sourceId} from user ${userId}.`
+      `INFO: Removed source ${sourceId} from user ${userId}.`
     );
 
     res.json({
-      message: `${feedType || "rss"} source removed successfully`,
+      message: "Source removed successfully",
       sources: updatedSources,
     });
   } catch (error) {
     handleError(res, error, 500, "Could not delete source for user");
   }
 };
+
 
 
 //get unread items for all sources in user's home page
@@ -439,6 +443,33 @@ const allUserSourcesController = async (req: Request<UserId, {}, {}>, res: Respo
   }
 };
 
+
+//display all the blog sources the user follows in the home page above the feed
+const allUserRSSSourcesController = async (req: Request<UserId, {}, {}>, res: Response): Promise<void> => {
+  const { userId } = req.params;
+
+  try{
+    const allSources = await allUserRSSSources(Number(userId));
+    console.info(`INFO: User ${userId} follows ${allSources.length} sources`);
+    res.json(allSources);
+  } catch (error) {
+    handleError(res, error, 500, "Error fetching blog sources for this user");
+  }
+};
+
+//display all the podcast sources the user follows in the home page above the feed
+const allUserPodcastSourcesController = async (req: Request<UserId, {}, {}>, res: Response): Promise<void> => {
+  const { userId } = req.params;
+
+  try{
+    const allSources = await allUserPodcastSources(Number(userId));
+    console.info(`INFO: User ${userId} follows ${allSources.length} sources`);
+    res.json(allSources);
+  } catch (error) {
+    handleError(res, error, 500, "Error fetching podcast sources for this user");
+  }
+};
+
 interface FolderItem {
   userId: string;
   folderId: string;
@@ -485,6 +516,36 @@ const markItemReadController = async (req: Request<MarkItemRead, {}, {}, { feedT
     handleError(res, error, 500, "Error marking item as read");
   }
 };
+
+
+// mark all items of a specific source as read
+const markSourceItemsReadController = async (req: Request<{ userId: string; sourceId: string }>,res: Response): Promise<void> => {
+  const { userId, sourceId } = req.params;
+
+  const numericUserId = Number(userId);
+  const numericSourceId = Number(sourceId);
+
+  if (isNaN(numericUserId) || isNaN(numericSourceId)) {
+    res.status(400).json({ error: "Invalid userId or sourceId" });
+    return;
+  }
+
+  try {
+    const result = await markSourceItemsRead(
+      numericUserId,
+      numericSourceId
+    );
+
+    console.info(
+      `INFO: Marked source items read for user \${userId}, source=\${sourceId}, count=\${result.readCount}`
+    );
+
+    res.json(result);
+  } catch (error) {
+    handleError(res, error, 500, "Error marking source items as read");
+  }
+};
+
 
 
 //marks all items in home page as read for a user
@@ -671,4 +732,5 @@ export { addUserController, createFolderController, renameFolderController, addU
 userFeedItemsController, folderItemsController, markItemReadController, saveItemController, 
 markUserFeedItemsReadController, markUserFolderItemsReadController, addSourceIntoFolderController, removeUserSourceController, 
 deleteSourceFromFolderController, deleteFolderController, allUserSourcesController,
-getUserFoldersController, allSavedItemsController, sourcePriorityController, readItemsController, presetSources, getItemsByCategoryController, getSavedItemsByCategoryController };
+getUserFoldersController, allSavedItemsController, sourcePriorityController, readItemsController, presetSources, getItemsByCategoryController, getSavedItemsByCategoryController,
+allUserRSSSourcesController, allUserPodcastSourcesController, getUnfolderedSourcesController, markSourceItemsReadController};

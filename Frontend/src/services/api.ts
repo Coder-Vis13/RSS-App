@@ -30,8 +30,8 @@ import { get, post, del, put } from "./apiHelper";
   const addUserPodcast = (userId: number, sourceURL: string) =>
     post(`/users/${userId}/sources`, { sourceURL });
 
- const removeUserSource = (userId: number, sourceId: number, feedType: "rss" | "podcast") => 
-    del(`/users/${userId}/sources/${sourceId}`, {feedType});
+ const removeUserSource = (userId: number, sourceId: number) => 
+    del(`/users/${userId}/sources/${sourceId}`);
 
  const userFeedItems = (userId: number, feedType: "rss" | "podcast") =>
      get(`/users/${userId}/feed`, { feedType });
@@ -42,11 +42,17 @@ import { get, post, del, put } from "./apiHelper";
  const allUserPodcastSources = (userId: number) =>
     get(`/users/${userId}/podcast/sources`);
 
+ const getUnfolderedSources = (userId: number) =>
+      get(`/users/${userId}/sources/unfoldered`);
+
  const folderItems = (userId: number, folderId: number) =>
     get(`/users/${userId}/folders/${folderId}/feed`);
 
  const markItemRead = (userId: number, itemId: number, feedType: "rss" | "podcast") =>
     post(`/users/${userId}/items/${itemId}/read`, {feedType});
+
+ const markSourceItemsRead = (userId: number, sourceId: number) =>
+    get(`/users/${userId}/sources/${sourceId}/read`);
 
  const markUserFeedItemsRead = (userId: number, feedType: "rss" | "podcast") =>
     post(`/users/${userId}/feed/read`, {feedType});
@@ -88,7 +94,7 @@ import { get, post, del, put } from "./apiHelper";
 export {addUser, createFolder, getUserFolders, deleteFolder, renameFolder, addSourceIntoFolder, delSourceFromFolder, addUserSource, 
     removeUserSource, userFeedItems, folderItems, markItemRead, markUserFeedItemsRead, markUserFolderItemsRead, saveItem, 
     allSavedItems, sourcePriority, updateSourcePriorities, readItems, presetSources, addUserPodcast, getItemsByCategory, getSavedItemsByCategory, getUserBySupabaseUID,
-    allUserRSSSources, allUserPodcastSources
+    allUserRSSSources, allUserPodcastSources, getUnfolderedSources, markSourceItemsRead
  }
 
 

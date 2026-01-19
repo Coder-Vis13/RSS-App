@@ -26,7 +26,7 @@ export default function RulesPage() {
   const [sources, setSources] = useState<SourcePriority[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
-  const userId = 25;
+  const userId = 1;
 
   useEffect(() => {
     const fetchSources = async () => {
@@ -61,24 +61,21 @@ export default function RulesPage() {
   // Loading state
   if (loading) return <p>Loading subscribed sources...</p>;
 
-  // Empty-state banner (same style as SavedPage)
+  // Empty-state banner 
   if (!loading && sources.length === 0) {
     return (
       <div className="p-4 w-full">
-        <div className="flex flex-col items-center justify-center w-full mt-10">
+        <div className="flex flex-col items-center justify-center w-full h-[90vh] mt-10">
           <img
             src="/rulesImage.png"
             alt="No Sources"
-            className="w-80 h-auto mb-6 mt-10"
+            className="w-80 h-auto mb-6"
           />
-
-          <div className="w-1/2 bg-[var(--skyblue)] rounded-[var(--radius)] p-6">
             <p className="text-[var(--text)] text-center">
               You haven't added any sources yet. Add sources to organize your feed priority.
             </p>
           </div>
         </div>
-      </div>
     );
   }
 

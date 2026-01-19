@@ -1,61 +1,61 @@
-//fake auth version
+// //fake auth version
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+// import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export interface DBUser {
-  user_id: number;
-  email: string;
-  supabase_uid: string;
-  created_at: string;
-  created: boolean;
-}
+// export interface DBUser {
+//   user_id: number;
+//   email: string;
+//   supabase_uid: string;
+//   created_at: string;
+//   created: boolean;
+// }
 
-interface AuthContextType {
-  supabaseUser: any | null;
-  dbUser: DBUser | null;
-  loading: boolean;
-}
+// interface AuthContextType {
+//   supabaseUser: any | null;
+//   dbUser: DBUser | null;
+//   loading: boolean;
+// }
 
-const AuthContext = createContext<AuthContextType>({
-  supabaseUser: null,
-  dbUser: null,
-  loading: true,
-});
+// const AuthContext = createContext<AuthContextType>({
+//   supabaseUser: null,
+//   dbUser: null,
+//   loading: true,
+// });
 
-interface ProviderProps {
-  children: ReactNode;
-}
+// interface ProviderProps {
+//   children: ReactNode;
+// }
 
-export const AuthProvider = ({ children }: ProviderProps) => {
-  const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
-  const [dbUser, setDbUser] = useState<DBUser | null>(null);
-  const [loading, setLoading] = useState(true);
+// export const AuthProvider = ({ children }: ProviderProps) => {
+//   const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
+//   const [dbUser, setDbUser] = useState<DBUser | null>(null);
+//   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // fake user on load
-    const user = { id: "11", email: "demo@example.com" };
-    setSupabaseUser(user);
+//   useEffect(() => {
+//     // fake user on load
+//     const user = { id: "11", email: "demo@example.com" };
+//     setSupabaseUser(user);
 
-    // fake DB user
-    setDbUser({
-      user_id: 11,
-      email: "demo@example.com",
-      supabase_uid: "11",
-      created_at: new Date().toISOString(),
-      created: false,
-    });
+//     // fake DB user
+//     setDbUser({
+//       user_id: 11,
+//       email: "demo@example.com",
+//       supabase_uid: "11",
+//       created_at: new Date().toISOString(),
+//       created: false,
+//     });
 
-    setLoading(false);
-  }, []);
+//     setLoading(false);
+//   }, []);
 
-  return (
-    <AuthContext.Provider value={{ supabaseUser, dbUser, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+//   return (
+//     <AuthContext.Provider value={{ supabaseUser, dbUser, loading }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// };
 
-export const useAuth = () => useContext(AuthContext);
+// export const useAuth = () => useContext(AuthContext);
 
 
 

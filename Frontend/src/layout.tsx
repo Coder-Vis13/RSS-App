@@ -7,8 +7,11 @@ import Sidebar from "@/components/sidebar"
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
       <body className="flex h-screen">
-        <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+        <Sidebar>{children}
+        <main className="flex-1 p-6 overflow-y-auto">
+          {children}
+          </main>
+        </Sidebar>
       </body>
   )
 }

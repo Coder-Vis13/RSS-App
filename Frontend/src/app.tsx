@@ -6,180 +6,85 @@ import SavedPage from "./app/saved/page";
 import RulesPage from "./app/rules/page";
 import ReadPage from "./app/read/page";
 import Folder1Page from "./app/folders/folder1";
-import { Toaster } from "./components/ui/sonner";     // your shadcn Toaster wrapper
-import { toast } from "sonner";                       // correct toast import
+import { Toaster } from "./components/ui/sonner";     
 import { BlocklistProvider } from "./context/blocklistContext";
 import Landing from "./landingPage";
 import { readItems } from "./services/api";
 import { useEffect, useState } from "react";
 
-// --- Inline Goal Modal ---
-function GoalModal({ isOpen, onClose, onSave, defaultValue }: any) {
-  if (!isOpen) return null;
-
-  const [value, setValue] = useState(defaultValue || 1);
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200]">
-      <div className="bg-white rounded-xl p-6 shadow-lg w-80">
-        <h2 className="text-lg font-semibold mb-3">Set Reading Goal</h2>
-
-        <input
-          type="number"
-          min={1}
-          value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
-          className="border p-2 rounded w-full mb-4"
-        />
-
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-gray-600">
-            Cancel
-          </button>
-
-          <button
-            onClick={() => onSave(value)}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Home() {
-  const userId = 25;
+  const userId = 1;
 
-  const [readingStreak, setReadingStreak] = useState(0);
-  const [goal, setGoal] = useState<number>(() => {
-    return Number(localStorage.getItem("readingGoal") || 1);
-  });
-  const [isGoalModalOpen, setGoalModalOpen] = useState(false);
+  const [readCount, setReadCount] = useState(0);
 
-  // --- Consecutive streak logic ---
- const calculateStreak = (items: { read_time: string | null }[], goal: number) => {
-  if (items.length === 0) return 0;
+  useEffect(() => {
+    let cancelled = false;
 
-  // Map: date string -> count of read articles that day
-  const counts: Record<string, number> = {};
+    const fetchReadCount = async () => {
+      try {
+        const rssItems = await readItems(userId, "rss");
+        const podcastItems = await readItems(userId, "podcast");
+        const allItems = [...rssItems, ...podcastItems] as Array<{ read_time: string | null }>;
 
-  items.forEach((item) => {
-    if (!item.read_time) return;
-    const d = new Date(item.read_time);
-    d.setHours(0, 0, 0, 0);
-    const key = d.toISOString();
-    counts[key] = (counts[key] || 0) + 1;
-  });
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-  // Sort dates descending
-  const sortedDates = Object.keys(counts)
-    .map((d) => new Date(d))
-    .sort((a, b) => b.getTime() - a.getTime());
+        const todayCount = allItems.filter((item) => {
+          if (!item.read_time) return false;
+          const d = new Date(item.read_time);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime() === today.getTime();
+        }).length;
 
-  let streak = 0;
-  let current = new Date();
-  current.setHours(0, 0, 0, 0);
-
-  for (let date of sortedDates) {
-    const key = date.toISOString();
-    if (counts[key] >= goal && date.getTime() === current.getTime()) {
-      streak++;
-      current.setDate(current.getDate() - 1);
-    } else if (date.getTime() < current.getTime()) {
-      break; // streak broken
-    }
-  }
-
-  return streak;
-};
-
-
-  const [goalReached, setGoalReached] = useState(false);
-
-useEffect(() => {
-  const fetchReadItems = async () => {
-    try {
-      const rssItems = await readItems(userId, "rss");
-      const podcastItems = await readItems(userId, "podcast");
-      const allItems = [...rssItems, ...podcastItems];
-
-      const streak = calculateStreak(allItems, goal);
-      setReadingStreak(streak);
-
-      // Check if today’s goal is reached
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const todayCount = allItems.filter((item) => {
-        if (!item.read_time) return false;
-        const d = new Date(item.read_time);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime() === today.getTime();
-      }).length;
-
-      if (todayCount >= goal && !goalReached) {
-        toast.success("🎉 You reached your reading goal today!");
-        setGoalReached(true);
-      } else if (todayCount < goal && goalReached) {
-        // reset if user hasn’t met goal yet
-        setGoalReached(false);
+        if (!cancelled) setReadCount(todayCount);
+      } catch (err) {
+        console.error("Failed to load read items:", err);
       }
-    } catch (err) {
-      console.error("Failed to load read items:", err);
-    }
-  };
+    };
 
-  fetchReadItems();
-}, [userId, goal, goalReached]);
+    // Initial fetch + refresh periodically so it updates after new reads
+    fetchReadCount();
+    const intervalId = window.setInterval(fetchReadCount, 10_000);
 
-  // Save reading goal
-  const handleSaveGoal = (value: number) => {
-    setGoal(value);
-    localStorage.setItem("readingGoal", value.toString());
-    toast.success("Reading goal saved!");   // works properly now
-    setGoalModalOpen(false);
-  };
+    // Refresh on focus/visibility (feels instant when user comes back)
+    const onFocus = () => fetchReadCount();
+    const onVis = () => {
+      if (document.visibilityState === "visible") fetchReadCount();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
 
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [userId]);
+  
   return (
     <main className="flex-1 p-2 overflow-y-auto">
-      <GoalModal
-        isOpen={isGoalModalOpen}
-        onClose={() => setGoalModalOpen(false)}
-        onSave={handleSaveGoal}
-        defaultValue={goal}
-      />
+      
 
-      <section className="mb-3">
-        <h2 className="text-2xl font-bold mb-1">
-          Explore what’s new, just for you.
-        </h2>
-      </section>
+      <section className="mb-3 flex items-center gap-4 w-full">
+  <h2 className="text-2xl font-bold mb-1">
+    Explore what’s new, just for you.
+  </h2>
+
+  {/* Read count (today) */}
+  <div className="ml-auto mr-13 flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-2 rounded-full text-sm font-medium">
+    <span>Read today:</span>
+    <span className="tabular-nums">{readCount}</span>
+  </div>
+</section>
+
 
       <section className="mt-2">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-l font-bold text-gray-800"></h2>
-
-          <div className="flex items-center gap-3 mr-13">
-
-            {/* Reading Goal */}
-            <button
-              onClick={() => setGoalModalOpen(true)}
-              className="bg-blue-100 text-blue-700 px-3 py-2 rounded-full text-sm font-medium hover:bg-blue-200 transition"
-            >
-              🎯 Goal: {goal}/day
-            </button>
-
-            {/* Streak */}
-            <div className="flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-2 rounded-full text-sm font-medium">
-              🔥 <span>{readingStreak}-day streak</span>
-            </div>
-
-          </div>
         </div>
 
-        <p className="text-gray-600">Choose a source from below or add one by URL</p>
+        <p className="text-gray-600">Pick a source to get started — or add one by URL.</p>
 
         <Sites userId={userId} />
       </section>

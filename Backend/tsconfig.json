@@ -9,7 +9,7 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "testFeedService.ts"],
+  "include": ["src/**/*", "testFeedService.ts", "src/scripts"],
   "exclude": ["dist", "node_modules"]
 }
 

@@ -5,16 +5,17 @@
   "module": "NodeNext",
   "scripts": {
     "build": "tsc",
+    "db:init": "ts-node scripts/initDb.ts",
     "start": "node dist/server.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts"
+    "dev": "nodemon"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "@extractus/feed-extractor": "^7.1.7",
-    "@rowanmanning/feed-parser": "^2.1.1",
     "@sesamy/podcast-parser": "^1.6.3",
+    "@supabase/supabase-js": "^2.90.1",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
@@ -28,6 +29,7 @@
     "he": "^1.2.0",
     "htmlparser2": "^10.0.0",
     "jsonwebtoken": "^9.0.2",
+    "link-preview-js": "^4.0.0",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "openai": "^6.7.0",
@@ -50,6 +52,6 @@
     "@types/sanitize-html": "^2.16.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.3.3"
   }
 }

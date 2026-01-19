@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { allUserRSSSources, addSourceIntoFolder, folderItems as getFolderItems, delSourceFromFolder, markItemRead, markUserFolderItemsRead, saveItem } from "../../services/api";
-import { Check, Bookmark, ChevronDown } from "lucide-react";
+import { folderItems as getFolderItems, markItemRead, markUserFolderItemsRead, saveItem } from "../../services/api";
+import { Bookmark, ChevronDown } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getCategoryPresentation } from "../../lib/categoryColors";
@@ -12,11 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 
-
-interface UserSources {
-  source_id: number;
-  source_name: string;
-}
 
 interface FolderItems {
   item_id: number;
@@ -32,9 +27,7 @@ interface FolderItems {
 
 
 export default function Folder1Page() {
-  const [sources, setSources] = useState<UserSources[]>([]);
   const [folderItems, setFolderItems] = useState<FolderItems[]>([]);
-  const [selectedSources, setSelectedSources] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const { folderId } = useParams<{ folderId: string }>();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -44,7 +37,7 @@ export default function Folder1Page() {
   
   const feedType: "rss" = "rss";
 
-  const userId = 25;
+  const userId = 1;
 
     useEffect(() => {
   const stored = localStorage.getItem("blocklist");
@@ -57,69 +50,35 @@ export default function Folder1Page() {
     }
   }
 }, []);
-  
-  useEffect(() => {
-    if (!folderId) return;
-    const fetchSources = async () => {
-      try {
-        const sourcedata = await allUserRSSSources(userId);
-        setSources(sourcedata);
-      } catch (err) {
-        console.error("Failed to load sources:", err);
-      }
-    };
-    fetchSources();
-  }, [userId]);
 
- const fetchFolderItems = async () => {
-    try {
-      const data = await getFolderItems(userId, Number(folderId));
-      const normalized = data.map((i: any) => ({
-        ...i,
-        is_save: Boolean(i.is_save),
-      }));
-      setFolderItems(normalized);
-      const allCats = normalized.flatMap((i: any) =>
-      i.categories?.map((cat: any) => cat.name) || []
+const fetchFolderItems = async () => {
+  try {
+    const data = await getFolderItems(userId, Number(folderId));
+    const normalized = data.map((i: any) => ({
+      ...i,
+      is_save: Boolean(i.is_save),
+    }));
+
+    setFolderItems(normalized);
+
+    const allCats: string[] = normalized.flatMap(
+  (i: FolderItems) => i.categories?.map((cat) => cat.name) ?? []
 );
-setUniqueCategories(["all", ...Array.from(new Set(allCats)) as string[]]);
 
-      //Pre-select sources already in this folder
-const subscribedSources = Array.from(new Set(
-  normalized.map((i: any) => i.source_id)
-)) as number[];
-      setSelectedSources(subscribedSources);
-    } catch (err) {
-      console.error("Failed to load folder items:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+setUniqueCategories(["all", ...Array.from(new Set<string>(allCats))]);
+
+  } catch (err) {
+    console.error("Failed to load folder items:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     if (!folderId) return;
     fetchFolderItems();
   }, [folderId]);
-
-  const toggleSource = async (id: number) => {
-      const alreadySelected = selectedSources.includes(id);
-      setSelectedSources((prev) =>
-        alreadySelected ? prev.filter((s) => s !== id) : [...prev, id]
-      );
-
-      try {
-        if (alreadySelected) {
-          await delSourceFromFolder(userId, Number(folderId), id);
-        }
-        else {
-          await addSourceIntoFolder(userId, Number(folderId), id);
-        }
-        //refresh folder items
-        await fetchFolderItems();
-    } catch (err) {
-      console.error("Error toggling source:", err);
-    }
-    }
 
   if (loading) return <p>Loading...</p>;
 
@@ -177,32 +136,9 @@ const filterWithBlocklist = (items: FolderItems[], blocklist: string[]) => {
   return (
     <section className="mt-10 ml-5">
       <h3 className="mb-4 text-lg font-bold text-[var(--text)]">
-        Choose the sources you wish to add to this folder
+        
       </h3>
 
-      {/*SOURCES*/}
-      <div className="flex flex-wrap gap-3 mb-6">
-        {sources.map((i) => {
-          const isSelected = selectedSources.includes(i.source_id);
-
-          return (
-            <button
-              key={i.source_id}
-              type="button"
-              onClick={() => toggleSource(i.source_id)}
-              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150
-                ${
-                  isSelected
-                    ? "bg-[var(--skyblue)] text-[var(--text)] border-[var(--skyblue)] shadow-sm"
-                    : "border-[var(--navyblue)] text-[var(--text)] hover:bg-[var(--skyblue)] hover:border-[var(--skyblue)]"
-                } active:scale-95`}
-            >
-              {isSelected && <Check size={16} className="text-[var(--text)]" />}
-              <span>{i.source_name}</span>
-            </button>
-          );
-        })}
-      </div>
 
       {/*ITEMS*/}
       {folderItems.length > 0 ? (
@@ -263,14 +199,13 @@ const filterWithBlocklist = (items: FolderItems[], blocklist: string[]) => {
           <div className="flex flex-col divide-y divide-gray-300">
 {filterWithBlocklist(folderItems, blocklist)
   .filter((item) => {
-    const sourceMatch = selectedSources.includes(item.source_id);
-    const categoryMatch =
+    return (
       categoryFilter === "all" ||
-      item.categories?.some((c) => c.name === categoryFilter);
-
-    return sourceMatch && categoryMatch;
+      item.categories?.some((c) => c.name === categoryFilter)
+    );
   })
-            .map((item) => (
+  .map((item) => (
+
                 <div
                   key={item.item_id}
                   className="py-4 flex justify-between items-start hover:bg-[var(--hover)] transition"
@@ -335,7 +270,20 @@ const filterWithBlocklist = (items: FolderItems[], blocklist: string[]) => {
           </div>
         </div>
       ) : (
-        <p className="text-[var(--text-light)]">This folder is empty. Start adding sources to fill it with content.</p>
+<div className="flex flex-col items-center justify-center h-[90vh] text-center">
+  <img
+    src="/folderImage.png"
+    alt="No content in this folder"
+    className="w-56 mb-6 opacity-90"
+  />
+  <p className="text-lg font-semibold text-[var(--text)]">
+    This folder is empty
+  </p>
+  <p className="mt-2 text-sm text-[var(--text-light)] max-w-sm">
+    Add sources to this folder to start curating your reading feed.
+  </p>
+</div>
+
       )}
     </section>
   );

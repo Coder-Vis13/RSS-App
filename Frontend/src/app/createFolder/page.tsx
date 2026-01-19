@@ -14,7 +14,7 @@ interface NewFolder {
 export default function CreateFolderPage() {
     const [folder, setFolder] = useState<NewFolder>();
     const [loading, setLoading] = useState(true);
-    const userId = 24;
+    const userId = 1;
     <section> 
         <div>
             {/* <input

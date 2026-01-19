@@ -79,7 +79,6 @@ https://feeds.megaphone.fm/WWO8086402096​
 
 
 
-// STRING MATCHING: https://www.npmjs.com/package/string-similarity-js
 
 
 import express, { json, Request, Response, NextFunction } from 'express';
@@ -96,11 +95,21 @@ const PORT = process.env.PORT;
 
 const app = express();
 
+app.post("/_debug", (req, res) => {
+  res.json({ ok: true, body: req.body, headers: req.headers });
+});
+
+
 app.use(corsHandler);
 
 app.use(express.json());
 
 app.use(loggingHandler);
+
+app.get("/ping", (_, res) => {
+  res.send("ok");
+});
+
 
 app.use("/", router);
 

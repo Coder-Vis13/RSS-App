@@ -4,7 +4,7 @@ import { getFirstRow, logAction, markAsCreated } from "../utils/helpers";
 import { QueryResult } from "../utils/helpers";
 import { getLogo } from "../utils/getLogo";
 import { categorizeItem } from "../utils/categorizer";
-import pLimit from "p-limit";
+
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -15,7 +15,7 @@ user_id: number;
 name: string;
 email: string;
 password_hash?: string;
-created_at: string;  //should this be date?
+created_at: string;  
 }
 
 export interface User extends DBUser {
@@ -60,7 +60,7 @@ const addUser = async (user: NewUser): Promise<User> => {
 export interface Folder {
   user_id: number;
   folder_id: number;
-  name: string;
+  folder_name: string;
 }
 
 export interface CreatedFolder extends Folder {
@@ -76,23 +76,23 @@ const createFolder = async (folder: NewFolder): Promise<CreatedFolder> => {
         `INSERT INTO folder(user_id, name)
          VALUES ($1, $2)
          ON CONFLICT (user_id, name) DO NOTHING
-         RETURNING user_id, folder_id, name`, [folder.user_id, folder.name]
+         RETURNING user_id, folder_id, name`, [folder.user_id, folder.folder_name]
     );
     const newFolder = getFirstRow(insertResult);
     if (newFolder) {
-    logAction(`Created new folder for the User=${folder.user_id}: Folder="${folder.name}"`);
+    logAction(`Created new folder for the User=${folder.user_id}: Folder="${folder.folder_name}"`);
     return markAsCreated(newFolder);
   }
   //folder already exists. getting existing folder
     const selectResult: QueryResult<Folder> = await query(
         `SELECT user_id, folder_id, name FROM folder WHERE user_id = $1 AND name = $2`,
-        [folder.user_id, folder.name]
+        [folder.user_id, folder.folder_name]
     );
     const existingFolder = getFirstRow(selectResult);
      if (!existingFolder) {
     throw new Error(`User not found`);
   }
-    logAction(`Existing folder for the User=${folder.user_id}: Folder="${folder.name}"`);
+    logAction(`Existing folder for the User=${folder.user_id}: Folder="${folder.folder_name}"`);
     return { ...existingFolder, created: false };
 };
 
@@ -120,16 +120,89 @@ const renameFolder = async(userId: number, folderId: number, name: string): Prom
   return result.rows[0];
 }
 
+interface UserFolder extends Folder {
+  sources: {
+    source_id : number;
+    source_name: string;
+  }[];
+}
+
+interface UserFolderRow {
+  folder_id: number;
+  user_id: number;
+  folder_name: string;
+  source_id: number | null;
+  source_name: string | null;
+}
+
 
 //get all folders for a user
-const getUserFolders = async (userId: number): Promise<Pick<Folder, "folder_id" | "name">[]> => {
-    const insertResult: QueryResult<Pick<Folder, "folder_id" | "name">> = await query(
-        `SELECT folder_id, name
-        FROM folder WHERE user_id = $1`, [userId]
-    );
-    logAction(`Number of folders of User=${userId}: folderCount=${insertResult.rows.length}`);
-    return insertResult.rows;
+const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
+    const insertResult: QueryResult<UserFolderRow> = await query(
+         `SELECT
+    f.folder_id,
+    f.user_id,
+    f.name AS folder_name,
+    s.source_id,
+    s.source_name
+  FROM folder f
+  LEFT JOIN user_source_folder usf
+  ON f.folder_id = usf.folder_id
+  AND f.user_id = usf.user_id
+  LEFT JOIN source s
+    ON usf.source_id = s.source_id
+  WHERE f.user_id = $1
+  ORDER BY f.folder_id
+  `,
+  [userId]
+);
+  const map = new Map<number, UserFolder>();
+
+    for (const row of insertResult.rows) {
+    if (!map.has(row.folder_id)) {
+      map.set(row.folder_id, {
+        folder_id: row.folder_id,
+        user_id: row.user_id,
+        folder_name: row.folder_name,
+        sources: []
+      });
+    }
+
+    if (row.source_id !== null) {
+      map.get(row.folder_id)!.sources.push({
+        source_id: row.source_id,
+        source_name: row.source_name!
+      });
+    }
+  }
+    logAction(`Number of folders of User=${userId}: folderCount=${map.size}`);
+    return Array.from(map.values());
 };
+
+
+// get all unfoldered sources for a user
+const getUnfolderedSources = async (userId: number): Promise<{ source_id: number; source_name: string }[]> => {
+  const result: QueryResult<{ source_id: number; source_name: string }> = await query(
+    `
+    SELECT s.source_id, s.source_name
+    FROM user_source us
+    JOIN source s ON us.source_id = s.source_id
+    LEFT JOIN user_source_folder usf
+      ON us.user_id = usf.user_id
+      AND us.source_id = usf.source_id
+    WHERE us.user_id = $1
+      AND usf.folder_id IS NULL
+    ORDER BY s.source_name
+    `,
+    [userId]
+  );
+
+  console.info(`INFO: Number of unfoldered sources for User=${userId}: ${result.rows.length}`);
+  return result.rows;
+};
+
+
+
 
 interface Source {
     source_id: number;
@@ -351,16 +424,59 @@ const allUserSources = async (userId: number): Promise<UserSources[]> => {
   return sourcesWithLogos;
 };
 
-// const allUserSources = async (userId: number): Promise<UserSources[]> => {
-//     const result: QueryResult<UserSources> = await query(
-//         `SELECT s.source_id, s.source_name FROM user_source us
-//         JOIN source s ON s.source_id = us.source_id
-//         WHERE us.user_id = $1
-//         ORDER BY us.priority ASC`, [userId]
-//     ); 
-//     logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
-//     return result.rows;
-// };
+
+
+
+interface UserRSSSources {
+    source_id: number;
+    source_name: string;
+    url: string;
+}
+
+//get all the sources for a user
+const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
+    const result: QueryResult<UserRSSSources> = await query(
+        `SELECT s.source_id, s.source_name, s.url FROM user_source us
+        JOIN source s ON s.source_id = us.source_id
+        WHERE us.user_id = $1
+        ORDER BY us.priority ASC`, [userId]
+    ); 
+    logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
+    const sourcesWithLogos = await Promise.all(
+    result.rows.map(async (source) => {
+      const logo = await getLogo(source.url);
+      return { ...source, logo_url: logo };
+    })
+  );
+
+  return sourcesWithLogos;
+};
+
+
+interface UserPodcastSources {
+    source_id: number;
+    source_name: string;
+    url: string;
+}
+
+const allUserPodcastSources = async (userId: number): Promise<UserPodcastSources[]> => {
+    const result: QueryResult<UserPodcastSources> = await query(
+        `SELECT s.source_id, s.source_name, s.url FROM user_podcast up
+        JOIN source s ON s.source_id = up.podcast_id
+        WHERE up.user_id = $1
+        ORDER BY up.priority ASC`, [userId]
+    ); 
+    logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
+    const sourcesWithLogos = await Promise.all(
+    result.rows.map(async (source) => {
+      const logo = await getLogo(source.url);
+      return { ...source, logo_url: logo };
+    })
+  );
+
+  return sourcesWithLogos;
+};
+
 
 interface InsertedItem {
   item_id: number;
@@ -651,47 +767,6 @@ const baseQuery = `SELECT
 };
 
 
-
-// //get all unread items for a folder for a user
-// const folderItems = async (userId: number, folderId: number): Promise<FolderItems[]> => {
-//   const result: QueryResult<FolderItems> = await query(
-//     `SELECT 
-//       i.item_id,
-//       i.title,
-//       i.link,
-//       i.description,
-//       i.pub_date,
-//       s.source_id,
-//       s.source_name,
-//       COALESCE(uim.is_save, false) AS is_save,
-//       COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') AS categories
-//     FROM item i
-//     INNER JOIN source s 
-//       ON i.source_id = s.source_id
-//     INNER JOIN user_source_folder usf 
-//       ON usf.source_id = s.source_id 
-//       AND usf.user_id = $1 
-//       AND usf.folder_id = $2
-//     INNER JOIN user_source us 
-//       ON us.user_id = $1 
-//       AND us.source_id = s.source_id
-//     LEFT JOIN user_item_metadata uim 
-//       ON uim.user_id = $1 
-//       AND uim.item_id = i.item_id
-//     LEFT JOIN item_category ic ON i.item_id = ic.item_id
-//     LEFT JOIN category c ON ic.category_id = c.category_id
-//     WHERE i.pub_date >= NOW() - interval '2 days'
-//       AND (uim.read_time IS NULL)
-//     GROUP BY i.item_id, s.source_name, s.source_id, us.priority, uim.is_save
-//     ORDER BY us.priority, i.pub_date DESC`, [userId, folderId]
-//   );
-
-//   logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${result.rows.length}`);
-//   return result.rows;
-// };
-
-
-
 interface AddSourceToFolder extends Omit<Folder, 'name'> {
     source_id: number;
     added: boolean;
@@ -798,6 +873,31 @@ const markItemRead = async (userId: number,itemId: number, feedType: "rss" | "po
   return { ...markedItem, read: true, feed_type: feedType };
 };
 
+
+
+// mark all items of a specific source as read for a user
+const markSourceItemsRead = async (userId: number, sourceId: number): Promise<{ readCount: number }> => {
+  const result = await query(
+    `
+    INSERT INTO user_item_metadata (user_id, item_id, read_time)
+    SELECT $1, i.item_id, NOW()
+    FROM item i
+    JOIN user_source us
+      ON us.source_id = i.source_id
+    WHERE us.user_id = $1
+      AND us.source_id = $2
+    ON CONFLICT (user_id, item_id)
+      DO UPDATE SET read_time = EXCLUDED.read_time
+    RETURNING user_id, item_id, read_time
+    `,
+    [userId, sourceId]
+  );
+
+  logAction(`Marked source items as read: User=\${userId} Source=\${sourceId} itemCount=\${result.rowCount}`);
+
+  return { readCount: result.rowCount ?? 0 };
+
+};
 
 
 interface ReadItems {
@@ -954,37 +1054,6 @@ const allSavedItems = async (userId: number, feedType?: "podcast" | "rss" | stri
   return result.rows;
 };
 
-// const allSavedItems = async (userId: number, feedType?: "podcast" | "rss" | string): Promise<Items[]> => {
-//   const baseQuery = `SELECT 
-//       s.source_name, 
-//       s.feed_type,
-//       i.item_id, 
-//       i.title, 
-//       i.link, 
-//       i.description, 
-//       i.pub_date,
-//       COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') AS categories
-//     FROM user_item_metadata uim
-//     JOIN item i ON uim.item_id = i.item_id
-//     JOIN source s ON i.source_id = s.source_id
-//     LEFT JOIN item_category ic ON i.item_id = ic.item_id
-//     LEFT JOIN category c ON ic.category_id = c.category_id
-//     WHERE uim.is_save = TRUE
-//       AND uim.user_id = $1
-//     ${feedType ? "AND s.feed_type = $2" : ""}
-//     GROUP BY i.item_id, s.source_name, s.feed_type
-//     ORDER BY i.pub_date DESC`;
-
-//   const params = feedType ? [userId, feedType] : [userId];
-//   const result: QueryResult<Items> = await query(baseQuery, params);
-
-//   logAction(
-//     `Saved items: User=${userId} feedType=${feedType || "all"} itemCount=${result.rows.length}`
-//   );
-//   return result.rows;
-// };
-
-
 
 interface SourceWithPriority extends Source {
   priority: number;
@@ -1118,75 +1187,8 @@ const readItems = async (userId: number, feedType?: "rss" | "podcast"): Promise<
 };
 
 
-
-
-// //not being used right now
-// const sourceItems = async (userId: number, sourceId: number, feedType: "rss" | "podcast" = "rss"): Promise<AllReadItems[]> => {
-//   const queryStr = `
-//     SELECT s.source_name, s.feed_type, i.item_id, i.title, i.link, i.description, i.pub_date, uim.read_time
-//     FROM user_item_metadata uim
-//     JOIN item i ON uim.item_id = i.item_id
-//     JOIN source s ON i.source_id = s.source_id
-//     WHERE uim.user_id = $1
-//       AND s.source_id = $2
-//       AND s.feed_type = $3
-//       AND uim.read_time IS NULL
-//     ORDER BY i.pub_date DESC`;
-
-//   const params = [userId, sourceId, feedType];
-
-//   const result: QueryResult<AllReadItems> = await query(queryStr, params);
-
-//   logAction(
-//     `Unread items for User=${userId} Source=${sourceId} feedType=${feedType} itemCount=${result.rows.length}`
-//   );
-
-//   return result.rows;
-// };
-
-
-// interface ItemWithCategories {
-//   item_id: number;
-//   title: string;
-//   description: string | null;
-//   pub_date: Date;
-//   categories: string[] | null;
-// }
-
-// const getAllItemsWithCategories = async (): Promise<ItemWithCategories[]> => {
-//   const queryStr = 
-//   `SELECT i.item_id, i.title, i.description, i.pub_date, array_agg(c.name) AS categories
-//     FROM item i
-//     LEFT JOIN item_category ic 
-//       ON i.item_id = ic.item_id
-//     LEFT JOIN category c 
-//       ON ic.category_id = c.category_id
-//     GROUP BY i.item_id
-//     ORDER BY i.pub_date DESC;`;
-
-//   try {
-//     const result: QueryResult<ItemWithCategories> = await query(queryStr);
-
-//     logAction(`Fetched all items with categories (count=\${result.rows.length})`);
-
-//     return result.rows.map((row) => ({
-//       item_id: row.item_id,
-//       title: row.title,
-//       description: row.description,
-//       pub_date: row.pub_date,
-//       categories: row.categories || [],
-//     }));
-//   } catch (error) {
-//     console.error("Error fetching items with categories:", error);
-//     throw error;
-//   }
-// };
-
-
-
-
 export { addUser, createFolder, renameFolder, addSource, addUserSource, addUserPodcast, addItem, 
 userFeedItems, addSourceIntoFolder, folderItems, markItemRead, saveItem,
 markUserFeedItemsRead, markFolderItemsRead, removeUserSource, delSourceFromFolder, deleteFolder, 
 allUserSources, getUserFolders, allSavedItems, sourcePriority, updateSourcePriorities, readItems, addUserItemMetadata,
-getRecentItems, getItemsByCategory, getSavedItemsByCategory };
+getRecentItems, getItemsByCategory, getSavedItemsByCategory, allUserRSSSources, allUserPodcastSources, getUnfolderedSources, markSourceItemsRead };

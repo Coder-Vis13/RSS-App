@@ -63,7 +63,7 @@ export default function FeedPage() {
   // const { supabaseUser, loading: authLoading } = useAuth();
   // const userId = supabaseUser?.id ?? ""; // this is the Supabase UID
 
-  const userId = 25;
+  const userId = 1;
 
   const [blocklist, setBlocklist] = useState<string[]>(() => {
   // initialize from localStorage
@@ -132,22 +132,8 @@ useEffect(() => {
   };
 
   fetchSources();
-}, [userId, feedType]); // <-- add feedType dependency
+}, [userId, feedType]); 
 
-
-//   // --- FETCH SOURCES ---
-//   useEffect(() => {
-//   if (!userId) return;
-//   const fetchSources = async () => {
-//     try {
-//       const sourcedata = await allUserRSSSources(userId);
-//       setSources(sourcedata);
-//     } catch (err) {
-//       console.error("Failed to load sources:", err);
-//     }
-//   };
-//   fetchSources();
-// }, [userId]);
 
 
   // --- BLOCKLIST LOAD ---
@@ -366,18 +352,15 @@ const noFeedItems = !loading && filteredFeedItems.length === 0;
     <div className="flex min-h-screen w-full">
 
       {noFeedItems ? (
-  <div className="flex flex-col items-center justify-center w-full">
+  <div className="flex flex-col items-center justify-center h-[90vh] w-full">
     <img
       src="/feedImage.png" 
       alt="Empty Feed"
       className="w-85 h-auto mb-6"
     />
-
-    <div className="w-1/2 bg-[var(--skyblue)] rounded-[var(--radius)] p-6">
       <p className="text-[var(--text)] text-center">
         Your feed is empty right now. Add some sources to start receiving articles and podcasts!
       </p>
-    </div>
   </div>
 ) : (
   <>
