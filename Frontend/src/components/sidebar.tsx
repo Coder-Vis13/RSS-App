@@ -35,9 +35,9 @@ import {
   delSourceFromFolder,
   removeUserSource,
   markSourceItemsRead,
-  markUserFolderItemsRead,
   addSourceIntoFolder,
 } from "../services/api";
+import { Separator } from "./ui/separator";
 
 const navbarItems = [
   { label: "Home", icon: Home, path: "/home" },
@@ -61,13 +61,10 @@ export default function SidebarLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isSmallOpen, setIsSmallOpen] = useState(false);
-  const [openModal, setOpenModal] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameUserFolder, setRenameUserFolder] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
-  const [menuOpen, setMenuOpen] = useState<number | null>(null);
   const [renameError, setRenameError] = useState<string | null>(null);
   const [userFolders, setUserFolders] = useState<UserFolder[]>([]);
   const [openFolders, setOpenFolders] = useState<Set<number>>(new Set());
@@ -76,10 +73,19 @@ export default function SidebarLayout({
   >([]);
   const [addToFolderOpen, setAddToFolderOpen] = useState(false);
   const [activeSourceId, setActiveSourceId] = useState<number | null>(null);
+  const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
 
   const navigate = useNavigate();
 
   const userId = 1;
+
+  const refetchSidebarData = async () => {
+    const folders = await getUserFolders(userId);
+    const unfoldered = await getUnfolderedSources(userId);
+
+    setUserFolders(folders);
+    setUnfolderedSources(unfoldered);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -124,12 +130,11 @@ export default function SidebarLayout({
   }, [userId]);
 
   const handleCreateFolder = async () => {
-    if (!folderName.trim()) return;
-    setFolderName("");
-    setOpenModal(false);
+    if (!folderName.trim() || !userId) return;
+
     try {
-      if (!userId) return;
       const newFolder = await createFolder(userId, folderName);
+
       setUserFolders((prev) => [
         ...prev,
         {
@@ -139,9 +144,38 @@ export default function SidebarLayout({
         },
       ]);
 
+      // If coming from "add source to folder"
+      if (activeSourceId) {
+        await addSourceIntoFolder(userId, newFolder.folder_id, activeSourceId);
+
+        setUserFolders((prev) =>
+          prev.map((f) =>
+            f.folder_id === newFolder.folder_id
+              ? {
+                  ...f,
+                  sources: [
+                    ...f.sources,
+                    unfolderedSources.find(
+                      (s) => s.source_id === activeSourceId,
+                    )!,
+                  ],
+                }
+              : f,
+          ),
+        );
+
+        setUnfolderedSources((prev) =>
+          prev.filter((s) => s.source_id !== activeSourceId),
+        );
+
+        setActiveSourceId(null);
+      }
       navigate(`/folders/${newFolder.folder_id}`);
-    } catch (error) {
-      console.error("Error creating folder:", error);
+      setFolderName("");
+      setCreateFolderDialogOpen(false);
+      setAddToFolderOpen(false);
+    } catch (err) {
+      console.error("Error creating folder:", err);
     }
   };
 
@@ -158,7 +192,7 @@ export default function SidebarLayout({
       setUserFolders((prev) =>
         prev.map((f) =>
           f.folder_id === selectedFolderId
-            ? { ...f, name: updatedFolder.name }
+            ? { ...f, folder_name: updatedFolder.name }
             : f,
         ),
       );
@@ -202,8 +236,12 @@ export default function SidebarLayout({
     );
   };
 
-  const handleRemoveFromFolder = async (folderId: number, sourceId: number) => {
+  const handleRemoveSourceFromFolder = async (
+    folderId: number,
+    sourceId: number,
+  ) => {
     await delSourceFromFolder(userId, folderId, sourceId);
+    await refetchSidebarData();
     setUserFolders((prev) =>
       prev.map((f) =>
         f.folder_id === folderId
@@ -217,51 +255,22 @@ export default function SidebarLayout({
     if (activeSourceId === null) return;
 
     await addSourceIntoFolder(userId, folderId, activeSourceId);
-
-    setUserFolders((prev) =>
-      prev.map((f) =>
-        f.folder_id === folderId
-          ? {
-              ...f,
-              sources: [
-                ...f.sources,
-                unfolderedSources.find((s) => s.source_id === activeSourceId)!,
-              ],
-            }
-          : f,
-      ),
-    );
-
-    setUnfolderedSources((prev) =>
-      prev.filter((s) => s.source_id !== activeSourceId),
-    );
-
+    await refetchSidebarData();
     setAddToFolderOpen(false);
     setActiveSourceId(null);
   };
 
-  const sidebarWidth = isSmallOpen ? "72px" : "280px";
+  const sidebarWidth = 260;
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside
         style={{ width: sidebarWidth }}
-        className="fixed left-0 top-0 h-full flex flex-col p-3 bg-[var(--sidebar)] border-r z-40 transition-all"
+        className="fixed left-0 top-0 h-full flex flex-col p-3 bg-[var(--sidebar)] border-r border-[var(--light-grey)] z-40 transition-all"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5 text-[var(--sidebar-foreground)]">
-          {!isSmallOpen && <h1 className="text-xl font-bold">ReadArchive</h1>}
-          <Button
-            onClick={() => setIsSmallOpen(!isSmallOpen)}
-            variant="ghost"
-            className="p-1 rounded"
-          >
-            {isSmallOpen ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
-          </Button>
+          <h1 className="text-xl font-bold">ReadArchive</h1>
         </div>
 
         {/* Navigation */}
@@ -272,29 +281,20 @@ export default function SidebarLayout({
               to={path}
               className={({ isActive }) =>
                 `w-full text-sm flex rounded-md px-3 py-2 transition-colors items-center
-              ${isSmallOpen ? "justify-center" : "justify-start"}
               ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)]"}`
               }
             >
               <Icon className="h-4 w-4" />
-              {!isSmallOpen && <span className="ml-2">{label}</span>}
+              <span className="ml-2">{label}</span>
             </NavLink>
           ))}
 
-          <button
-            onClick={() => setOpenModal(true)}
-            className={`w-full flex items-center rounded-md px-3 py-2 transition-colors border border-[var(--navyblue)]
-          ${isSmallOpen ? "justify-center" : "justify-start"} hover:bg-[var(--light-grey)]`}
-          >
-            <Plus className="h-4 w-4" />
-            {!isSmallOpen && (
-              <span className="ml-2 text-md">Create Folder</span>
-            )}
-          </button>
+          {/* Horizontal separator */}
         </nav>
+        <Separator className="bg-[#b0b0b0] mt-4" />
 
         {/* Folders */}
-        <nav className="space-y-1 mt-12 text-sm">
+        <nav className="space-y-1 mt-4 text-sm">
           {/* Unfoldered Sources */}
           {unfolderedSources.length > 0 && (
             <div className="mb-4">
@@ -311,12 +311,12 @@ export default function SidebarLayout({
                   }
                 >
                   {({ isActive }) => (
-                    <div className="flex items-center justify-between px-2 py-1">
+                    <div className="mb-1 flex items-center justify-between px-2 py-1 group">
                       <span className="text-sm">{source.source_name}</span>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="p-1">
+                          <button className="p-1 focus-visible:outline-none opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0">
                             <Ellipsis
                               className={`h-4 w-4 ${
                                 isActive
@@ -336,15 +336,23 @@ export default function SidebarLayout({
                               handleMarkSourceRead(source.source_id)
                             }
                           >
-                            Mark all read
+                            Mark all as read
                           </DropdownMenuItem>
                           <DropdownMenuItem
+                            onClick={() => {
+                              setActiveSourceId(source.source_id);
+                              setAddToFolderOpen(true);
+                            }}
+                          >
+                            Add to folder
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
                             onClick={() => handleRemoveSource(source.source_id)}
-                            className="text-red-600"
+                            className="text-red-600 hover:text-red-600 focus:text-red-600 hover:bg-red-50"
                           >
                             Remove source
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Add to folder</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -353,6 +361,24 @@ export default function SidebarLayout({
               ))}
             </div>
           )}
+
+          {/* Horizontal separator after unfoldered sources */}
+          <Separator className="bg-[#b0b0b0] mt-4 mb-4" />
+
+          {/* Folders header with + icon */}
+          <div className="flex items-center justify-between px-2 mb-4 font-semibold text-[var(--sidebar-foreground)]">
+            <span>Folders</span>
+            <button
+              onClick={() => {
+                setFolderName("");
+                setCreateFolderDialogOpen(true);
+              }}
+              className="p-1 rounded hover:bg-[var(--light-grey)]"
+              aria-label="Create Folder"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* Foldered Sources */}
           {userFolders.map((folder) => {
@@ -372,31 +398,76 @@ export default function SidebarLayout({
                   }
                 >
                   {({ isActive }) => (
-                    <div className="w-full flex items-center justify-between px-2 py-2 font-semibold">
+                    <div className="w-full flex items-center justify-between px-2 py-2 group">
                       <span>{folder.folder_name}</span>
+                      <div className="flex items-center gap-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Ellipsis
+                                className={`h-4 w-4 ${
+                                  isActive
+                                    ? "text-[var(--beige)]"
+                                    : "text-gray-500"
+                                }`}
+                              />
+                            </button>
+                          </DropdownMenuTrigger>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const next = new Set(openFolders);
-                          isOpen
-                            ? next.delete(folder.folder_id)
-                            : next.add(folder.folder_id);
-                          setOpenFolders(next);
-                        }}
-                        className="ml-2"
-                      >
-                        <ChevronRight
-                          className={`h-4 w-4 transition-transform ${
-                            isOpen ? "rotate-90" : ""
-                          } ${isActive ? "text-[var(--beige)]" : ""}`}
-                        />
-                      </button>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setRenameUserFolder(folder.folder_name);
+                                setSelectedFolderId(folder.folder_id);
+                                setRenameModalOpen(true);
+                              }}
+                            >
+                              Rename folder
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              className="text-red-600 focus:text-red-600"
+                              onClick={() => {
+                                if (confirm("Delete this folder?")) {
+                                  handleDeleteFolder(folder.folder_id);
+                                }
+                              }}
+                            >
+                              Delete folder
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        {/* Chevron */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const next = new Set(openFolders);
+                            isOpen
+                              ? next.delete(folder.folder_id)
+                              : next.add(folder.folder_id);
+                            setOpenFolders(next);
+                          }}
+                        >
+                          <ChevronRight
+                            className={`h-4 w-4 transition-transform ${
+                              isOpen ? "rotate-90" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </NavLink>
+
                 {/* Sources inside folder */}
                 {isOpen && folder.sources.length > 0 && (
                   <div className="ml-4 space-y-1">
@@ -413,7 +484,7 @@ export default function SidebarLayout({
                         }
                       >
                         {({ isActive }) => (
-                          <div className="flex items-center justify-between px-2 py-1">
+                          <div className="flex items-center justify-between px-2 py-1 group">
                             <span className="text-sm">
                               {source.source_name}
                             </span>
@@ -421,7 +492,7 @@ export default function SidebarLayout({
                             {/* Ellipsis menu */}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button className="p-1">
+                                <button className="p-1 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Ellipsis
                                     className={`h-4 w-4 ${
                                       isActive
@@ -434,13 +505,9 @@ export default function SidebarLayout({
 
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    delSourceFromFolder(
-                                      userId,
-                                      folder.folder_id,
-                                      source.source_id,
-                                    )
-                                  }
+                                  onClick={() => {
+                                    handleRemoveSourceFromFolder(folder.folder_id, source.source_id);
+                                  }}
                                 >
                                   Remove from folder
                                 </DropdownMenuItem>
@@ -452,12 +519,13 @@ export default function SidebarLayout({
                                     )
                                   }
                                 >
-                                  Mark all read
+                                  Mark all as read
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() =>
                                     removeUserSource(userId, source.source_id)
                                   }
+                                  className="text-red-600 hover:text-red-600 focus:text-red-600 hover:bg-red-50"
                                 >
                                   Remove source
                                 </DropdownMenuItem>
@@ -472,23 +540,37 @@ export default function SidebarLayout({
               </div>
             );
           })}
-
+          {/* Add to Folder Dialog */}
           <Dialog open={addToFolderOpen} onOpenChange={setAddToFolderOpen}>
             <DialogContent className="max-w-sm">
               <DialogHeader>
                 <DialogTitle>Add to Folder</DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-2">
-                {userFolders.map((folder) => (
-                  <button
-                    key={folder.folder_id}
-                    onClick={() => handleAddSourceToFolder(folder.folder_id)}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--light-grey)] transition"
-                  >
-                    {folder.folder_name}
-                  </button>
-                ))}
+              <div className="space-y-4">
+                {/* Existing folders */}
+                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                  {userFolders.map((folder) => (
+                    <button
+                      key={folder.folder_id}
+                      onClick={() => handleAddSourceToFolder(folder.folder_id)}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--light-grey)] transition flex justify-between items-center focus-visible:outline-none"
+                    >
+                      {folder.folder_name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Secondary button to open Create Folder dialog */}
+                <Button
+                  variant="outline"
+                  className="flex items-center justify-center w-full gap-2"
+                  onClick={() => {
+                    setCreateFolderDialogOpen(true); // open separate create folder dialog
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> Create New Folder
+                </Button>
               </div>
 
               <DialogFooter>
@@ -501,8 +583,102 @@ export default function SidebarLayout({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Create Folder Dialog */}
+          <Dialog
+            open={createFolderDialogOpen}
+            onOpenChange={setCreateFolderDialogOpen}
+          >
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <div className="flex items-center gap-2 mb-4">
+                  {activeSourceId && (
+                    <button
+                      onClick={() => {
+                        setCreateFolderDialogOpen(false);
+                        setAddToFolderOpen(true);
+                      }}
+                      className="rounded-md p-1 hover:bg-[var(--light-grey)] focus:outline-none"
+                      aria-label="Back"
+                    >
+                      <ChevronLeft className="h-4 w-4 text-[var(--sidebar-foreground)]" />
+                    </button>
+                  )}
+                </div>
+                <DialogTitle>Create New Folder</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <Input
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  placeholder="Folder name"
+                />
+              </div>
+
+              <DialogFooter className="flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setCreateFolderDialogOpen(false);
+                    setFolderName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateFolder}>Create</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={renameModalOpen} onOpenChange={setRenameModalOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Rename folder</DialogTitle>
+              </DialogHeader>
+
+              <Input
+                value={renameUserFolder}
+                onChange={(e) => setRenameUserFolder(e.target.value)}
+                placeholder="Folder name"
+                autoFocus
+              />
+
+              {renameError && (
+                <p className="text-sm text-red-500">{renameError}</p>
+              )}
+
+              <DialogFooter className="flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setRenameModalOpen(false);
+                    setRenameUserFolder("");
+                    setSelectedFolderId(null);
+                    setRenameError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+
+                <Button onClick={handleRenameFolder}>Rename</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </nav>
       </aside>
+    <main
+  style={{
+    marginLeft: sidebarWidth,
+    width: `calc(100vw - ${sidebarWidth}px)`,
+  }}
+  className="h-full overflow-y-auto bg-[var(--background)]"
+>
+  <div className="max-w-6xl mx-auto w-full px-4 py-6">
+    {children}
+  </div>
+</main>
+
     </div>
   );
 }

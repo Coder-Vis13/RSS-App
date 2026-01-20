@@ -1,11 +1,7 @@
-// src/utils/categoryColors.ts
-// Single source of truth for frontend category colors.
-// Exported so any file can import { CATEGORY_COLOR_MAP, getCategoryStyles }
+
 
 export type CategoryColorEntry = {
-  // optional Tailwind classes the backend might send, e.g. "bg-blue-100 text-blue-700"
   classes?: string;
-  // hex fallbacks for inline style (background / text)
   bg?: string;
   text?: string;
 };

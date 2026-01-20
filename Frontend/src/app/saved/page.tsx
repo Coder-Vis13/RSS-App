@@ -95,10 +95,10 @@ export default function SavedPage() {
   };
 
   return (
-    <div className="p-6 w-full">
-      {/* If user has no saved items, show only the banner */}
+    <div className="p-6">
+      {/* Empty state banner */}
       {noSavedItems ? (
-        <div className="flex flex-col items-center justify-center w-full h-[90vh]">
+        <div className="flex flex-col items-center justify-center w-full py-24">
           <img
             src="/savedImage.png"
             alt="Empty Saved Items"
@@ -110,8 +110,8 @@ export default function SavedPage() {
           </p>
         </div>
       ) : (
-        <section className="mt-0 w-full max-w-full">
-          {/* Header row */}
+        <section className="mt-0">
+          {/* Header */}
           <div className="flex items-center justify-between w-full mb-8">
             <div className="flex items-center gap-3">
               {/* Feed type dropdown */}

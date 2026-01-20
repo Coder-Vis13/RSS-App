@@ -136,7 +136,6 @@ export default function Folder1Page() {
     <section className="mt-10 ml-5">
       <h3 className="mb-4 text-lg font-bold text-[var(--text)]"></h3>
 
-      {/*ITEMS*/}
       {folderItems.length > 0 ? (
         <div>
           <div className="mb-4 flex justify-end items-center gap-4">
@@ -266,6 +265,7 @@ export default function Folder1Page() {
           </div>
         </div>
       ) : (
+        //Empty state banner
         <div className="flex flex-col items-center justify-center h-[90vh] text-center">
           <img
             src="/folderImage.png"

@@ -31,9 +31,7 @@ import {
 } from "../../services/api";
 
 import { getCategoryPresentation } from "../../lib/categoryColors";
-// import { useLocalStorage } from "@/hooks/useLocalStorage";
 
-// import { useAuth } from "../../authContext";
 
 interface FeedItems {
   item_id: number;
@@ -65,14 +63,11 @@ export default function FeedPage() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
 
   // Blocklist states
-  // const [blocklist, setBlocklist] = useLocalStorage<string[]>("blocklist", []);
   const [blockInput, setBlockInput] = useState("");
   const [expandedSources, setExpandedSources] = useState<
     Record<string, boolean>
   >({});
 
-  // const { supabaseUser, loading: authLoading } = useAuth();
-  // const userId = supabaseUser?.id ?? ""; // this is the Supabase UID
 
   const userId = 1;
 
@@ -90,9 +85,9 @@ export default function FeedPage() {
     return [];
   });
 
-  // --- FETCH FEED ---
+  //Fetch feed
   useEffect(() => {
-    if (!userId) return; // do nothing if not logged in
+    if (!userId) return; 
 
     const fetchFeed = async () => {
       setLoading(true);
@@ -124,7 +119,7 @@ export default function FeedPage() {
     fetchFeed();
   }, [userId, feedType]);
 
-  // --- FETCH SOURCES ---
+  //Fetch sources
   useEffect(() => {
     if (!userId) return;
 
@@ -145,14 +140,14 @@ export default function FeedPage() {
     fetchSources();
   }, [userId, feedType]);
 
-  // --- BLOCKLIST LOAD ---
+  // Blocklist load
 
-  // --- BLOCKLIST SAVE ---
+  //Blocklist save
   useEffect(() => {
     localStorage.setItem("blocklist", JSON.stringify(blocklist));
   }, [blocklist]);
 
-  // --- MARK READ ---
+ 
   const handleMarkAsRead = async (itemId: number) => {
     try {
       await markItemRead(userId, itemId, feedType);
@@ -206,7 +201,6 @@ export default function FeedPage() {
     }
   };
 
-  // --- SAVE ITEM ---
   const handleSave = async (itemId: number) => {
     const item = feedItems.find((i) => i.item_id === itemId);
     if (!item) return;
@@ -221,7 +215,6 @@ export default function FeedPage() {
     }
   };
 
-  // --- ADD SOURCE / PODCAST ---
   const handleAddSource = async () => {
     if (!newSourceUrl.trim()) return;
     setAddingSource(true);
@@ -247,7 +240,6 @@ export default function FeedPage() {
     }
   };
 
-  // --- REMOVE SOURCE ---
   const handleRemoveUserSource = async (sourceId: number) => {
     if (!confirm("Are you sure you want to remove this source?")) return;
     try {
@@ -300,26 +292,8 @@ export default function FeedPage() {
     toast.info(`Removed "${word}"`);
   };
 
-  // const addWord = () => {
-  //   const word = blockInput.trim().toLowerCase();
-  //   if (!word) return;
-  //   if (blocklist.includes(word)) {
-  //     toast.error(`"${word}" is already blocked`);
-  //     setBlockInput("");
-  //     return;
-  //   }
-  //   setBlocklist((i) => [...i, word]);
-  //   setBlockInput("");
-  //   toast.success(`Blocked "${word}"`);
-  // };
 
-  // const removeWord = (word: string) => {
-  //   setBlocklist((i) => i.filter((w) => w !== word));
-  //   toast.info(`Removed "${word}"`);
-  // };
-
-  // --- FILTER FEED ---
-  // --- REUSABLE BLOCKLIST FILTER FUNCTION ---
+  //Filter feed with blocklist
   const filterWithBlocklist = (items: FeedItems[], blocklist: string[]) => {
     return items.filter((article) => {
       const title = (article.title || "").toLowerCase();
@@ -340,7 +314,7 @@ export default function FeedPage() {
   //   return !blocklist.some((word) => title.includes(word) || desc.includes(word));
   // });
 
-  // --- GROUP FEED BY SOURCE ---
+  //Group feed by source name
   const groupedFeed = filteredFeedItems.reduce(
     (acc, item) => {
       if (!acc[item.source_name]) acc[item.source_name] = [];
@@ -357,10 +331,8 @@ export default function FeedPage() {
     }));
   };
 
-  // if (authLoading) return <p>Loading user...</p>;
-  // if (!supabaseUser) return <p>Please sign in to view your feed.</p>;
 
-  // --- UI ---
+  
   return (
     <div className="flex min-h-screen w-full">
       {noFeedItems ? (
@@ -377,7 +349,6 @@ export default function FeedPage() {
         </div>
       ) : (
         <>
-          {/* Existing FeedPage content (h2, add source, filters, feed list…) */}
           <main className="flex-1 p-4 max-w-full overflow-x-hidden">
             <h2 className="text-xl font-bold mb-6">
               {feedType === "rss" ? "Your RSS Feed" : "Your Podcast Feed"}

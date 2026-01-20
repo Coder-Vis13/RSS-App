@@ -214,7 +214,7 @@ const podcastSources: Source[] = [
   },
 ];
 
-/* -------------------- CATEGORY COLORS -------------------- */
+/*Category colours */
 
 const categoryColors: Record<string, string> = {
   News: "bg-blue-50 text-blue-600",
@@ -231,7 +231,7 @@ const categoryColors: Record<string, string> = {
   Finance: "bg-gray-50 text-gray-600",
 };
 
-/* -------------------- COMPONENT -------------------- */
+
 
 export const Sites: React.FC<{ userId: number }> = ({ userId }) => {
   const [rssSubscribed, setRssSubscribed] = useState<number[]>([]);

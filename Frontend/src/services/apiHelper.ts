@@ -76,29 +76,3 @@ export const del = async (url: string, params?: Record<string, any>) => {
 
 export default api;
 
-// import httpClient from './httpClient';
-// import type { AxiosResponse } from 'axios';
-
-// //GET request
-// export async function get<T>(url: string, params?: any): Promise<T> {
-//   const res: AxiosResponse<T> = await httpClient.get(url, { params });
-//   return res.data;
-// }
-
-// //POST request
-// export async function post<TReq, TRes>(url: string, data: TReq): Promise<TRes> {
-//   const res: AxiosResponse<TRes> = await httpClient.post(url, data);
-//   return res.data;
-// }
-
-// //PUT request
-// export async function put<TReq, TRes>(url: string, data: TReq): Promise<TRes> {
-//   const res: AxiosResponse<TRes> = await httpClient.put(url, data);
-//   return res.data;
-// }
-
-// //DELETE request
-// export async function del<T>(url: string): Promise<T> {
-//   const res: AxiosResponse<T> = await httpClient.delete(url);
-//   return res.data;
-// }

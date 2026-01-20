@@ -314,49 +314,6 @@ const addUserSourceController = async (
   }
 };
 
-// const addUserSourceController = async (req: Request<UserId, {}, URL>, res: Response): Promise<void> => {
-//   const { userId } = req.params;
-//   const { sourceURL } = req.body;
-//   if (!userId || !sourceURL ) {
-//     console.warn("WARN: Missing addUserSource params:", req.body);
-//     res.status(400).json( { error: "Missing userId or sourceURL"});
-//     return;
-//   }
-
-//   try {
-//     const { sourceName, sourceItems } = await RSSParser(sourceURL);
-//     console.info("INFO: Source Title:", sourceName);
-//     console.info("INFO: Parsed Source Items Count:", sourceItems.length);
-
-//     const source = await addSource(sourceName, sourceURL);
-//     console.info(`INFO: Source '${sourceName}' added/existed: ${source.source_id}.`);
-
-//     const userSource = await addUserSource(Number(userId), source.source_id);
-//     console.info(`INFO: Linked user ${userId} to source ${source.source_id}`);
-
-//     let insertCount = 0;
-//     if (sourceItems.length > 0) {
-//       const result = await addItem(source.source_id, sourceItems);
-//       insertCount = result.insertCount;
-//       console.info(`INFO: Inserted ${insertCount} items for source_id ${source.source_id}`);
-//     }
-
-//     const itemIds = await getRecentItems(source.source_id, 2);
-//     await addUserItemMetadata(Number(userId), itemIds);
-
-//     res.json({
-//       source_id: source.source_id,
-//       source_name: source.source_name,
-//       sourceCreated: source.created,
-//       userSourceCreated: userSource.created,
-//       itemsAdded: insertCount,
-//     });
-//     return;
-
-//   } catch (error) {
-//     handleError(res, error, 500, "Could not add source for user");
-//   }
-// };
 
 const addUserPodcastController = async (
   req: Request<UserIdParam, {}, URLBody>,
@@ -781,16 +738,6 @@ const presetSources = async (
     res.status(500).json({ message: 'Failed to add source' });
   }
 };
-
-// export const getAllItemsWithCategoriesController = async (req: Request, res: Response) => {
-//   try {
-//     const items = await getAllItemsWithCategories();
-//     res.status(200).json(items);
-//   } catch (error) {
-//     console.error("Error in getAllItemsWithCategories controller:", error);
-//     res.status(500).json({ error: "Error fetching categorized items" });
-//   }
-// };
 
 export {
   addUserController,
