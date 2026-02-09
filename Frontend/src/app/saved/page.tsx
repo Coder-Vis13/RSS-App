@@ -11,7 +11,7 @@ import {
   allSavedItems,
   markItemRead,
   getSavedItemsByCategory,
-} from "../../services/api";
+} from "../../services/user.service";
 import { getCategoryPresentation } from "../../lib/categoryColors";
 
 interface SavedItems {

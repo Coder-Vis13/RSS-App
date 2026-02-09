@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { presetSources } from "@/services/api";
+import { presetSources } from "@/services/user.service";
 import { toast } from "sonner";
-import { allUserRSSSources, allUserPodcastSources } from "../services/api";
+import { allUserRSSSources, allUserPodcastSources } from "../services/user.service";
 
 interface Source {
   id: number;

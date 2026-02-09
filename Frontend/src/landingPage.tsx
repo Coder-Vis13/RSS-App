@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { SiteShowcase } from "./components/sites";
+import { SiteShowcase } from "./components/Sites";
 // import { Benefits } from "./components/benefits"
 import { Button } from "./components/ui/button";
 import {

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { supabase } from "../lib/supabase";
+import { supabase } from "./supabase";
 
 const API_BASE_URL = "http://localhost:5001";
 

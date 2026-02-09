@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GripVertical, ChevronDown } from "lucide-react";
-import { sourcePriority, updateSourcePriorities } from "../../services/api";
+import { sourcePriority, updateSourcePriorities } from "../../services/user.service";
 import { Button } from "@/components/ui/button";
 import {
   Sortable,

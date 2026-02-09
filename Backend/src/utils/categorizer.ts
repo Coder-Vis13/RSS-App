@@ -1,14 +1,14 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
-import { CategoryModel } from '../models/categoryModel';
+import { CategoryModel } from '../models/category.model';
 import { query } from '../config/db';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'true';
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
 
 function getCategoryPrompt(title: string, description?: string): string {
   const context =

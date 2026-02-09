@@ -15,7 +15,8 @@ const createTables = async () => {
         name VARCHAR(30) NOT NULL,
         email VARCHAR(50) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT now()
+        created_at TIMESTAMP NOT NULL DEFAULT now(),
+        refresh_token TEXT
       );
 
       CREATE TABLE IF NOT EXISTS source (
@@ -47,6 +48,14 @@ const createTables = async () => {
         PRIMARY KEY (user_id, source_id),
         UNIQUE (user_id, priority)
       );
+
+      CREATE TABLE IF NOT EXISTS user_podcast (
+            user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+            podcast_id INT NOT NULL REFERENCES source(source_id) ON DELETE CASCADE ON UPDATE CASCADE,
+            priority INT,
+            PRIMARY KEY (user_id, podcast_id),
+            UNIQUE (user_id, priority)
+            );
 
       CREATE TABLE IF NOT EXISTS user_source_folder (
         user_id INT NOT NULL,

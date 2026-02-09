@@ -1,11 +1,14 @@
 import express, { Request, Response, NextFunction } from 'express';
 import 'dotenv/config';
-import router from './routes/routes';
+import router from './routes';
 import './cron';
-import { loggingHandler } from './middleware/loggingHandler';
-import { Feed } from 'podcast';
-import { corsHandler } from './middleware/corsHandler';
-import { routeNotFound } from './middleware/routeNotFound';
+import { loggingHandler } from './middleware/logging';
+import { corsHandler } from './middleware/cors';
+import { routeNotFound } from './middleware/route-not-found';
+import authTestRoutes from './routes/auth-test.routes';
+import debugRoutes from './routes/debug.routes';
+import cookieParser from 'cookie-parser';
+
 
 const PORT = process.env.PORT;
 
@@ -19,13 +22,12 @@ app.use(corsHandler);
 
 app.use(express.json());
 
+app.use(cookieParser());
+
 app.use(loggingHandler);
 
-app.get('/ping', (_, res) => {
-  res.send('ok');
-});
-
 app.use('/', router);
+app.use("/debug", debugRoutes);
 
 app.use(routeNotFound);
 

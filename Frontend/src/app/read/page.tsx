@@ -7,7 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { readItems } from "../../services/api";
+import { readItems } from "../../services/user.service";
 import { useLocation } from "react-router-dom";
 import { getCategoryPresentation } from "../../lib/categoryColors";
 

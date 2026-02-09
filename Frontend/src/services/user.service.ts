@@ -1,4 +1,4 @@
-import { get, post, del, put } from "./apiHelper";
+import { get, post, del, put } from "../lib/api-client";
 
 const addUser = (email: string, supabase_uid: string) =>
   post("/users/add", { email, supabase_uid });
@@ -9,7 +9,10 @@ const getUserBySupabaseUID = (supabase_uid: string) =>
 const createFolder = async (userId: number, folderName: string) =>
   post(`users/${userId}/folders`, { folderName });
 
-const getUserFolders = (userId: number) => get(`users/${userId}/folders`);
+import type { UserFolder } from "../components/sidebar/sidebarTypes";
+
+const getUserFolders = (userId: number): Promise<UserFolder[]> => 
+  get(`users/${userId}/folders`);
 
 const deleteFolder = (userId: number, folderId: number) =>
   del(`/users/${userId}/folders/${folderId}`);
@@ -115,6 +118,12 @@ const getSavedItemsByCategory = (
 ): Promise<any[]> =>
   get(`/users/${userId}/saved/category/${categoryName}`, { feedType });
 
+const getSourceItems = (
+  userId: number,
+  sourceId: number,
+  feedType: "rss" | "podcast",
+) => get(`users/${userId}/source/${sourceId}/items`, {feedType});
+
 export {
   addUser,
   createFolder,
@@ -144,4 +153,5 @@ export {
   allUserPodcastSources,
   getUnfolderedSources,
   markSourceItemsRead,
+  getSourceItems
 };

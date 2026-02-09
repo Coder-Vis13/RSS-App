@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Bookmark, X, ChevronDown } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
+import { readItems } from "../../services/user.service";
 
 import {
   Dialog,
@@ -19,16 +20,15 @@ import {
 
 import {
   userFeedItems,
-  allUserRSSSources,
   markItemRead,
   saveItem,
   markUserFeedItemsRead,
   addUserSource,
   addUserPodcast,
-  removeUserSource,
+  // removeUserSource,
   getItemsByCategory,
-  allUserPodcastSources,
-} from "../../services/api";
+  // allUserPodcastSources,
+} from "../../services/user.service";
 
 import { getCategoryPresentation } from "../../lib/categoryColors";
 
@@ -45,15 +45,15 @@ interface FeedItems {
   categories?: { name: string; color: string }[];
 }
 
-interface UserSources {
-  source_id: number;
-  source_name: string;
-  logo_url: string;
-}
+// interface UserSources {
+//   source_id: number;
+//   source_name: string;
+//   logo_url: string;
+// }
 
 export default function FeedPage() {
   const [feedItems, setFeedItems] = useState<FeedItems[]>([]);
-  const [sources, setSources] = useState<UserSources[]>([]);
+  // const [sources, setSources] = useState<UserSources[]>([]);
   const [loading, setLoading] = useState(true);
   const [newSourceUrl, setNewSourceUrl] = useState("");
   const [addingSource, setAddingSource] = useState(false);
@@ -61,6 +61,7 @@ export default function FeedPage() {
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [readCount, setReadCount] = useState(0);
 
   // Blocklist states
   const [blockInput, setBlockInput] = useState("");
@@ -70,6 +71,42 @@ export default function FeedPage() {
 
 
   const userId = 1;
+
+
+
+useEffect(() => {
+  let cancelled = false;
+
+  const fetchReadCount = async () => {
+    try {
+      const items = await readItems(userId, feedType);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayCount = items.filter((item: any) => {
+        if (!item.read_time) return false;
+        const d = new Date(item.read_time);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
+      }).length;
+
+      if (!cancelled) setReadCount(todayCount);
+    } catch (err) {
+      console.error("Failed to load read count:", err);
+    }
+  };
+
+  fetchReadCount();
+  const intervalId = window.setInterval(fetchReadCount, 10_000);
+
+  return () => {
+    cancelled = true;
+    window.clearInterval(intervalId);
+  };
+}, [userId, feedType]);
+
+
 
   const [blocklist, setBlocklist] = useState<string[]>(() => {
     // initialize from localStorage
@@ -119,26 +156,6 @@ export default function FeedPage() {
     fetchFeed();
   }, [userId, feedType]);
 
-  //Fetch sources
-  useEffect(() => {
-    if (!userId) return;
-
-    const fetchSources = async () => {
-      try {
-        let sourcedata: UserSources[] = [];
-        if (feedType === "rss") {
-          sourcedata = await allUserRSSSources(userId);
-        } else if (feedType === "podcast") {
-          sourcedata = await allUserPodcastSources(userId);
-        }
-        setSources(sourcedata);
-      } catch (err) {
-        console.error("Failed to load sources:", err);
-      }
-    };
-
-    fetchSources();
-  }, [userId, feedType]);
 
   // Blocklist load
 
@@ -215,54 +232,40 @@ export default function FeedPage() {
     }
   };
 
-  const handleAddSource = async () => {
-    if (!newSourceUrl.trim()) return;
-    setAddingSource(true);
-    setAddError(null);
-    try {
-      if (feedType === "rss") {
-        await addUserSource(userId, newSourceUrl);
-      } else {
-        await addUserPodcast(userId, newSourceUrl);
-      }
-      toast.success(
-        `${feedType === "rss" ? "Feed" : "Podcast"} added successfully!`,
-      );
-      setNewSourceUrl("");
-      const refreshedSources = await allUserRSSSources(userId);
-      setSources(refreshedSources);
-    } catch (err: any) {
-      console.error(err);
-      setAddError("Could not add source. Please check the URL or try again.");
-      toast.error("Failed to add this source. Please try a different URL");
-    } finally {
-      setAddingSource(false);
-    }
-  };
+const handleAddSource = async () => {
+  if (!newSourceUrl.trim()) return;
+  setAddingSource(true);
+  setAddError(null);
 
-  const handleRemoveUserSource = async (sourceId: number) => {
-    if (!confirm("Are you sure you want to remove this source?")) return;
-    try {
-      await removeUserSource(userId, sourceId, feedType);
-      setSources((i) => i.filter((s) => s.source_id !== sourceId));
-      setFeedItems((i) =>
-        i.filter((item) => item.source_id && item.source_id !== sourceId),
-      );
-      toast.success("Source removed successfully!");
-    } catch (err) {
-      console.error("Failed to remove source:", err);
-      toast.error("Could not remove the source. Please try again.");
-      const refreshedSources = await allUserRSSSources(userId);
-      setSources(refreshedSources);
-      const refreshedFeed = await userFeedItems(userId, feedType);
-      setFeedItems(
-        refreshedFeed.map((i: any) => ({
-          ...i,
-          is_save: Boolean(i.is_save),
-        })),
-      );
+  try {
+    if (feedType === "rss") {
+      await addUserSource(userId, newSourceUrl);
+    } else {
+      await addUserPodcast(userId, newSourceUrl);
     }
-  };
+
+    toast.success(
+      `${feedType === "rss" ? "Feed" : "Podcast"} added successfully!`,
+    );
+
+    setNewSourceUrl("");
+
+    const refreshedFeed = await userFeedItems(userId, feedType);
+    setFeedItems(
+      refreshedFeed.map((i: any) => ({
+        ...i,
+        is_save: Boolean(i.is_save),
+      })),
+    );
+  } catch (err) {
+    console.error(err);
+    setAddError("Could not add source. Please check the URL or try again.");
+    toast.error("Failed to add this source. Please try a different URL");
+  } finally {
+    setAddingSource(false);
+  }
+};
+
 
   const addWord = () => {
     const word = blockInput.trim().toLowerCase();
@@ -308,12 +311,6 @@ export default function FeedPage() {
 
   const noFeedItems = !loading && filteredFeedItems.length === 0;
 
-  // const filteredFeedItems = feedItems.filter((article) => {
-  //   const title = (article.title || "").toLowerCase();
-  //   const desc = (article.description || "").toLowerCase();
-  //   return !blocklist.some((word) => title.includes(word) || desc.includes(word));
-  // });
-
   //Group feed by source name
   const groupedFeed = filteredFeedItems.reduce(
     (acc, item) => {
@@ -350,9 +347,17 @@ export default function FeedPage() {
       ) : (
         <>
           <main className="flex-1 p-4 max-w-full overflow-x-hidden">
-            <h2 className="text-xl font-bold mb-6">
-              {feedType === "rss" ? "Your RSS Feed" : "Your Podcast Feed"}
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+  <h2 className="text-xl font-bold">
+    {feedType === "rss" ? "Your RSS Feed" : "Your Podcast Feed"}
+  </h2>
+
+  <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+    <span>Read today: </span>
+    <span className="tabular-nums">{readCount}</span>
+  </div>
+</div>
+
 
             {/* Add Source */}
             <div className="flex mb-6 w-full max-w-full">
@@ -454,35 +459,7 @@ export default function FeedPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col divide-y divide-gray-300">
-                {sources.map((i) => (
-                  <div
-                    key={i.source_id}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      {i.logo_url ? (
-                        <img
-                          src={i.logo_url}
-                          alt={`${i.source_name} logo`}
-                          className="w-6 h-6 rounded object-contain"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded bg-gray-200" />
-                      )}
-                      <p>{i.source_name}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="hover:text-red-500 hover:bg-transparent rounded-full px-3 py-1"
-                      onClick={() => handleRemoveUserSource(i.source_id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              
             </section>
 
             {/* Feed */}

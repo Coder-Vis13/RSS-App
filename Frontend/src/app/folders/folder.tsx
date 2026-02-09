@@ -4,7 +4,7 @@ import {
   markItemRead,
   markUserFolderItemsRead,
   saveItem,
-} from "../../services/api";
+} from "../../services/user.service";
 import { Bookmark, ChevronDown } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ interface FolderItems {
   categories?: { name: string; color: string }[];
 }
 
-export default function Folder1Page() {
+export default function FolderPage() {
   const [folderItems, setFolderItems] = useState<FolderItems[]>([]);
   const [loading, setLoading] = useState(true);
   const { folderId } = useParams<{ folderId: string }>();
