@@ -17,10 +17,14 @@ import {
 import { handleError } from '../utils/helpers';
 import { Request, Response } from 'express';
 import { SourcePriorityUpdate, UserId } from './types';
-import { podcastParser } from '../services/podcast.service';
+import { resolvePodcastFromWebsite } from '../services/podcast.service';
 import { parseNumericId } from '../utils/request-parser';
 import { resolveWorkingRSSFeed } from '../utils/feed-discovery';
-
+import {
+  processPodcastSource,
+  processRSSSource,
+  detectSourceType,
+} from "../services/source.service";
 interface URL {
   sourceURL: string;
 }
@@ -66,88 +70,47 @@ export const getUnfolderedSourcesHandler = async (
   }
 };
 
-//provide feed as soon as user adds a source
-export const addUserSourceHandler = async (
+
+export const addSourceHandler = async (
   req: Request<UserIdParam, {}, URLBody>,
   res: Response
 ): Promise<void> => {
   try {
     const { sourceURL } = req.body;
-    if (!sourceURL) throw new ApiError(400, 'sourceURL is required');
 
-    const userId = parseNumericId(req.params.userId, 'userId');
-
-    const existingSource = await checkSourceExists(userId, sourceURL);
-    if (existingSource) {
-      throw new ApiError(409, 'This source already exists in your feed');
-    }
-
-    const resolvedFeed = await resolveWorkingRSSFeed(sourceURL);
-    if (!resolvedFeed) {
-      res.status(404).json({ error: 'No valid RSS feed found at provided URL' });
+    if (!sourceURL) {
+      res.status(400).json({ message: "sourceURL is required" });
       return;
     }
 
-    const { feedUrl, sourceName, sourceItems } = resolvedFeed;
-    if (!sourceName || !feedUrl) {
-      throw new Error('Cannot add source: missing sourceName or feedUrl');
-    }
-    const source = await addSource(sourceName, feedUrl);
-    const userSource = await addUserSource(userId, source.source_id);
+    const userId = parseNumericId(req.params.userId, "userId");
 
-    const insertResult = await addItem(source.source_id, sourceItems);
-    const recentItemIds = await getRecentItems(source.source_id, 2);
-    await addUserItemMetadata(userId, recentItemIds);
-
-    res.json({
-      source_id: source.source_id,
-      source_name: source.source_name,
-      feed_url: feedUrl,
-      itemsAdded: insertResult.insertCount,
-      userSourceCreated: userSource.created,
-    });
-  } catch (error) {
-    if (error instanceof ApiError) {
-      res.status(error.statusCode).json({ message: error.message });
+    const exists = await checkSourceExists(userId, sourceURL);
+    if (exists) {
+      res.status(409).json({ message: "Already added" });
       return;
     }
-    res.status(500).json({ message: 'Failed to add feed' });
-  }
-};
 
-//add a podcast source for a user
-export const addUserPodcastHandler = async (
-  req: Request<UserIdParam, {}, URLBody>,
-  res: Response
-): Promise<void> => {
-  try {
-    const { sourceURL } = req.body;
-    if (!sourceURL) throw new Error('sourceURL is required');
+    const type = await detectSourceType(sourceURL);
 
-    const userId = parseNumericId(req.params.userId, 'userId');
+    let result;
 
-    const { podcastTitle, episodeItems, totalEpisodes } = await podcastParser(sourceURL);
+    if (type === "podcast") {
+      result = await processPodcastSource(userId, sourceURL);
+    } else {
+      result = await processRSSSource(userId, sourceURL);
+    }
 
-    const source = await addSource(podcastTitle, sourceURL, 'podcast');
-    const userPodcast = await addUserPodcast(userId, source.source_id);
+    res.status(200).json(result);
 
-    const result = await addItem(source.source_id, episodeItems);
-    const itemIds = await getRecentItems(source.source_id, 180);
-    await addUserItemMetadata(userId, itemIds);
-
-    res.json({
-      source_id: source.source_id,
-      source_name: source.source_name,
-      feed_type: 'podcast',
-      feed_url: sourceURL,
-      episodesAdded: result.insertCount,
-      userSourceCreated: userPodcast.created,
-      totalEpisodes,
-    });
   } catch (error) {
-    handleError(res, error, 400, 'Could not add podcast source for user');
+    handleError(res, error, 500, "Failed to add source");
   }
 };
+
+
+
+
 
 // remove a source for a user
 export const removeUserSourceHandler = async (
@@ -168,6 +131,7 @@ export const removeUserSourceHandler = async (
     handleError(res, error, 500, 'Could not delete source for user');
   }
 };
+
 
 //display all the sources the user follows in the home page above the feed
 export const allUserSourcesHandler = async (

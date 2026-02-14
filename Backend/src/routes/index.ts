@@ -7,14 +7,13 @@ import {
   getUnfolderedSourcesHandler,
   allUserRSSSourcesHandler,
   allUserPodcastSourcesHandler,
-  addUserSourceHandler,
   removeUserSourceHandler,
   presetSourcesHandler,
-  addUserPodcastHandler,
   markSourceItemsReadHandler,
   sourcePriorityHandler,
   updateSourcePrioritiesHandler,
   getSourceItemsHandler,
+  addSourceHandler
 } from '../controllers';
 
 import {
@@ -60,11 +59,10 @@ router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources 
 router.get('/users/:userId/sources/unfoldered', getUnfolderedSourcesHandler); // get all unfoldered sources for a user
 router.get('/users/:userId/blog/sources', allUserRSSSourcesHandler); // get all blog sources for a user
 router.get('/users/:userId/podcast/sources', allUserPodcastSourcesHandler); // get all blog sources for a user
-router.post('/users/:userId/sources', addUserSourceHandler); // add a source for user
 router.delete('/users/:userId/sources/:sourceId', removeUserSourceHandler); // remove source for user
 router.post('/users/sources/add', presetSourcesHandler); // add preset source to user's feed
-router.post('/users/:userId/podcast', addUserPodcastHandler); //add a podcast for user
 router.get('/users/:userId/source/:sourceId/items', getSourceItemsHandler); //get all unread items of a source for a user
+router.post("/users/:userId/source", addSourceHandler);
 
 // Items
 router.get('/users/:userId/feed', userFeedItemsHandler); // get unread home feed

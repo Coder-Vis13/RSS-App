@@ -35,7 +35,7 @@
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "openai": "^6.7.0",
-    "p-limit": "^7.2.0",
+    "p-limit": "^7.3.0",
     "pg": "^8.16.3",
     "podcast": "^2.0.1",
     "podparse": "^1.6.0",
