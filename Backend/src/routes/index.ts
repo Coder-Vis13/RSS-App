@@ -14,7 +14,7 @@ import {
   markSourceItemsReadHandler,
   sourcePriorityHandler,
   updateSourcePrioritiesHandler,
-  getSourceItemsHandler
+  getSourceItemsHandler,
 } from '../controllers';
 
 import {
@@ -36,27 +36,24 @@ import {
   addSourceIntoFolderHandler,
   deleteSourceFromFolderHandler,
   folderItemsHandler,
-  markFolderItemsReadHandler
+  markFolderItemsReadHandler,
 } from '../controllers';
 
-import { loginHandler } from "../controllers/auth/login.controller";
-import { registerHandler } from "../controllers/auth/register.controller";
-import { refreshHandler } from "../controllers/auth/refresh.controller";
-import { logoutHandler } from "../controllers/auth/logout.controller";
+import { loginHandler } from '../controllers/auth/login.controller';
+import { registerHandler } from '../controllers/auth/register.controller';
+import { refreshHandler } from '../controllers/auth/refresh.controller';
+import { logoutHandler } from '../controllers/auth/logout.controller';
 
 const router: Router = express.Router();
-
-
-
 
 //User
 router.post('/users/add', addUserHandler);
 
 //Auth
-router.post("/login", loginHandler);
-router.post("/register", registerHandler);
-router.post("/refresh", refreshHandler);
-router.post("/logout", logoutHandler);
+router.post('/login', loginHandler);
+router.post('/register', registerHandler);
+router.post('/refresh', refreshHandler);
+router.post('/logout', logoutHandler);
 
 // Sources
 router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources for a user
@@ -67,7 +64,7 @@ router.post('/users/:userId/sources', addUserSourceHandler); // add a source for
 router.delete('/users/:userId/sources/:sourceId', removeUserSourceHandler); // remove source for user
 router.post('/users/sources/add', presetSourcesHandler); // add preset source to user's feed
 router.post('/users/:userId/podcast', addUserPodcastHandler); //add a podcast for user
-router.get('/users/:userId/source/:sourceId/items', getSourceItemsHandler) //get all unread items of a source for a user
+router.get('/users/:userId/source/:sourceId/items', getSourceItemsHandler); //get all unread items of a source for a user
 
 // Items
 router.get('/users/:userId/feed', userFeedItemsHandler); // get unread home feed

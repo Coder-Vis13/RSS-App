@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { addUser } from '../models';
 import { handleError } from '../utils/helpers';
 
-
 interface AddUser {
   userName: string;
   userEmail: string;
@@ -10,7 +9,10 @@ interface AddUser {
 }
 
 //create a new user or get existing one
-export const addUserHandler = async (req: Request<{}, {}, AddUser>, res: Response): Promise<void> => {
+export const addUserHandler = async (
+  req: Request<{}, {}, AddUser>,
+  res: Response
+): Promise<void> => {
   const { userName, userEmail, password } = req.body;
 
   if (!userName || !userEmail || !password) {

@@ -1,21 +1,19 @@
-
 export interface Item {
   item_id: number;
   title: string;
   link: string;
-  description: string;
-  pub_date: string | Date;
+  description: string | null;
+  pub_date: string;
   source_name: string;
   categories: Category[];
   is_categorized: boolean;
+  tags?: string[];
 }
-
 
 export interface Source {
   source_id: number;
   source_name: string;
 }
-
 
 export interface Category {
   name: string;
@@ -30,7 +28,6 @@ export interface AddItemResult {
   insertCount: number;
   insertedIds: number[];
 }
-
 
 export interface InsertedItem {
   item_id: number;

@@ -8,18 +8,16 @@ import {
   folderItems,
   getUserFolders,
   markFolderItemsRead,
-  renameFolder
+  renameFolder,
 } from '../models';
 import { DelFolderParams, UserId } from './types';
 import { parseNumericId } from '../utils/request-parser';
-
-
 
 interface CreateFolderBody {
   folderName: string;
 }
 interface CreateFolderParams {
-  userId: string; 
+  userId: string;
 }
 
 interface SourceIdBody {
@@ -35,14 +33,11 @@ interface FolderItem {
   folderId: string;
 }
 
-
-
 //create a folder for a specific user
 export const createFolderHandler = async (
   req: Request<CreateFolderParams, {}, CreateFolderBody>,
   res: Response
 ): Promise<void> => {
-
   try {
     const { folderName } = req.body;
     if (!folderName) {
@@ -50,7 +45,7 @@ export const createFolderHandler = async (
     }
 
     const userId = parseNumericId(req.params.userId, 'userId');
-    const folder = await createFolder({ user_id: userId, folder_name: folderName });
+    const folder = await createFolder({ user_id: userId, name: folderName });
     console.info(`INFO: Folder '${folderName}' created for user ${userId}`);
 
     res.json(folder);
@@ -58,7 +53,6 @@ export const createFolderHandler = async (
     handleError(res, error, 500, 'Error in creating folder');
   }
 };
-
 
 //rename a folder for a user
 export const renameFolderHandler = async (
@@ -77,7 +71,8 @@ export const renameFolderHandler = async (
     }
     res.json(updatedFolder);
   } catch (err: any) {
-    if (err.code === '23505') {  // 23505 = unique_violation in PostgreSQL
+    if (err.code === '23505') {
+      // 23505 = unique_violation in PostgreSQL
       res
         .status(400)
         .json({ error: 'A folder with that name already exists. Please choose a different name' });
@@ -87,7 +82,6 @@ export const renameFolderHandler = async (
     res.status(500).json({ error: 'Failed to rename folder' });
   }
 };
-
 
 //get all the folders for a user
 export const getUserFoldersHandler = async (
@@ -105,13 +99,11 @@ export const getUserFoldersHandler = async (
   }
 };
 
-
 //delete a folder for a user
 export const deleteFolderHandler = async (
   req: Request<DelFolderParams, {}, {}>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');
@@ -129,13 +121,11 @@ export const deleteFolderHandler = async (
   }
 };
 
-
 //adds a source into a folder for a user
 export const addSourceIntoFolderHandler = async (
   req: Request<DelFolderParams, {}, SourceIdBody>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');
@@ -148,13 +138,11 @@ export const addSourceIntoFolderHandler = async (
   }
 };
 
-
 //delete a source from a folder for a user
 export const deleteSourceFromFolderHandler = async (
   req: Request<DelSourceFromFolderParams>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');
@@ -167,18 +155,17 @@ export const deleteSourceFromFolderHandler = async (
   }
 };
 
-
 //get all items in a folder for a user
 export const folderItemsHandler = async (
-  req: Request<FolderItem, {}, {}>,
+  req: Request<FolderItem, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');
+    const { timeFilter } = req.query;
 
-    const unreadItems = await folderItems(userId, folderId);
+    const unreadItems = await folderItems(userId, folderId, timeFilter);
     console.info(`INFO: Fetched unread items for folder ${folderId}, user ${userId}.`);
     res.json(unreadItems);
   } catch (error) {
@@ -186,12 +173,11 @@ export const folderItemsHandler = async (
   }
 };
 
-
+//marks all items in a folder as read for a user
 export const markFolderItemsReadHandler = async (
   req: Request<FolderItem, {}, {}>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');

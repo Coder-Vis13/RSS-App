@@ -1,9 +1,6 @@
 import { query } from '../config/db';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 
-
-
-
 interface DBUser {
   user_id: number;
   name: string;
@@ -12,13 +9,11 @@ interface DBUser {
   created_at: string;
 }
 
- interface User extends DBUser {
+interface User extends DBUser {
   created: boolean;
 }
 
 type NewUser = Omit<DBUser, 'user_id' | 'created_at'>;
-
-
 
 //create a new user
 export const addUser = async (user: NewUser): Promise<User> => {
@@ -49,6 +44,3 @@ export const addUser = async (user: NewUser): Promise<User> => {
   logAction(`Existing user with Email=${user.email}`);
   return { ...existingUser, created: false };
 };
-
-
-

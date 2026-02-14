@@ -3,20 +3,17 @@ import { categorizeItem } from '../utils/categorizer';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 import { Item, ReadItemResult, Source } from './types';
 
-
-
 export interface Folder {
   user_id: number;
   folder_id: number;
-  folder_name: string;
+  name: string;
 }
 
 export interface CreatedFolder extends Folder {
   created: boolean;
 }
 
-export type NewFolder = Omit<Folder, 'folder_id'>; 
-
+export type NewFolder = Omit<Folder, 'folder_id'>;
 
 interface UserFolder extends Folder {
   sources: {
@@ -33,7 +30,6 @@ interface UserFolderRow {
   source_name: string | null;
 }
 
-
 interface FolderItems extends Item {
   source_id: number;
   is_save: boolean;
@@ -44,35 +40,31 @@ interface AddSourceToFolder extends Omit<Folder, 'name'> {
   added: boolean;
 }
 
-
 //create a folder for a user
 export const createFolder = async (folder: NewFolder): Promise<CreatedFolder> => {
-  //try to insert. if it exists, select it
   const insertResult: QueryResult<Folder> = await query(
     `INSERT INTO folder(user_id, name)
          VALUES ($1, $2)
          ON CONFLICT (user_id, name) DO NOTHING
          RETURNING user_id, folder_id, name`,
-    [folder.user_id, folder.folder_name]
+    [folder.user_id, folder.name]
   );
   const newFolder = getFirstRow(insertResult);
   if (newFolder) {
-    logAction(`Created new folder for the User=${folder.user_id}: Folder="${folder.folder_name}"`);
+    logAction(`Created new folder for the User=${folder.user_id}: Folder="${folder.name}"`);
     return markAsCreated(newFolder);
   }
-  //if folder exists, get it
   const selectResult: QueryResult<Folder> = await query(
     `SELECT user_id, folder_id, name FROM folder WHERE user_id = $1 AND name = $2`,
-    [folder.user_id, folder.folder_name]
+    [folder.user_id, folder.name]
   );
   const existingFolder = getFirstRow(selectResult);
   if (!existingFolder) {
     throw new Error(`User not found`);
   }
-  logAction(`Existing folder for the User=${folder.user_id}: Folder="${folder.folder_name}"`);
+  logAction(`Existing folder for the User=${folder.user_id}: Folder="${folder.name}"`);
   return { ...existingFolder, created: false };
 };
-
 
 //delete a folder for a user
 export const deleteFolder = async (userId: number, folderId: number): Promise<Folder | null> => {
@@ -89,16 +81,18 @@ export const deleteFolder = async (userId: number, folderId: number): Promise<Fo
   return deletedFolder;
 };
 
-
 //rename a folder for a user
-export const renameFolder = async (userId: number, folderId: number, name: string): Promise<Folder> => {
+export const renameFolder = async (
+  userId: number,
+  folderId: number,
+  name: string
+): Promise<Folder> => {
   const result: QueryResult<Folder> = await query(
     'UPDATE folder SET name = $1 WHERE folder_id = $2 AND user_id = $3 RETURNING *',
     [name, folderId, userId]
   );
   return result.rows[0];
 };
-
 
 //get all folders for a user
 export const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
@@ -127,7 +121,7 @@ export const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
       map.set(row.folder_id, {
         folder_id: row.folder_id,
         user_id: row.user_id,
-        folder_name: row.folder_name,
+        name: row.folder_name,
         sources: [],
       });
     }
@@ -143,9 +137,19 @@ export const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
   return Array.from(map.values());
 };
 
+export const folderItems = async (
+  userId: number,
+  folderId: number,
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+): Promise<FolderItems[]> => {
+  const interval = '2 days';
 
+  let timeClause = '';
+  if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
+  else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
+  else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  else timeClause = `AND i.pub_date >= NOW() - interval '${interval}'`;
 
-export const folderItems = async (userId: number, folderId: number): Promise<FolderItems[]> => {
   const baseQuery = `SELECT 
       i.item_id,
       i.title,
@@ -154,9 +158,14 @@ export const folderItems = async (userId: number, folderId: number): Promise<Fol
       i.pub_date,
       s.source_id,
       s.source_name,
+      uim.is_save
       i.is_categorized,
       COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
-           FILTER (WHERE c.name IS NOT NULL), '[]') AS categories    
+           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories,
+      COALESCE(
+      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
+      '[]'::json
+    ) AS tags    
       FROM item i
     INNER JOIN source s 
       ON i.source_id = s.source_id
@@ -172,7 +181,9 @@ export const folderItems = async (userId: number, folderId: number): Promise<Fol
       AND uim.item_id = i.item_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
-    WHERE i.pub_date >= NOW() - interval '2 days'
+    LEFT JOIN item_tag t ON i.item_id = t.item_id
+    WHERE 1=1
+          ${timeClause}
       AND (uim.read_time IS NULL)
     GROUP BY i.item_id, s.source_name, s.source_id, us.priority, uim.is_save, i.is_categorized
     ORDER BY us.priority, i.pub_date DESC`;
@@ -199,8 +210,6 @@ export const folderItems = async (userId: number, folderId: number): Promise<Fol
   logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${result.rows.length}`);
   return result.rows;
 };
-
-
 
 //add a source into a folder
 export const addSourceIntoFolder = async (
@@ -239,7 +248,6 @@ export const addSourceIntoFolder = async (
   return { ...existingSource, added: false };
 };
 
-
 type DeletedSource = Omit<Source, 'source_name'>;
 
 //delete a source from a folder
@@ -262,8 +270,11 @@ export const delSourceFromFolder = async (
   return folderSources.rows;
 };
 
-
-export const markFolderItemsRead = async (userId: number, folderId: number): Promise<ReadItemResult> => {
+//mark all items of a folder of a user as read
+export const markFolderItemsRead = async (
+  userId: number,
+  folderId: number
+): Promise<ReadItemResult> => {
   const result = await query(
     `INSERT INTO user_item_metadata (user_id, item_id, read_time)
     SELECT $1, i.item_id, NOW()
@@ -278,6 +289,6 @@ export const markFolderItemsRead = async (userId: number, folderId: number): Pro
     RETURNING item_id;`,
     [userId, folderId]
   );
-  logAction(`Marked items as read: User=${userId} itemCount=${result.rowCount}`);
-  return { readCount: result.rowCount };
+  logAction(`Marked items as read: User=${userId} itemCount=${result.rowCount ?? 0}`);
+  return { readCount: result.rowCount ?? 0 };
 };

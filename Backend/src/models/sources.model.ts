@@ -5,7 +5,6 @@ import { getLogo } from '../utils/get-logo';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 import { Source } from './types';
 
-
 interface UserSource {
   user_id: number;
   source_id: number;
@@ -20,7 +19,6 @@ interface AddSource extends Source {
   created: boolean;
 }
 
-
 interface UserSourcePriority {
   priority: number;
 }
@@ -32,7 +30,6 @@ interface UserSources {
   source_name: string;
   url: string;
 }
-
 
 interface UserRSSSources {
   source_id: number;
@@ -46,18 +43,15 @@ interface UserPodcastSources {
   url: string;
 }
 
-
 interface SourceWithPriority extends Source {
   priority: number;
 }
-
 
 interface MarkReadRow {
   user_id: number;
   item_id: number;
   read_time: Date;
 }
-
 
 interface SourceItem extends Source {
   item_id: number;
@@ -71,12 +65,12 @@ interface SourceItem extends Source {
   is_save: boolean;
   is_categorized: boolean;
   categories: { name: string; color: string }[];
+  tags?: string[];
 }
 
 interface SourceExistsRow {
   source_id: number;
 }
-
 
 // get all unfoldered sources for a user
 export const getUnfolderedSources = async (
@@ -100,7 +94,6 @@ export const getUnfolderedSources = async (
   console.info(`INFO: Number of unfoldered sources for User=${userId}: ${result.rows.length}`);
   return result.rows;
 };
-
 
 //add a new source to the source table. if it already exists, get it
 export const addSource = async (
@@ -133,9 +126,11 @@ export const addSource = async (
   return markAsCreated(newSource);
 };
 
-
 //adding a source for a user
-export const addUserSource = async (userId: number, sourceId: number): Promise<AddUserSourceResult> => {
+export const addUserSource = async (
+  userId: number,
+  sourceId: number
+): Promise<AddUserSourceResult> => {
   //check if it exists
   const selectResult: QueryResult<UserSource> = await query(
     `SELECT user_id, source_id, priority
@@ -171,9 +166,11 @@ export const addUserSource = async (userId: number, sourceId: number): Promise<A
   return markAsCreated(newUserSource);
 };
 
-
 //adding a podcast source for a user
-export const addUserPodcast = async (userId: number, sourceId: number): Promise<AddUserSourceResult> => {
+export const addUserPodcast = async (
+  userId: number,
+  sourceId: number
+): Promise<AddUserSourceResult> => {
   const selectResult: QueryResult<UserSource> = await query(
     `SELECT user_id, podcast_id AS source_id, priority
      FROM user_podcast 
@@ -213,7 +210,6 @@ export const addUserPodcast = async (userId: number, sourceId: number): Promise<
 
   return markAsCreated(newUserPodcast);
 };
-
 
 //remove a source for a user -> rss + podcast
 export const removeUserSource = async (
@@ -280,7 +276,6 @@ export const removeUserSource = async (
   return sourcesResult.rows;
 };
 
-
 //get all the sources for a user
 export const allUserSources = async (userId: number): Promise<UserSources[]> => {
   const result: QueryResult<UserSources> = await query(
@@ -301,8 +296,7 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
   return sourcesWithLogos;
 };
 
-
-//get all the sources for a user
+//get all the blog sources for a user
 export const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
   const result: QueryResult<UserRSSSources> = await query(
     `SELECT s.source_id, s.source_name, s.url FROM user_source us
@@ -321,7 +315,6 @@ export const allUserRSSSources = async (userId: number): Promise<UserRSSSources[
 
   return sourcesWithLogos;
 };
-
 
 //get all the podcast sources for a user
 export const allUserPodcastSources = async (userId: number): Promise<UserPodcastSources[]> => {
@@ -343,9 +336,11 @@ export const allUserPodcastSources = async (userId: number): Promise<UserPodcast
   return sourcesWithLogos;
 };
 
-
 //get all sources for a user ordered by priority
-export const sourcePriority = async (userId: number, feedType?: string): Promise<SourceWithPriority[]> => {
+export const sourcePriority = async (
+  userId: number,
+  feedType?: string
+): Promise<SourceWithPriority[]> => {
   // Decide which table to use based on feed type
   const table = feedType === 'podcast' ? 'user_podcast' : 'user_source';
 
@@ -366,7 +361,6 @@ export const sourcePriority = async (userId: number, feedType?: string): Promise
 
   return result.rows;
 };
-
 
 //update source priorities for a user
 export const updateSourcePriorities = async (
@@ -405,14 +399,12 @@ export const updateSourcePriorities = async (
   }
 };
 
-
 // mark all items of a specific source as read for a user
 export const markSourceItemsRead = async (
   userId: number,
   sourceId: number,
   feedType: 'rss' | 'podcast' = 'rss'
 ): Promise<{ readCount: number }> => {
-
   const table = feedType === 'podcast' ? 'user_podcast' : 'user_source';
   const idColumn = feedType === 'podcast' ? 'podcast_id' : 'source_id';
 
@@ -439,7 +431,7 @@ export const markSourceItemsRead = async (
   return { readCount: result.rows.length ?? 0 };
 };
 
-
+//get all items of a source
 export const getSourceItems = async (
   userId: number,
   sourceId: number,
@@ -465,8 +457,12 @@ export const getSourceItems = async (
         json_agg(
           DISTINCT jsonb_build_object('name', c.name, 'color', c.color)
         ) FILTER (WHERE c.name IS NOT NULL),
-        '[]'
-      ) AS categories
+        '[]'::json
+      ) AS categories,
+      COALESCE(
+      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
+      '[]'::json
+    ) AS tags
     FROM item i
     JOIN source s ON i.source_id = s.source_id
     JOIN ${table} us ON us.${joinKey} = i.source_id
@@ -474,6 +470,7 @@ export const getSourceItems = async (
       ON uim.item_id = i.item_id AND uim.user_id = us.user_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
+    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE us.user_id = $1
       AND i.source_id = $2
       AND s.feed_type = $3
@@ -498,10 +495,7 @@ export const getSourceItems = async (
 
   for (const item of uncategorized) {
     await categorizeItem(item.item_id, item.title, item.description);
-    await query(
-      `UPDATE item SET is_categorized = true WHERE item_id = $1`,
-      [item.item_id]
-    );
+    await query(`UPDATE item SET is_categorized = true WHERE item_id = $1`, [item.item_id]);
   }
 
   if (uncategorized.length > 0) {
@@ -512,12 +506,9 @@ export const getSourceItems = async (
   return result.rows;
 };
 
-
-export const checkSourceExists = async (
-  userId: number,
-  sourceURL: string
-): Promise<boolean> => {
-  // 1. Check if a source with this URL already exists
+//checks if the user has the source in the feed already
+export const checkSourceExists = async (userId: number, sourceURL: string): Promise<boolean> => {
+  //Check if a source with this URL already exists
   const sourceResult: QueryResult<SourceExistsRow> = await query(
     `
     SELECT source_id
@@ -532,7 +523,7 @@ export const checkSourceExists = async (
     return false; // source not in DB → cannot already be in user's feed
   }
 
-  // 2. Check if user already has this source
+  //Check if user already has this source
   const userSourceResult: QueryResult<{ exists: number }> = await query(
     `
     SELECT 1 AS exists
@@ -546,9 +537,7 @@ export const checkSourceExists = async (
   const exists = userSourceResult.rows.length > 0;
 
   if (exists) {
-    logAction(
-      `Source already exists for user: User=${userId} Source=${source.source_id}`
-    );
+    logAction(`Source already exists for user: User=${userId} Source=${source.source_id}`);
   }
 
   return exists;

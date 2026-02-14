@@ -11,8 +11,8 @@ import {
   removeUserSource,
   sourcePriority,
   updateSourcePriorities,
-  getSourceItems, 
-  checkSourceExists
+  getSourceItems,
+  checkSourceExists,
 } from '../models';
 import { handleError } from '../utils/helpers';
 import { Request, Response } from 'express';
@@ -51,13 +51,11 @@ export class ApiError extends Error {
   }
 }
 
-
 //get all unfoldered sources for a user
 export const getUnfolderedSourcesHandler = async (
   req: Request<{ userId: string }, {}, {}>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const sources = await getUnfolderedSources(userId);
@@ -67,8 +65,6 @@ export const getUnfolderedSourcesHandler = async (
     handleError(res, error, 500, "Error in getting user's unfoldered sources");
   }
 };
-
-
 
 //provide feed as soon as user adds a source
 export const addUserSourceHandler = async (
@@ -83,9 +79,8 @@ export const addUserSourceHandler = async (
 
     const existingSource = await checkSourceExists(userId, sourceURL);
     if (existingSource) {
-      throw new ApiError(409, "This source already exists in your feed");
+      throw new ApiError(409, 'This source already exists in your feed');
     }
-
 
     const resolvedFeed = await resolveWorkingRSSFeed(sourceURL);
     if (!resolvedFeed) {
@@ -94,7 +89,9 @@ export const addUserSourceHandler = async (
     }
 
     const { feedUrl, sourceName, sourceItems } = resolvedFeed;
-
+    if (!sourceName || !feedUrl) {
+      throw new Error('Cannot add source: missing sourceName or feedUrl');
+    }
     const source = await addSource(sourceName, feedUrl);
     const userSource = await addUserSource(userId, source.source_id);
 
@@ -111,14 +108,12 @@ export const addUserSourceHandler = async (
     });
   } catch (error) {
     if (error instanceof ApiError) {
-      res.status(error.statusCode).json({ message: error.message});
+      res.status(error.statusCode).json({ message: error.message });
       return;
     }
-    res.status(500).json({ message: "Failed to add feed" });
+    res.status(500).json({ message: 'Failed to add feed' });
   }
 };
-
-
 
 //add a podcast source for a user
 export const addUserPodcastHandler = async (
@@ -131,8 +126,7 @@ export const addUserPodcastHandler = async (
 
     const userId = parseNumericId(req.params.userId, 'userId');
 
-    const { podcastTitle, episodeItems, totalEpisodes } =
-      await podcastParser(sourceURL);
+    const { podcastTitle, episodeItems, totalEpisodes } = await podcastParser(sourceURL);
 
     const source = await addSource(podcastTitle, sourceURL, 'podcast');
     const userPodcast = await addUserPodcast(userId, source.source_id);
@@ -155,13 +149,11 @@ export const addUserPodcastHandler = async (
   }
 };
 
-
 // remove a source for a user
 export const removeUserSourceHandler = async (
   req: Request<{ userId: string; sourceId: string }>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
@@ -177,13 +169,11 @@ export const removeUserSourceHandler = async (
   }
 };
 
-
 //display all the sources the user follows in the home page above the feed
 export const allUserSourcesHandler = async (
   req: Request<UserId, {}, {}>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const allSources = await allUserSources(userId);
@@ -194,13 +184,11 @@ export const allUserSourcesHandler = async (
   }
 };
 
-
 //display all the blog sources the user follows in the home page above the feed
 export const allUserRSSSourcesHandler = async (
   req: Request<UserId, {}, {}>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const allSources = await allUserRSSSources(userId);
@@ -211,13 +199,11 @@ export const allUserRSSSourcesHandler = async (
   }
 };
 
-
 //display all the podcast sources the user follows in the home page above the feed
 export const allUserPodcastSourcesHandler = async (
   req: Request<UserId, {}, {}>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const allSources = await allUserPodcastSources(userId);
@@ -228,13 +214,11 @@ export const allUserPodcastSourcesHandler = async (
   }
 };
 
-
 // mark all items of a specific source as read
 export const markSourceItemsReadHandler = async (
   req: Request<{ userId: string; sourceId: string }>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
@@ -250,7 +234,6 @@ export const markSourceItemsReadHandler = async (
     handleError(res, error, 500, 'Error marking source items as read');
   }
 };
-
 
 //get priority list for a user
 export const sourcePriorityHandler = async (
@@ -269,13 +252,11 @@ export const sourcePriorityHandler = async (
   }
 };
 
-
 //update source priorities for a user
 export const updateSourcePrioritiesHandler = async (
   req: Request<{}, {}, UpdatePriority, { feedType?: 'rss' | 'podcast' }>,
   res: Response
 ): Promise<void> => {
-
   try {
     const userId = parseNumericId(String(req.body.userId), 'userId');
     const { sources } = req.body;
@@ -290,9 +271,9 @@ export const updateSourcePrioritiesHandler = async (
     console.log(`${feedType} DB update successful for user ${userId}`);
     res.json({ success: true, feedType: feedType });
   } catch (err) {
-    handleError(res, err, 500, 'Error updating source priorities');}
+    handleError(res, err, 500, 'Error updating source priorities');
+  }
 };
-
 
 //all preset sources that users can choose from
 export const presetSourcesHandler = async (
@@ -327,8 +308,7 @@ export const getSourceItemsHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
 
-    const feedType: 'rss' | 'podcast' =
-      req.query.feedType === 'podcast' ? 'podcast' : 'rss';
+    const feedType: 'rss' | 'podcast' = req.query.feedType === 'podcast' ? 'podcast' : 'rss';
 
     const items = await getSourceItems(userId, sourceId, feedType);
 

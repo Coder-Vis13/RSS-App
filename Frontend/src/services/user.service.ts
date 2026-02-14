@@ -11,7 +11,7 @@ const createFolder = async (userId: number, folderName: string) =>
 
 import type { UserFolder } from "../components/sidebar/sidebarTypes";
 
-const getUserFolders = (userId: number): Promise<UserFolder[]> => 
+const getUserFolders = (userId: number): Promise<UserFolder[]> =>
   get(`users/${userId}/folders`);
 
 const deleteFolder = (userId: number, folderId: number) =>
@@ -41,8 +41,8 @@ const addUserPodcast = (userId: number, sourceURL: string) =>
 const removeUserSource = (userId: number, sourceId: number) =>
   del(`/users/${userId}/sources/${sourceId}`);
 
-const userFeedItems = (userId: number, feedType: "rss" | "podcast") =>
-  get(`/users/${userId}/feed`, { feedType });
+const userFeedItems = (userId: number, feedType: "rss" | "podcast", timeFilter?: "all" | "today" | "week" | "month") =>
+  get(`/users/${userId}/feed`, { feedType, timeFilter});
 
 const allUserRSSSources = (userId: number) =>
   get(`/users/${userId}/blog/sources`);
@@ -53,8 +53,8 @@ const allUserPodcastSources = (userId: number) =>
 const getUnfolderedSources = (userId: number) =>
   get(`/users/${userId}/sources/unfoldered`);
 
-const folderItems = (userId: number, folderId: number) =>
-  get(`/users/${userId}/folders/${folderId}/feed`);
+const folderItems = (userId: number, folderId: number, timeFilter?: "all" | "today" | "week" | "month") =>
+  get(`/users/${userId}/folders/${folderId}/feed`, {timeFilter});
 
 const markItemRead = (
   userId: number,
@@ -122,7 +122,7 @@ const getSourceItems = (
   userId: number,
   sourceId: number,
   feedType: "rss" | "podcast",
-) => get(`users/${userId}/source/${sourceId}/items`, {feedType});
+) => get(`users/${userId}/source/${sourceId}/items`, { feedType });
 
 export {
   addUser,
@@ -153,5 +153,5 @@ export {
   allUserPodcastSources,
   getUnfolderedSources,
   markSourceItemsRead,
-  getSourceItems
+  getSourceItems,
 };

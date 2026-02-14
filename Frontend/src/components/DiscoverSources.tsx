@@ -2,7 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { presetSources } from "@/services/user.service";
 import { toast } from "sonner";
-import { allUserRSSSources, allUserPodcastSources } from "../services/user.service";
+import {
+  allUserRSSSources,
+  allUserPodcastSources,
+} from "../services/user.service";
 
 interface Source {
   id: number;
@@ -12,118 +15,88 @@ interface Source {
   domain: string;
 }
 
-/* -------------------- HELPERS -------------------- */
-
 const getFaviconUrl = (domain: string, size = 120) =>
   `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 
-/* -------------------- SOURCES -------------------- */
+const getLogoUrl = (domain: string) => `https://logos.hunter.io/${domain}`;
 
 const blogSources: Source[] = [
   {
-    id: 3,
+    id: 11,
     name: "The Hindu",
     description: "In-depth Indian news and analysis.",
     category: "News",
     domain: "thehindu.com",
   },
   {
-    id: 8,
+    id: 12,
     name: "Indian Express",
     description: "Trusted Indian journalism and editorials.",
     category: "News",
     domain: "indianexpress.com",
   },
   {
-    id: 29,
-    name: "The Guardian",
-    description: "Independent journalism covering world news and politics.",
-    category: "News",
-    domain: "theguardian.com",
-  },
-  {
-    id: 30,
-    name: "Deccan Herald",
-    description: "Indian news source featuring national and regional updates.",
-    category: "News",
-    domain: "deccanherald.com",
-  },
-  {
-    id: 14,
+    id: 5,
     name: "NDTV",
     description: "Global breaking news and current affairs.",
     category: "News",
     domain: "ndtv.com",
   },
   {
-    id: 26,
-    name: "Stratechery",
-    description: "Smart analysis of tech business and strategy.",
-    category: "Tech",
-    domain: "stratechery.com",
+    id: 10,
+    name: "Times of India",
+    description: "Breaking news and top stories from India.",
+    category: "News",
+    domain: "indiatimes.com",
   },
   {
-    id: 31,
-    name: "WIRED",
-    description: "Reporting on technology, culture, and science.",
-    category: "Tech",
-    domain: "wired.com",
+    id: 14,
+    name: "News18",
+    description: "Indian and global news coverage.",
+    category: "News",
+    domain: "news18.com",
   },
   {
-    id: 34,
-    name: "Mark Manson",
-    description: "Research-based advice on personal growth.",
-    category: "Productivity",
-    domain: "markmanson.net",
-  },
-  {
-    id: 35,
-    name: "James Clear",
-    description: "Actionable insights on habits and improvement.",
-    category: "Productivity",
-    domain: "jamesclear.com",
-  },
-  {
-    id: 18,
-    name: "Vogue India",
-    description: "Fashion, lifestyle, and beauty trends.",
-    category: "Lifestyle",
-    domain: "vogue.in",
-  },
-  {
-    id: 19,
-    name: "Harper's Bazaar",
-    description: "Luxury fashion and culture magazine.",
-    category: "Lifestyle",
-    domain: "harpersbazaar.com",
-  },
-  {
-    id: 21,
-    name: "Serious Eats",
-    description: "Science-based cooking and recipes.",
-    category: "Food",
-    domain: "seriouseats.com",
-  },
-  {
-    id: 25,
-    name: "Eric Kim Blog",
-    description: "Street photography essays and philosophy.",
-    category: "Photography",
-    domain: "erickimphotography.com",
-  },
-  {
-    id: 27,
+    id: 15,
     name: "Bollywood Hungama",
     description: "Latest Bollywood news and updates.",
     category: "Entertainment",
     domain: "bollywoodhungama.com",
   },
   {
-    id: 37,
-    name: "Aeon",
-    description: "Essays on philosophy, culture, and humanity.",
-    category: "Culture",
-    domain: "aeon.co",
+    id: 13,
+    name: "Fossbytes",
+    description: "Technology news, explainers, and guides.",
+    category: "Tech",
+    domain: "fossbytes.com",
+  },
+  {
+    id: 16,
+    name: "Techrytr",
+    description: "Tech news, reviews, and digital trends.",
+    category: "Tech",
+    domain: "techrytr.in",
+  },
+  {
+    id: 9,
+    name: "Figma Blog",
+    description: "Design, product, and collaboration insights.",
+    category: "Design",
+    domain: "figma.com",
+  },
+  {
+    id: 17,
+    name: "TV9 Kannada",
+    description: "Kannada-language regional news coverage.",
+    category: "Regional News",
+    domain: "tv9kannada.com",
+  },
+  {
+    id: 19,
+    name: "BuzzFeed",
+    description: "Trending news, culture, and entertainment.",
+    category: "Entertainment",
+    domain: "buzzfeed.com",
   },
 ];
 
@@ -231,8 +204,6 @@ const categoryColors: Record<string, string> = {
   Finance: "bg-gray-50 text-gray-600",
 };
 
-
-
 export const Sites: React.FC<{ userId: number }> = ({ userId }) => {
   const [rssSubscribed, setRssSubscribed] = useState<number[]>([]);
   const [podcastSubscribed, setPodcastSubscribed] = useState<number[]>([]);
@@ -277,7 +248,10 @@ export const Sites: React.FC<{ userId: number }> = ({ userId }) => {
           <div className="flex items-start justify-between mb-5">
             <div className="relative">
               <img
-                src={getFaviconUrl(src.domain, 128)}
+                src={getLogoUrl(src.domain)}
+                onError={(e) => {
+                  e.currentTarget.src = getFaviconUrl(src.domain, 128);
+                }}
                 alt={`${src.name} logo`}
                 className="w-12 h-12 rounded-xl transition-transform duration-300 group-hover:scale-105"
                 style={{

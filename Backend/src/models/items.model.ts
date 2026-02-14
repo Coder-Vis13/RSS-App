@@ -8,22 +8,22 @@ import { AddItemResult, InsertedItem, Item, ReadItemResult, Source } from './typ
 dotenv.config();
 const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
 
-
-
 interface FeedItems extends Item {
   is_save: boolean;
+  source_id: number;
+  feed_type: 'rss' | 'podcast';
+  tags?: string[];
 }
 
 interface MarkReadRow {
   user_id: number;
   item_id: number;
-  read_time?: string | Date;
+  read_time?: string;
 }
 
 interface MarkRead extends MarkReadRow {
   read: boolean;
 }
-
 
 interface Save {
   user_id: number;
@@ -31,15 +31,19 @@ interface Save {
   is_save?: boolean;
 }
 
-
 interface ItemsInserted {
-  added: number | null;
+  added: number;
 }
 
-
+interface AllReadItems extends Item {
+  read_time: string | Date;
+}
 
 //add items into userItemMetadata table
-export const addUserItemMetadata = async (userId: number, itemIds: number[]): Promise<ItemsInserted> => {
+export const addUserItemMetadata = async (
+  userId: number,
+  itemIds: number[]
+): Promise<ItemsInserted> => {
   if (!Array.isArray(itemIds) || itemIds.length === 0) {
     return { added: 0 };
   }
@@ -52,18 +56,26 @@ export const addUserItemMetadata = async (userId: number, itemIds: number[]): Pr
      ON CONFLICT (user_id, item_id) DO NOTHING`,
     [userId, itemIds]
   );
-  logAction(`Added items into user's metadata: User=${userId} itemCount=${insertResult.rowCount}`);
-  return { added: insertResult.rowCount };
+  logAction(
+    `Added items into user's metadata: User=${userId} itemCount=${insertResult.rowCount ?? 0}`
+  );
+  return { added: insertResult.rowCount ?? 0 };
 };
-
 
 //get all unread items of all sources
 export const userFeedItems = async (
   userId: number,
-  feedType: 'rss' | 'podcast' = 'rss'
+  feedType: 'rss' | 'podcast' = 'rss',
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
 ): Promise<FeedItems[]> => {
   const interval = feedType === 'podcast' ? '6 months' : '2 days';
   const table = feedType === 'podcast' ? 'user_podcast' : 'user_source';
+
+  let timeClause = '';
+  if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
+  else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
+  else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  else timeClause = `AND i.pub_date >= NOW() - interval '${interval}'`;
 
   const baseQuery = `SELECT 
       i.item_id,
@@ -77,22 +89,29 @@ export const userFeedItems = async (
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
       COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
-           FILTER (WHERE c.name IS NOT NULL), '[]') AS categories    FROM item i
+           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories, 
+      COALESCE(
+      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
+      '[]'::json
+    ) AS tags
+           FROM item i
     INNER JOIN source s ON i.source_id = s.source_id
     INNER JOIN ${table} us ON us.${feedType === 'podcast' ? 'podcast_id' : 'source_id'} = i.source_id
     LEFT JOIN user_item_metadata uim
       ON uim.item_id = i.item_id AND uim.user_id = us.user_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
+    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE us.user_id = $1
-      AND i.pub_date >= NOW() - interval '${interval}'
+      ${timeClause}
       AND (uim.read_time IS NULL)
-    ${feedType ? 'AND s.feed_type = $2' : ''}
-    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save
+      ${feedType ? 'AND s.feed_type = $2' : ''}
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
     ORDER BY us.priority, i.pub_date DESC`;
 
   const params = feedType ? [userId, feedType] : [userId];
-  const result = await query(baseQuery, params);
+  const result: QueryResult<FeedItems> = await query(baseQuery, params);
+
   console.log(
     'CATEGORY TEST → FULL CATEGORIES:',
     JSON.stringify(
@@ -107,24 +126,22 @@ export const userFeedItems = async (
   const uncategorized = result.rows.filter((item) => !item.is_categorized);
 
   for (const item of uncategorized) {
-    await categorizeItem(item.item_id, item.title);
+    await categorizeItem(item.item_id, item.title, item.description);
     await query(`UPDATE item SET is_categorized = true WHERE item_id = $1`, [item.item_id]);
   }
   if (uncategorized.length > 0) {
     // re-run query to include newly added categories
-    const refreshed = await query(baseQuery, params);
+    const refreshed: QueryResult<FeedItems> = await query(baseQuery, params);
     return refreshed.rows;
   }
   return result.rows;
 };
 
-
-
 export const getItemsByCategory = async (
   userId: number,
   categoryName: string,
   feedType: 'rss' | 'podcast' = 'rss'
-): Promise<Item[]> => {
+): Promise<FeedItems[]> => {
   const interval = feedType === 'podcast' ? '6 months' : '2 days';
   const table = feedType === 'podcast' ? 'user_podcast' : 'user_source';
   const joinKey = feedType === 'podcast' ? 'podcast_id' : 'source_id';
@@ -142,7 +159,7 @@ export const getItemsByCategory = async (
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
       COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
-           FILTER (WHERE c.name IS NOT NULL), '[]') AS categories    
+           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories    
            FROM item i
     INNER JOIN source s ON i.source_id = s.source_id
     INNER JOIN ${table} us ON us.${joinKey} = i.source_id
@@ -159,7 +176,7 @@ export const getItemsByCategory = async (
   `;
 
   const params = [userId, categoryName, feedType];
-  const result = await query(baseQuery, params);
+  const result: QueryResult<FeedItems> = await query(baseQuery, params);
 
   // Auto-categorize any uncategorized items safely
   for (const item of result.rows.filter((i) => !i.is_categorized)) {
@@ -177,11 +194,13 @@ export const getSavedItemsByCategory = async (
   userId: number,
   categoryName: string,
   feedType?: 'rss' | 'podcast'
-): Promise<Item[]> => {
+): Promise<FeedItems[]> => {
   const baseQuery = `
     SELECT 
       s.source_name,
       s.feed_type,
+      i.source_id,
+      COALESCE(uim.is_save, false) AS is_save,
       i.item_id,
       i.title,
       i.link,
@@ -192,7 +211,7 @@ export const getSavedItemsByCategory = async (
         json_agg(
           DISTINCT jsonb_build_object('name', c.name, 'color', c.color)
         ) FILTER (WHERE c.name IS NOT NULL),
-      '[]') AS categories
+      '[]'::json) AS categories
     FROM user_item_metadata uim
     JOIN item i ON uim.item_id = i.item_id
     JOIN source s ON i.source_id = s.source_id
@@ -202,15 +221,15 @@ export const getSavedItemsByCategory = async (
       AND uim.is_save = TRUE
       AND c.name = $2
       ${feedType ? 'AND s.feed_type = $3' : ''}
-    GROUP BY i.item_id, s.source_name, s.feed_type, i.is_categorized
-    ORDER BY i.pub_date DESC
-  `;
+    GROUP BY i.item_id, i.source_id, s.source_name,  s.feed_type, i.is_categorized, uim.is_save
+    ORDER BY i.pub_date DESC`;
 
   const params = feedType ? [userId, categoryName, feedType] : [userId, categoryName];
-  const result = await query(baseQuery, params);
 
-  // Auto-categorize uncategorized saved items
+  const result: QueryResult<FeedItems> = await query(baseQuery, params);
+
   const uncategorized = result.rows.filter((item) => !item.is_categorized);
+
   for (const item of uncategorized) {
     try {
       await categorizeItem(item.item_id, item.title, item.description);
@@ -222,11 +241,7 @@ export const getSavedItemsByCategory = async (
   return result.rows;
 };
 
-
-
-
 //mark an item as read
-//handles both “insert if missing” and “update if exists” in one query.
 export const markItemRead = async (
   userId: number,
   itemId: number,
@@ -251,12 +266,8 @@ export const markItemRead = async (
   return { ...markedItem, read: true, feed_type: feedType };
 };
 
-
-
-
 //add an item into the item table
 // const limit = pLimit(5);  //limit to 5 concurrent AI category calls
-
 export const addItem = async (
   sourceId: number,
   items: {
@@ -264,37 +275,43 @@ export const addItem = async (
     title: string;
     description: string | null;
     pubDate: string | Date | null;
+    tags?: string[];
   }[]
 ): Promise<AddItemResult> => {
-  //bulk insert
-  const insertItem: Promise<QueryResult<InsertedItem>>[] = items.map((i) =>
-    query<InsertedItem>(
-      `INSERT INTO item(source_id, link, title, description, pub_date)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (source_id, link) DO NOTHING
-     RETURNING item_id`,
-      [sourceId, i.link, i.title, i.description, i.pubDate]
-    )
-  );
-  const results: QueryResult<InsertedItem>[] = await Promise.all(insertItem);
-
-  //aggregate inserted IDs and count the number of items inserted
   const insertedIds: number[] = [];
   let insertCount = 0;
-  results.forEach((result) => {
+
+  for (const i of items) {
+    const result: QueryResult<InsertedItem> = await query<InsertedItem>(
+      `INSERT INTO item(source_id, link, title, description, pub_date)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (source_id, link) DO NOTHING
+       RETURNING item_id`,
+      [sourceId, i.link, i.title, i.description, i.pubDate]
+    );
+
     const insertedRow = getFirstRow(result);
     if (insertedRow) {
       insertCount++;
       insertedIds.push(insertedRow.item_id);
+
+      if (i.tags?.length) {
+        const tagsToInsert = i.tags.slice(0, 3); // limit to 3
+        const valuesString = tagsToInsert.map((_, idx) => `($1, $${idx + 2})`).join(', ');
+
+        await query(
+          `INSERT INTO item_tag(item_id, tag)
+           VALUES ${valuesString}
+           ON CONFLICT (item_id, tag) DO NOTHING`,
+          [insertedRow.item_id, ...tagsToInsert]
+        );
+      }
     }
-  });
+  }
 
   logAction(`Inserted items of Source=${sourceId} itemCount=${insertCount}`);
   return { insertCount, insertedIds };
 };
-
-
-
 
 //mark all unread items of all sources read
 //Handles both “insert if missing” and “update if exists” in one query.
@@ -319,15 +336,10 @@ export const markUserFeedItemsRead = async (
     [userId]
   );
 
-  logAction(`Marked ${feedType} items as read: User=${userId} itemCount=${result.rowCount}`);
+  logAction(`Marked ${feedType} items as read: User=${userId} itemCount=${result.rowCount ?? 0}`);
 
-  return { readCount: result.rowCount };
+  return { readCount: result.rowCount ?? 0 };
 };
-
-
-// interface SaveItem extends Save{
-//     saved: boolean;
-// }
 
 //save or unsave an item
 //Handles both “insert if missing” and “update if exists” in one query
@@ -387,13 +399,18 @@ export const allSavedItems = async (
             'color', c.color
           )
         ) FILTER (WHERE c.name IS NOT NULL),
-        '[]'
-      ) AS categories
+        '[]'::json
+      ) AS categories,
+      COALESCE(
+      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
+      '[]'::json
+    ) AS tags
     FROM user_item_metadata uim
     JOIN item i ON uim.item_id = i.item_id
     JOIN source s ON i.source_id = s.source_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
+    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE uim.is_save = TRUE
       AND uim.user_id = $1
       ${feedType ? 'AND s.feed_type = $2' : ''}
@@ -427,12 +444,11 @@ export const allSavedItems = async (
   return result.rows;
 };
 
-interface AllReadItems extends Item {
-  read_time: string | Date;
-}
-
 //get all read items of a user
-export const readItems = async (userId: number, feedType?: 'rss' | 'podcast'): Promise<AllReadItems[]> => {
+export const readItems = async (
+  userId: number,
+  feedType?: 'rss' | 'podcast'
+): Promise<AllReadItems[]> => {
   const baseQuery = `
     SELECT 
       s.source_name,
@@ -451,13 +467,18 @@ export const readItems = async (userId: number, feedType?: 'rss' | 'podcast'): P
             'color', c.color
           )
         ) FILTER (WHERE c.name IS NOT NULL),
-        '[]'
-      ) AS categories
+        '[]'::json
+      ) AS categories,
+      COALESCE(
+      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
+      '[]'::json
+    ) AS tags
     FROM user_item_metadata uim
     JOIN item i ON uim.item_id = i.item_id
     JOIN source s ON i.source_id = s.source_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
+    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE uim.read_time IS NOT NULL
       AND uim.user_id = $1
       ${feedType ? 'AND s.feed_type = $2' : ''}
@@ -477,10 +498,10 @@ export const readItems = async (userId: number, feedType?: 'rss' | 'podcast'): P
       } catch (err) {
         console.error(`Error categorizing read item ${item.item_id}:`, err);
       }
-    }1
+    }
     const refreshed = await query(baseQuery, params);
     logAction(
-      `Saved items: User=${userId} feedType=${feedType || 'all'} itemCount=${refreshed.rows.length} (refreshed after categorization)`
+      `Read items: User=${userId} feedType=${feedType || 'all'} itemCount=${refreshed.rows.length} (refreshed after categorization)`
     );
     return refreshed.rows;
   }
@@ -490,4 +511,3 @@ export const readItems = async (userId: number, feedType?: 'rss' | 'podcast'): P
   );
   return result.rows;
 };
-

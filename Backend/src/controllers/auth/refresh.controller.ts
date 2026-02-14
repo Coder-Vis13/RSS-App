@@ -1,7 +1,6 @@
-import { verifyRefreshToken, signAccessToken, signRefreshToken } from "../../utils/jwt";
-import { findUserByRefreshToken, saveRefreshToken } from "../../models/auth.model";
+import { verifyRefreshToken, signAccessToken, signRefreshToken } from '../../utils/jwt';
+import { findUserByRefreshToken, saveRefreshToken } from '../../models/auth.model';
 import { Request, Response } from 'express';
-
 
 type RefreshRequest = Request & { cookies: { refresh?: string } };
 
@@ -30,9 +29,9 @@ export const refreshHandler = async (req: RefreshRequest, res: Response): Promis
 
   await saveRefreshToken(payload.userId, newRefreshToken);
 
-  res.cookie("refresh", newRefreshToken, {
+  res.cookie('refresh', newRefreshToken, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: 'strict',
     secure: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });

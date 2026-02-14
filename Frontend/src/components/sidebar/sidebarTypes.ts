@@ -1,6 +1,6 @@
 export interface UserFolder {
   folder_id: number;
-  folder_name: string;
+  name: string;
   sources: Source[];
 }
 

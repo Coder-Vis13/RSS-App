@@ -1,4 +1,4 @@
-import { clearRefreshToken } from "../../models/auth.model";
+import { clearRefreshToken } from '../../models/auth.model';
 import { Request, Response } from 'express';
 
 export const logoutHandler = async (req: Request, res: Response) => {
@@ -7,9 +7,9 @@ export const logoutHandler = async (req: Request, res: Response) => {
     await clearRefreshToken(token);
   }
 
-  res.clearCookie("refresh", {
+  res.clearCookie('refresh', {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: 'strict',
     secure: true,
   });
 

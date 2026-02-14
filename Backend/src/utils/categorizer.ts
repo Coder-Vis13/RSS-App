@@ -48,7 +48,7 @@ async function askOpenAI(prompt: string): Promise<string> {
 export async function categorizeItem(
   itemId: number,
   title: string | null,
-  description?: string
+  description: string | null
 ): Promise<void> {
   if (!title || title.trim().length === 0) {
     console.log(`Skipping categorization for item ${itemId}: no title`);
@@ -65,7 +65,7 @@ export async function categorizeItem(
   let categoryString = '';
 
   if (USE_AI_CATEGORY) {
-    const prompt = getCategoryPrompt(title, description);
+    const prompt = getCategoryPrompt(title, description ?? '');
     categoryString = await askOpenAI(prompt);
   } else {
     console.log('AI category generation disabled — skipping API call');

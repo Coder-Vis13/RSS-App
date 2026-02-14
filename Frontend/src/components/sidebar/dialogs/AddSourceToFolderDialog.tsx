@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { UserFolder } from "../sidebarTypes";
@@ -10,8 +16,6 @@ interface AddToFolderDialogProps {
   handleAddSourceToFolder: (folderId: number) => void;
   setCreateFolderDialogOpen: (open: boolean) => void;
 }
-
-
 
 export function AddSourceToFolderDialog({
   open,
@@ -36,7 +40,7 @@ export function AddSourceToFolderDialog({
                 onClick={() => handleAddSourceToFolder(folder.folder_id)}
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--light-grey)] transition flex justify-between items-center focus-visible:outline-none"
               >
-                {folder.folder_name}
+                {folder.name}
               </button>
             ))}
           </div>

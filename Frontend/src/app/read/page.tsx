@@ -20,6 +20,7 @@ interface ReadItems {
   source_name: string;
   read_time: string | Date;
   categories?: { name: string; color: string }[];
+  tags?: string[];
 }
 
 export default function ReadPage() {
@@ -129,7 +130,18 @@ export default function ReadPage() {
                         })}
                       </div>
                     )}
-
+                    {item.tags && item.tags.length > 0 && (
+  <div className="flex flex-wrap gap-2 mt-1 mb-4">
+    {item.tags.map((tag) => (
+      <span
+        key={tag}
+        className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+      >
+        {tag}
+      </span>
+    ))}
+  </div>
+)}
                     {/* Title */}
                     <a
                       href={item.link}
@@ -164,4 +176,3 @@ export default function ReadPage() {
     </div>
   );
 }
-

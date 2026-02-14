@@ -50,62 +50,67 @@ export async function runFeedRefresh(): Promise<void> {
     const limit = pLimit(CONCURRENCY);
 
     await Promise.allSettled(
-      sources.map((row) => limit(async () => {
-        const { source_id: sourceId, url, feed_type, rss_user_ids, podcast_user_ids } = row;
-        const userIds = feed_type === 'podcast' ? podcast_user_ids : rss_user_ids;
+      sources.map((row) =>
+        limit(async () => {
+          const { source_id: sourceId, url, feed_type, rss_user_ids, podcast_user_ids } = row;
+          const userIds = feed_type === 'podcast' ? podcast_user_ids : rss_user_ids;
 
-        const feedStart = Date.now();
+          const feedStart = Date.now();
 
-        try {
-          if (feed_type === 'rss') {
-            const { sourceName, sourceItems }: ParsedRSS = await withTimeout(
-              RSSParser(url),
-              TIMEOUT_MS,
-              url
-            );
+          try {
+            if (feed_type === 'rss') {
+              const { sourceName, sourceItems }: ParsedRSS = await withTimeout(
+                RSSParser(url),
+                TIMEOUT_MS,
+                url
+              );
 
-            console.log(`CRON -> Processing RSS: ${sourceName} (${sourceItems.length} items)`);
+              console.log(`CRON -> Processing RSS: ${sourceName} (${sourceItems.length} items)`);
 
-            // Ensure source exists or update its name
-            await addSource(sourceName, url);
+              // Ensure source exists or update its name
+              await addSource(sourceName, url);
 
-            if (sourceItems.length === 0) return;
+              if (sourceItems.length === 0) return;
 
-            // Bulk insert items
-            const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, sourceItems);
-            if (insertCount > 0) console.log(`CRON -> Inserted ${insertCount} RSS items`);
+              // Bulk insert items
+              const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, sourceItems);
+              if (insertCount > 0) console.log(`CRON -> Inserted ${insertCount} RSS items`);
 
-            if (insertedIds.length > 0 && userIds?.length) {
-              await Promise.allSettled(userIds.map((uid) => addUserItemMetadata(uid, insertedIds)));
+              if (insertedIds.length > 0 && userIds?.length) {
+                await Promise.allSettled(
+                  userIds.map((uid) => addUserItemMetadata(uid, insertedIds))
+                );
+              }
+            } else if (feed_type === 'podcast') {
+              const { podcastTitle, episodeItems } = await withTimeout(
+                podcastParser(url),
+                TIMEOUT_MS,
+                url
+              );
+
+              console.log(
+                `CRON -> Processing Podcast: ${podcastTitle} (${episodeItems.length} episodes)`
+              );
+
+              const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, episodeItems);
+              if (insertCount > 0) console.log(`CRON -> Inserted ${insertCount} podcast episodes`);
+
+              if (insertedIds.length > 0 && userIds?.length) {
+                await Promise.allSettled(
+                  userIds.map((uid) => addUserItemMetadata(uid, insertedIds))
+                );
+              }
             }
 
-          } else if (feed_type === 'podcast') {
-            const { podcastTitle, episodeItems } = await withTimeout(
-              podcastParser(url),
-              TIMEOUT_MS,
-              url
-            );
-
-            console.log(`CRON -> Processing Podcast: ${podcastTitle} (${episodeItems.length} episodes)`);
-
-            const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, episodeItems);
-            if (insertCount > 0) console.log(`CRON -> Inserted ${insertCount} podcast episodes`);
-
-            if (insertedIds.length > 0 && userIds?.length) {
-              await Promise.allSettled(userIds.map((uid) => addUserItemMetadata(uid, insertedIds)));
-            }
+            console.log(`CRON -> Done ${feed_type} ${url} in ${(Date.now() - feedStart) / 1000}s`);
+          } catch (err: unknown) {
+            console.error(`CRON -> Error processing ${feed_type} ${url}:`, (err as Error).message);
           }
-
-          console.log(`CRON -> Done ${feed_type} ${url} in ${(Date.now() - feedStart) / 1000}s`);
-
-        } catch (err: unknown) {
-          console.error(`CRON -> Error processing ${feed_type} ${url}:`, (err as Error).message);
-        }
-      }))
+        })
+      )
     );
 
     console.log(`CRON -> Finished feed refresh at ${new Date().toISOString()}`);
-
   } catch (err: unknown) {
     console.error('CRON -> Fatal error:', (err as Error).message);
   }

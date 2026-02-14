@@ -2,7 +2,7 @@
 psql -U myprojectuser -d myprojectdb -h localhost
 \pset pager off
 \dt - to see table
-
+npx prettier --write .
 */
 
 import { query } from '../src/config/db';
@@ -50,12 +50,16 @@ const createTables = async () => {
       );
 
       CREATE TABLE IF NOT EXISTS user_podcast (
-            user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
-            podcast_id INT NOT NULL REFERENCES source(source_id) ON DELETE CASCADE ON UPDATE CASCADE,
-            priority INT,
-            PRIMARY KEY (user_id, podcast_id),
-            UNIQUE (user_id, priority)
-            );
+        user_id INT NOT NULL
+          REFERENCES users(user_id)
+          ON DELETE CASCADE ON UPDATE CASCADE,
+        podcast_id INT NOT NULL
+          REFERENCES source(source_id)
+          ON DELETE CASCADE ON UPDATE CASCADE,
+        priority INT,
+        PRIMARY KEY (user_id, podcast_id),
+        UNIQUE (user_id, priority)
+      );
 
       CREATE TABLE IF NOT EXISTS user_source_folder (
         user_id INT NOT NULL,
@@ -86,7 +90,16 @@ const createTables = async () => {
         description TEXT,
         pub_date TIMESTAMP NOT NULL,
         is_categorized BOOLEAN DEFAULT false,
-        UNIQUE (source_id, link)
+        UNIQUE (source_id, link),
+        UNIQUE (link)
+      );
+
+      CREATE TABLE IF NOT EXISTS item_tag (
+        item_id INT NOT NULL
+          REFERENCES item(item_id)
+          ON DELETE CASCADE,
+        tag TEXT NOT NULL,
+        PRIMARY KEY (item_id, tag)
       );
 
       CREATE TABLE IF NOT EXISTS user_item_metadata (

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import SidebarLayout from "./components/sidebar/SidebarLayout";
-import Sites from "./components/Websites";
+import Sites from "./components/DiscoverSources";
 import FeedPage from "./app/feed/page";
 import SavedPage from "./app/saved/page";
 import RulesPage from "./app/rules/page";
@@ -11,11 +11,8 @@ import { BlocklistProvider } from "./context/blocklistContext";
 import Landing from "./LandingPage";
 import SourcePage from "./app/source/page";
 
-
-function Home() {
+function Discover() {
   const userId = 1;
-
-  
 
   return (
     <main className="flex-1 p-2 overflow-y-auto">
@@ -53,7 +50,7 @@ export default function Dashboard() {
             element={
               <SidebarLayout>
                 <Routes>
-                  <Route path="home" element={<Home />} />
+                  <Route path="discover" element={<Discover />} />
                   <Route path="feed" element={<FeedPage />} />
                   <Route path="saved" element={<SavedPage />} />
                   <Route path="priority" element={<RulesPage />} />
@@ -73,5 +70,3 @@ export default function Dashboard() {
     </>
   );
 }
-
-

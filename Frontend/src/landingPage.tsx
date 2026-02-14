@@ -616,5 +616,3 @@ function Step({
     </div>
   );
 }
-
-

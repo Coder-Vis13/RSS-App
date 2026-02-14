@@ -7,13 +7,11 @@ import {
   allSavedItems,
   readItems,
   getItemsByCategory,
-  getSavedItemsByCategory 
+  getSavedItemsByCategory,
 } from '../models';
 import { handleError } from '../utils/helpers';
 import { UserId } from './types';
 import { parseNumericId } from '../utils/request-parser';
-
-
 
 interface MarkItemRead {
   userId: string;
@@ -27,26 +25,30 @@ interface SaveItem {
   is_save?: boolean;
 }
 
-
 //get unread items for all sources in user's home page
 export const userFeedItemsHandler = async (
-  req: Request<UserId, {}, {}, { feedType?: 'rss' | 'podcast' }>,
+  req: Request<
+    UserId,
+    {},
+    {},
+    { feedType?: 'rss' | 'podcast'; timeFilter?: 'all' | 'today' | 'week' | 'month' }
+  >,
   res: Response
 ): Promise<void> => {
-  const { feedType } = req.query;
+  const { feedType, timeFilter } = req.query;
 
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
 
-    const unreadItems = await userFeedItems(userId, feedType);
-    console.info(`INFO: Fetched ${feedType || 'all'} unread items for user ${userId}`);
+    const unreadItems = await userFeedItems(userId, feedType, timeFilter);
+    console.info(`INFO: Fetched ${feedType || 'rss'} unread items for user ${userId}`);
     res.json(unreadItems);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching unread items');
   }
 };
 
-
+//get items based on category
 export const getItemsByCategoryHandler = async (
   req: Request<UserId & { categoryName: string }, {}, {}, { feedType?: 'rss' | 'podcast' }>,
   res: Response
@@ -62,7 +64,6 @@ export const getItemsByCategoryHandler = async (
     handleError(res, error, 500, 'Error fetching items by category');
   }
 };
-
 
 //get saved items by category for a user
 export const getSavedItemsByCategoryHandler = async (
@@ -80,7 +81,6 @@ export const getSavedItemsByCategoryHandler = async (
     handleError(res, error, 500, 'Error fetching items by category');
   }
 };
-
 
 //mark an item read for a user
 export const markItemReadHandler = async (
@@ -104,7 +104,6 @@ export const markItemReadHandler = async (
   }
 };
 
-
 //marks all items in home page as read for a user
 export const markUserFeedItemsReadHandler = async (
   req: Request<UserId, {}, {}, { feedType?: 'rss' | 'podcast' }>,
@@ -125,7 +124,6 @@ export const markUserFeedItemsReadHandler = async (
     handleError(res, error, 500, `Error marking ${type} items as read`);
   }
 };
-
 
 //save an item for a user
 export const saveItemHandler = async (
@@ -161,7 +159,6 @@ export const saveItemHandler = async (
   }
 };
 
-
 //get all saved items for a user
 export const allSavedItemsHandler = async (
   req: Request<UserId, {}, {}, { feedType?: 'podcast' | 'rss' }>,
@@ -181,7 +178,6 @@ export const allSavedItemsHandler = async (
   }
 };
 
-
 //get all read items for a user
 export const readItemsHandler = async (
   req: Request<UserId, {}, {}, { feedType?: 'rss' | 'podcast' }>,
@@ -200,5 +196,3 @@ export const readItemsHandler = async (
     handleError(res, error, 500, 'Could not get read items');
   }
 };
-
-

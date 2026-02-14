@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -35,9 +41,7 @@ export function RenameFolderDialog({
           autoFocus
         />
 
-        {renameError && (
-          <p className="text-sm text-red-500">{renameError}</p>
-        )}
+        {renameError && <p className="text-sm text-red-500">{renameError}</p>}
 
         <DialogFooter className="flex justify-end gap-2">
           <Button

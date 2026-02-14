@@ -1,7 +1,6 @@
 import { query } from '../config/db';
 
 export const CategoryModel = {
-  //create a category if it doesn't exist and return its ID
   async category(name: string): Promise<number> {
     try {
       const result = await query(
@@ -35,7 +34,7 @@ export const CategoryModel = {
     }
   },
 
-  // Optional helper: get all categories for an item
+  // get all categories for an item
   async getCategoriesForItem(itemId: number): Promise<string[]> {
     const result = await query(
       `SELECT c.name

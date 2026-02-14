@@ -75,4 +75,3 @@ export const del = async (url: string, params?: Record<string, any>) => {
 };
 
 export default api;
-

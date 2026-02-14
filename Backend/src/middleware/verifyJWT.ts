@@ -1,19 +1,15 @@
-import { Request, Response, NextFunction } from "express";
-import { verifyAccessToken } from "../utils/jwt";
+import { Request, Response, NextFunction } from 'express';
+import { verifyAccessToken } from '../utils/jwt';
 
-export function verifyJWT(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export function verifyJWT(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith('Bearer ')) {
     res.sendStatus(401);
     return;
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
 
   try {
     const payload = verifyAccessToken(token);

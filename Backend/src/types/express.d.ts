@@ -1,4 +1,4 @@
-import { UserJwtPayload } from "../auth/types";
+import { UserJwtPayload } from '../auth/types';
 
 declare global {
   namespace Express {
@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-declare module "express-serve-static-core" {
+declare module 'express-serve-static-core' {
   interface Request {
     cookies: {
       refresh?: string;

@@ -16,6 +16,10 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
+import AppHeader from "../../components/layout/AppHeader";
+const [selectedTime, setSelectedTime] = useState<'all' | 'today' | 'week' | 'month'>('all');
+
+
 interface FolderItems {
   item_id: number;
   title: string;
@@ -26,6 +30,7 @@ interface FolderItems {
   source_id: number;
   is_save: boolean;
   categories?: { name: string; color: string }[];
+  tags?: string[];
 }
 
 export default function FolderPage() {
@@ -54,7 +59,7 @@ export default function FolderPage() {
 
   const fetchFolderItems = async () => {
     try {
-      const data = await getFolderItems(userId, Number(folderId));
+      const data = await getFolderItems(userId, Number(folderId), selectedTime);
       const normalized = data.map((i: any) => ({
         ...i,
         is_save: Boolean(i.is_save),
@@ -138,58 +143,19 @@ export default function FolderPage() {
 
       {folderItems.length > 0 ? (
         <div>
-          <div className="mb-4 flex justify-end items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center text-md font-semibold hover:bg-[var(--light-grey)] hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
-                >
-                  Category
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="bg-white border border-gray-100 rounded-md shadow-md"
-              >
-                <DropdownMenuItem
-                  onClick={() => setCategoryFilter("all")}
-                  className={`cursor-pointer transition-colors ${
-                    categoryFilter === "all"
-                      ? "bg-[var(--navyblue)] text-white"
-                      : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
-                  }`}
-                >
-                  All Categories
-                </DropdownMenuItem>
-
-                {uniqueCategories
-                  .filter((cat) => cat !== "all")
-                  .map((cat) => (
-                    <DropdownMenuItem
-                      key={cat}
-                      onClick={() => setCategoryFilter(cat)}
-                      className={`cursor-pointer transition-colors ${
-                        categoryFilter === cat
-                          ? "bg-[var(--navyblue)] text-white"
-                          : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
-                      }`}
-                    >
-                      {cat}
-                    </DropdownMenuItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              className="text-[var(--text)] bg-[var(--light-grey)] hover:text-[var(--sidebar-active-foreground)] hover:bg-[var(--navyblue)]"
-              onClick={() => handleMarkAsReadFolder()}
-            >
-              Mark all articles as read
-            </Button>
-          </div>
+                     <AppHeader
+            title="Feed"
+            feedType={feedType}
+            categories={allCategories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategorySelect}
+            selectedTime={selectedTime}
+            onTimeChange={setSelectedTime}
+            onMarkAllRead={handleMarkAsReadFeed}
+            onOpenBlocklist={() => {
+              // open your dialog here
+            }}
+          />
           <div className="flex flex-col divide-y divide-gray-300">
             {filterWithBlocklist(folderItems, blocklist)
               .filter((item) => {
@@ -224,7 +190,18 @@ export default function FolderPage() {
                         })}
                       </div>
                     )}
-
+                      {item.tags && item.tags.length > 0 && (
+  <div className="flex flex-wrap gap-2 mt-1 mb-4">
+    {item.tags.map((tag) => (
+      <span
+        key={tag}
+        className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+      >
+        {tag}
+      </span>
+    ))}
+  </div>
+)}
                     <a
                       href={item.link}
                       target="_blank"

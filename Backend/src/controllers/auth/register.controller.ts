@@ -1,7 +1,7 @@
-import bcrypt from "bcrypt";
-import { Request, Response } from "express";
-import { createUser, findUserByEmail, saveRefreshToken } from "../../models/auth.model";
-import { signAccessToken, signRefreshToken } from "../../utils/jwt";
+import bcrypt from 'bcrypt';
+import { Request, Response } from 'express';
+import { createUser, findUserByEmail, saveRefreshToken } from '../../models/auth.model';
+import { signAccessToken, signRefreshToken } from '../../utils/jwt';
 
 const SALT_ROUNDS = 10;
 
@@ -9,18 +9,18 @@ export const registerHandler = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    res.status(400).json({ error: "Email and password required" });
+    res.status(400).json({ error: 'Email and password required' });
     return;
   }
 
   if (password.length < 8) {
-    res.status(400).json({ error: "Password must be at least 8 characters" });
+    res.status(400).json({ error: 'Password must be at least 8 characters' });
     return;
   }
 
   const existingUser = await findUserByEmail(email);
   if (existingUser) {
-    res.status(409).json({ error: "Email already registered" });
+    res.status(409).json({ error: 'Email already registered' });
     return;
   }
 
@@ -33,11 +33,11 @@ export const registerHandler = async (req: Request, res: Response) => {
 
   await saveRefreshToken(user.user_id, refreshToken);
 
-  res.cookie("refresh", refreshToken, {
+  res.cookie('refresh', refreshToken, {
     httpOnly: true,
-    sameSite: "strict",
-    secure: true,     // proxy through https/temp disable for localhost
-    maxAge: 7 * 24 * 60 * 60 * 1000,   // 7 days
+    sameSite: 'strict',
+    secure: true, // proxy through https/temp disable for localhost
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
   res.status(201).json({ accessToken });

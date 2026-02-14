@@ -28,6 +28,7 @@ interface SourceItem {
   source_id: number;
   is_save: boolean;
   categories?: { name: string; color: string }[];
+  tags?: string[];
 }
 
 export default function SourcePage() {
@@ -60,11 +61,7 @@ export default function SourcePage() {
     if (!sourceId) return;
 
     try {
-      const data = await getSourceItems(
-        userId,
-        Number(sourceId),
-        feedType,
-      );
+      const data = await getSourceItems(userId, Number(sourceId), feedType);
 
       const normalized: SourceItem[] = data.map((i: any) => ({
         ...i,
@@ -90,10 +87,7 @@ export default function SourcePage() {
   }, [sourceId]);
 
   /* ---------- helpers ---------- */
-  const filterWithBlocklist = (
-    items: SourceItem[],
-    blocklist: string[],
-  ) =>
+  const filterWithBlocklist = (items: SourceItem[], blocklist: string[]) =>
     items.filter((item) => {
       const t = (item.title || "").toLowerCase();
       const d = (item.description || "").toLowerCase();
@@ -119,9 +113,7 @@ export default function SourcePage() {
     const intended = !item.is_save;
 
     setItems((prev) =>
-      prev.map((i) =>
-        i.item_id === itemId ? { ...i, is_save: intended } : i,
-      ),
+      prev.map((i) => (i.item_id === itemId ? { ...i, is_save: intended } : i)),
     );
 
     try {
@@ -176,9 +168,7 @@ export default function SourcePage() {
               .filter(
                 (item) =>
                   categoryFilter === "all" ||
-                  item.categories?.some(
-                    (c) => c.name === categoryFilter,
-                  ),
+                  item.categories?.some((c) => c.name === categoryFilter),
               )
               .map((item) => (
                 <div
@@ -205,7 +195,18 @@ export default function SourcePage() {
                         })}
                       </div>
                     )}
-
+                    {item.tags && item.tags.length > 0 && (
+  <div className="flex flex-wrap gap-2 mt-1 mb-4">
+    {item.tags.map((tag) => (
+      <span
+        key={tag}
+        className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+      >
+        {tag}
+      </span>
+    ))}
+  </div>
+)}
                     <a
                       href={item.link}
                       target="_blank"

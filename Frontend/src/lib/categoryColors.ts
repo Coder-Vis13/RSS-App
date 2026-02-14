@@ -1,5 +1,3 @@
-
-
 export type CategoryColorEntry = {
   classes?: string;
   bg?: string;
