@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import SidebarLayout from "./components/sidebar/SidebarLayout";
-import Sites from "./components/DiscoverSources";
 import FeedPage from "./app/feed/page";
 import SavedPage from "./app/saved/page";
 import RulesPage from "./app/rules/page";
@@ -12,7 +11,6 @@ import Landing from "./LandingPage";
 import SourcePage from "./app/source/page";
 
 function Discover() {
-  const userId = 1;
 
   return (
     <main className="flex-1 p-2 overflow-y-auto">
@@ -31,7 +29,6 @@ function Discover() {
           Pick a source to get started — or add one by URL.
         </p>
 
-        <Sites userId={userId} />
       </section>
     </main>
   );

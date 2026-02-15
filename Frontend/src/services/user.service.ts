@@ -3,9 +3,6 @@ import { get, post, del, put } from "../lib/api-client";
 const addUser = (email: string, supabase_uid: string) =>
   post("/users/add", { email, supabase_uid });
 
-const getUserBySupabaseUID = (supabase_uid: string) =>
-  get(`/users/by-supabase-uid/${supabase_uid}`);
-
 const createFolder = async (userId: number, folderName: string) =>
   post(`users/${userId}/folders`, { folderName });
 
@@ -32,23 +29,17 @@ const delSourceFromFolder = (
   sourceId: number,
 ) => del(`/users/${userId}/folders/${folderId}/sources/${sourceId}`);
 
-const addUserSource = (userId: number, sourceURL: string) =>
-  post(`/users/${userId}/sources`, { sourceURL });
-
-const addUserPodcast = (userId: number, sourceURL: string) =>
-  post(`/users/${userId}/sources`, { sourceURL });
+const addSource = (userId: number, sourceURL: string) =>
+  post(`/users/${userId}/source`, { sourceURL });
 
 const removeUserSource = (userId: number, sourceId: number) =>
   del(`/users/${userId}/sources/${sourceId}`);
 
-const userFeedItems = (userId: number, feedType: "rss" | "podcast", timeFilter?: "all" | "today" | "week" | "month") =>
-  get(`/users/${userId}/feed`, { feedType, timeFilter});
+const userFeedItems = (userId: number, timeFilter?: "all" | "today" | "week" | "month") =>
+  get(`/users/${userId}/feed`, { timeFilter});
 
-const allUserRSSSources = (userId: number) =>
-  get(`/users/${userId}/blog/sources`);
-
-const allUserPodcastSources = (userId: number) =>
-  get(`/users/${userId}/podcast/sources`);
+const allUserSources = (userId: number) =>
+  get(`/users/${userId}/sources`);
 
 const getUnfolderedSources = (userId: number) =>
   get(`/users/${userId}/sources/unfoldered`);
@@ -56,30 +47,27 @@ const getUnfolderedSources = (userId: number) =>
 const folderItems = (userId: number, folderId: number, timeFilter?: "all" | "today" | "week" | "month") =>
   get(`/users/${userId}/folders/${folderId}/feed`, {timeFilter});
 
-const markItemRead = (
-  userId: number,
-  itemId: number,
-  feedType: "rss" | "podcast",
-) => post(`/users/${userId}/items/${itemId}/read`, { feedType });
+const markItemRead = (userId: number, itemId: number,) => 
+  post(`/users/${userId}/items/${itemId}/read`);
 
 const markSourceItemsRead = (userId: number, sourceId: number) =>
   get(`/users/${userId}/sources/${sourceId}/read`);
 
-const markUserFeedItemsRead = (userId: number, feedType: "rss" | "podcast") =>
-  post(`/users/${userId}/feed/read`, { feedType });
+const markUserFeedItemsRead = (userId: number) =>
+  post(`/users/${userId}/feed/read`);
 
 const markUserFolderItemsRead = (userId: number, folderId: number) =>
   post(`/users/${userId}/folders/${folderId}/read`);
 
-const saveItem = (
-  userId: number,
-  itemId: number,
-  save: boolean,
-  feedType: "rss" | "podcast",
-) => post(`/users/${userId}/items/save`, { userId, itemId, save, feedType });
+const saveItem = (userId: number, itemId: number, save: boolean,) => 
+  post(`/users/${userId}/items/save`, { userId, itemId, save });
 
-const allSavedItems = (userId: number, feedType: "rss" | "podcast") =>
-  get(`/users/${userId}/saved`, { feedType });
+const allSavedItems = (userId: number) =>
+  get(`/users/${userId}/saved`);
+
+const getSourceItems = (userId: number, sourceId: number, timeFilter?: "all" | "today" | "week" | "month") => 
+  get(`users/${userId}/source/${sourceId}/items`, {timeFilter});
+
 
 const sourcePriority = (userId: number, feedType: "rss" | "podcast") =>
   get(`/users/${userId}/sources/priority`, { feedType });
@@ -95,8 +83,8 @@ const updateSourcePriorities = async (
   feedType: "rss" | "podcast",
 ) => post(`/users/${userId}/sources/priority`, { userId, sources, feedType });
 
-const readItems = (userId: number, feedType: "rss" | "podcast") =>
-  get(`/users/${userId}/read`, { feedType });
+const readItems = (userId: number) =>
+  get(`/users/${userId}/read`);
 
 const presetSources = (
   userId: number,
@@ -107,22 +95,12 @@ const presetSources = (
 const getItemsByCategory = (
   userId: number,
   categoryName: string,
-  feedType: "rss" | "podcast",
 ): Promise<any[]> =>
-  get(`/users/${userId}/category/${categoryName}`, { feedType });
+  get(`/users/${userId}/category/${categoryName}`);
 
-const getSavedItemsByCategory = (
-  userId: number,
-  categoryName: string,
-  feedType: "rss" | "podcast",
-): Promise<any[]> =>
-  get(`/users/${userId}/saved/category/${categoryName}`, { feedType });
+const getSavedItemsByCategory = (userId: number,categoryName: string,): Promise<any[]> =>
+  get(`/users/${userId}/saved/category/${categoryName}`);
 
-const getSourceItems = (
-  userId: number,
-  sourceId: number,
-  feedType: "rss" | "podcast",
-) => get(`users/${userId}/source/${sourceId}/items`, { feedType });
 
 export {
   addUser,
@@ -132,7 +110,7 @@ export {
   renameFolder,
   addSourceIntoFolder,
   delSourceFromFolder,
-  addUserSource,
+  addSource as addUserSource,
   removeUserSource,
   userFeedItems,
   folderItems,
@@ -145,13 +123,10 @@ export {
   updateSourcePriorities,
   readItems,
   presetSources,
-  addUserPodcast,
   getItemsByCategory,
   getSavedItemsByCategory,
-  getUserBySupabaseUID,
-  allUserRSSSources,
-  allUserPodcastSources,
   getUnfolderedSources,
   markSourceItemsRead,
   getSourceItems,
+  allUserSources
 };

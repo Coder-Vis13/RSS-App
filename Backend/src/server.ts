@@ -8,6 +8,7 @@ import { routeNotFound } from './middleware/route-not-found';
 import debugRoutes from './routes/debug.routes';
 import cookieParser from 'cookie-parser';
 import { findFeed } from 'find-feed';
+import { find } from 'feedfinder-ts';
 
 const PORT = process.env.PORT;
 
@@ -768,155 +769,20 @@ if (strongFeed) {
 
 
 
-async function isLikelyRSS2(url: string): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+// async function testFeedFinder() {
+//   const website = "https://www.nytimes.com"; // <-- set your website URL here
 
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: 'follow',
-    });
+//   try {
+//     const feeds = await find(website);
+//     console.log("Website:", website);
+//     console.log("Discovered feeds:", feeds);
+//   } catch (err) {
+//     console.error("Failed to find feeds:", err);
+//   }
+// }
 
-    clearTimeout(timeout);
+// testFeedFinder();
 
-    if (!res.ok) return false;
-
-    const text = await res.text();
-    return /<rss|<feed|<channel/i.test(text);
-  } catch {
-    return false;
-  }
-}
-
-type ParsedFeed = {
-  feedUrl: string;
-  itemCount: number;
-  strong: boolean;
-};
-
-
-app.get('/test-feed-discovery-top-4', async (req: Request, res: Response) => {
-  try {
-    const startTime = Date.now();
-    const MAX_TOTAL_TIME = 8000;
-
-    const websiteUrl = req.query.website as string;
-    if (!websiteUrl) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing "website" query parameter',
-      });
-    }
-
-    const normalizedBase = websiteUrl.replace(/\/$/, '');
-
-    const rssPatterns = [
-      '/rss/',
-      '/rss',
-      '/rss.html',
-      '/rss.cms',
-      '/feeds/',
-      '/feed/',
-      '/rss-feeds/',
-      '/rss-feeds/listing',
-      '/info/rssfeed',
-    ];
-
-    const feedSet = new Set<string>();
-    let primaryIndexUrl = '';
-
-    // STEP 1: Index paths
-    for (const pattern of rssPatterns) {
-      try {
-        const candidateUrl = `${normalizedBase}${pattern}`;
-        const discovered = await findFeed(candidateUrl, {
-          recursive: true,
-          aggressiveSearch: true,
-        });
-
-        if (!discovered?.length) continue;
-
-        discovered.forEach(f => f.href && feedSet.add(f.href.trim()));
-        primaryIndexUrl = candidateUrl;
-        break;
-      } catch {}
-    }
-
-    // STEP 2: Root fallback
-    if (!feedSet.size) {
-      try {
-        const rootFeeds = await findFeed(normalizedBase, {
-          recursive: true,
-          aggressiveSearch: true,
-        });
-
-        rootFeeds?.forEach(f => f.href && feedSet.add(f.href.trim()));
-      } catch {}
-    }
-
-    if (!feedSet.size) {
-      return res.status(404).json({
-        success: false,
-        error: 'No feeds discovered',
-      });
-    }
-
-    const allFeeds = Array.from(feedSet).slice(0, MAX_FEEDS_TO_PARSE);
-
-    const parseTasks = allFeeds.map(feedUrl =>
-      limit(async () => {
-        try {
-          if (Date.now() - startTime > MAX_TOTAL_TIME) return null;
-          if (/\.html?$/i.test(feedUrl)) return null;
-
-          if (!(await isLikelyRSS(feedUrl))) return null;
-
-          const parsed = await parser.parseURL(feedUrl);
-          if (!parsed?.items?.length) return null;
-
-          return {
-            feedUrl,
-            itemCount: parsed.items.length,
-            strong: parsed.items.length > 100
-          };
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    const validFeeds = (await Promise.all(parseTasks))
-      .filter((r): r is ParsedFeed => r !== null);
-
-    if (!validFeeds.length) {
-      return res.status(404).json({
-        success: false,
-        error: 'Feeds found but none were valid RSS XML feeds',
-      });
-    }
-
-    validFeeds.sort((a, b) => b.itemCount - a.itemCount);
-
-    const bestFeed = validFeeds.find(f => f.strong) || validFeeds[0];
-
-    return res.json({
-      success: true,
-      website: normalizedBase,
-      primaryIndexUrl,
-      totalDiscoveredFeeds: feedSet.size,
-      parsedFeeds: allFeeds.length,
-      validFeedsParsed: validFeeds.length,
-      bestFeed: validFeeds[0]
-    });
-
-  } catch (err: unknown) {
-    return res.status(500).json({
-      success: false,
-      error: err instanceof Error ? err.message : 'Unknown error',
-    });
-  }
-});
 
 
 

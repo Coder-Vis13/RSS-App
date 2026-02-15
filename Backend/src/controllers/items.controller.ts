@@ -31,110 +31,99 @@ export const userFeedItemsHandler = async (
     UserId,
     {},
     {},
-    { feedType?: 'rss' | 'podcast'; timeFilter?: 'all' | 'today' | 'week' | 'month' }
+    { timeFilter?: 'all' | 'today' | 'week' | 'month' }
   >,
   res: Response
 ): Promise<void> => {
-  const { feedType, timeFilter } = req.query;
+  const { timeFilter = 'all' } = req.query;
 
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
 
-    const unreadItems = await userFeedItems(userId, feedType, timeFilter);
-    console.info(`INFO: Fetched ${feedType || 'rss'} unread items for user ${userId}`);
+    // feedType is removed; userFeedItems now returns both RSS and podcast items
+    const unreadItems = await userFeedItems(userId, timeFilter);
+
+    console.info(
+      `INFO: Fetched unread items for user ${userId}`
+    );
+
     res.json(unreadItems);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching unread items');
   }
 };
 
-//get items based on category
+// get items based on category
 export const getItemsByCategoryHandler = async (
-  req: Request<UserId & { categoryName: string }, {}, {}, { feedType?: 'rss' | 'podcast' }>,
+  req: Request<UserId & { categoryName: string }>,
   res: Response
 ) => {
   const { categoryName } = req.params;
-  const { feedType } = req.query;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-
-    const items = await getItemsByCategory(userId, categoryName, feedType);
+    const items = await getItemsByCategory(userId, categoryName);
     res.json(items);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching items by category');
   }
 };
 
-//get saved items by category for a user
+// get saved items by category for a user
 export const getSavedItemsByCategoryHandler = async (
-  req: Request<UserId & { categoryName: string }, {}, {}, { feedType?: 'rss' | 'podcast' }>,
+  req: Request<UserId & { categoryName: string }>,
   res: Response
 ) => {
   const { categoryName } = req.params;
-  const { feedType } = req.query;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-
-    const items = await getSavedItemsByCategory(userId, categoryName, feedType);
+    const items = await getSavedItemsByCategory(userId, categoryName);
     res.json(items);
   } catch (error) {
-    handleError(res, error, 500, 'Error fetching items by category');
+    handleError(res, error, 500, 'Error fetching saved items by category');
   }
 };
 
-//mark an item read for a user
+
+// mark an item read for a user
 export const markItemReadHandler = async (
-  req: Request<MarkItemRead, {}, {}, { feedType?: 'rss' | 'podcast' }>,
+  req: Request<MarkItemRead>,
   res: Response
 ): Promise<void> => {
-  const { feedType } = req.query;
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const itemId = parseNumericId(req.params.itemId, 'itemId');
-    const readItem = await markItemRead(userId, itemId, feedType);
+    const readItem = await markItemRead(userId, itemId);
 
-    console.info(
-      `INFO: Marked ${readItem.feed_type || 'unknown'} item ${itemId} as read for user ${userId}`
-    );
-
+    console.info(`INFO: Marked item ${itemId} as read for user ${userId}`);
     res.json(readItem);
   } catch (error) {
     handleError(res, error, 500, 'Error marking item as read');
   }
 };
 
-//marks all items in home page as read for a user
+// marks all items in home page as read for a user
 export const markUserFeedItemsReadHandler = async (
-  req: Request<UserId, {}, {}, { feedType?: 'rss' | 'podcast' }>,
+  req: Request<UserId>,
   res: Response
 ): Promise<void> => {
-  const { feedType } = req.query;
-  const type: 'rss' | 'podcast' = feedType === 'podcast' ? 'podcast' : 'rss';
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
+    const readItems = await markUserFeedItemsRead(userId);
 
-    const readItems = await markUserFeedItemsRead(userId, type);
-    console.info(
-      `INFO: Marked ${type} feed items as read for user ${userId}, count=${readItems.readCount}`
-    );
+    console.info(`INFO: Marked all feed items as read for user ${userId}, count=${readItems.readCount}`);
     res.json(readItems);
   } catch (error) {
-    handleError(res, error, 500, `Error marking ${type} items as read`);
+    handleError(res, error, 500, 'Error marking items as read');
   }
 };
 
-//save an item for a user
+// save or unsave an item for a user
 export const saveItemHandler = async (
-  req: Request<{}, {}, SaveItem, { feedType?: 'podcast' | 'rss' }>,
+  req: Request<{}, {}, SaveItem>,
   res: Response
 ): Promise<void> => {
   const { userId, itemId, save } = req.body;
-  const { feedType } = req.query;
-
   if (userId == null || itemId == null || save == null) {
-    console.warn('WARN: Missing save item params');
     res.status(400).json({ error: 'Missing userId, itemId, or save value' });
     return;
   }
@@ -142,55 +131,41 @@ export const saveItemHandler = async (
   try {
     const parsedUserId = parseNumericId(String(userId), 'userId');
     const parsedItemId = parseNumericId(String(itemId), 'itemId');
+    const result = await saveItem(parsedUserId, parsedItemId, save);
 
-    const result = await saveItem(parsedUserId, parsedItemId, save, feedType);
-
-    console.info(
-      `INFO: Save status for item ${parsedItemId} (user ${parsedUserId}): ${result.is_save}`
-    );
-
-    res.json({
-      userId: result.user_id,
-      itemId: result.item_id,
-      is_save: result.is_save,
-    });
+    console.info(`INFO: Save status for item ${parsedItemId} (user ${parsedUserId}): ${result.is_save}`);
+    res.json({ userId: result.user_id, itemId: result.item_id, is_save: result.is_save });
   } catch (error) {
     handleError(res, error, 500, 'Could not save the item for the user');
   }
 };
 
-//get all saved items for a user
+// get all saved items for a user
 export const allSavedItemsHandler = async (
-  req: Request<UserId, {}, {}, { feedType?: 'podcast' | 'rss' }>,
+  req: Request<UserId>,
   res: Response
 ): Promise<void> => {
-  const { feedType } = req.query;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
+    const savedItems = await allSavedItems(userId);
 
-    const savedItems = await allSavedItems(userId, feedType);
-    console.info(
-      `INFO: Fetched ${feedType || 'all'} saved items for user ${userId} (${savedItems.length} items).`
-    );
+    console.info(`INFO: Fetched saved items for user ${userId} (${savedItems.length} items)`);
     res.json(savedItems);
   } catch (error) {
     handleError(res, error, 500, 'Could not get saved items');
   }
 };
 
-//get all read items for a user
+// get all read items for a user
 export const readItemsHandler = async (
-  req: Request<UserId, {}, {}, { feedType?: 'rss' | 'podcast' }>,
+  req: Request<UserId>,
   res: Response
 ): Promise<void> => {
-  const { feedType } = req.query;
-
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const allReadItems = await readItems(userId, feedType);
-    console.info(
-      `INFO: Fetched ${allReadItems.length} read items for user ${userId} (${feedType || 'all'})`
-    );
+    const allReadItems = await readItems(userId);
+
+    console.info(`INFO: Fetched read items for user ${userId} (${allReadItems.length} items)`);
     res.json(allReadItems);
   } catch (error) {
     handleError(res, error, 500, 'Could not get read items');

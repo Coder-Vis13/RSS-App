@@ -33,6 +33,7 @@ interface UserFolderRow {
 interface FolderItems extends Item {
   source_id: number;
   is_save: boolean;
+  feed_type: 'rss' | 'podcast';
 }
 
 interface AddSourceToFolder extends Omit<Folder, 'name'> {
@@ -137,6 +138,8 @@ export const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
   return Array.from(map.values());
 };
 
+
+//get all unread items of a folder
 export const folderItems = async (
   userId: number,
   folderId: number,
@@ -158,7 +161,8 @@ export const folderItems = async (
       i.pub_date,
       s.source_id,
       s.source_name,
-      uim.is_save
+      s.feed_type,
+      COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
       COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
            FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories,
@@ -185,7 +189,12 @@ export const folderItems = async (
     WHERE 1=1
           ${timeClause}
       AND (uim.read_time IS NULL)
-    GROUP BY i.item_id, s.source_name, s.source_id, us.priority, uim.is_save, i.is_categorized
+            AND (
+        (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
+        OR
+        (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
+      )
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
     ORDER BY us.priority, i.pub_date DESC`;
 
   const params = [userId, folderId];
@@ -270,6 +279,7 @@ export const delSourceFromFolder = async (
   return folderSources.rows;
 };
 
+
 //mark all items of a folder of a user as read
 export const markFolderItemsRead = async (
   userId: number,
@@ -277,18 +287,28 @@ export const markFolderItemsRead = async (
 ): Promise<ReadItemResult> => {
   const result = await query(
     `INSERT INTO user_item_metadata (user_id, item_id, read_time)
-    SELECT $1, i.item_id, NOW()
-    FROM item i
-    JOIN user_source_folder usf 
-      ON usf.source_id = i.source_id
-    WHERE usf.user_id = $1
-      AND usf.folder_id = $2
-      AND i.pub_date >= NOW() - interval '2 days'
-    ON CONFLICT (user_id, item_id)
-      DO UPDATE SET read_time = EXCLUDED.read_time
-    RETURNING item_id;`,
+     SELECT $1, i.item_id, NOW()
+     FROM item i
+     JOIN user_source_folder usf 
+       ON usf.source_id = i.source_id 
+       AND usf.user_id = $1 
+       AND usf.folder_id = $2
+     JOIN user_source us 
+       ON us.user_id = $1 
+       AND us.source_id = i.source_id
+     JOIN source s 
+       ON s.source_id = i.source_id
+     WHERE 
+       (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
+       OR
+       (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
+     ON CONFLICT (user_id, item_id)
+       DO UPDATE SET read_time = EXCLUDED.read_time
+     RETURNING item_id;`,
     [userId, folderId]
   );
-  logAction(`Marked items as read: User=${userId} itemCount=${result.rowCount ?? 0}`);
+
+  logAction(`Marked folder items as read: User=${userId} Folder=${folderId} itemCount=${result.rowCount ?? 0}`);
   return { readCount: result.rowCount ?? 0 };
 };
+

@@ -44,20 +44,10 @@ const createTables = async () => {
         source_id INT NOT NULL
           REFERENCES source(source_id)
           ON DELETE CASCADE ON UPDATE CASCADE,
-        priority INT,
+        feed_type VARCHAR(10) NOT NULL
+          CHECK (feed_type IN ('rss', 'podcast')),
+        priority INT DEFAULT 0,
         PRIMARY KEY (user_id, source_id),
-        UNIQUE (user_id, priority)
-      );
-
-      CREATE TABLE IF NOT EXISTS user_podcast (
-        user_id INT NOT NULL
-          REFERENCES users(user_id)
-          ON DELETE CASCADE ON UPDATE CASCADE,
-        podcast_id INT NOT NULL
-          REFERENCES source(source_id)
-          ON DELETE CASCADE ON UPDATE CASCADE,
-        priority INT,
-        PRIMARY KEY (user_id, podcast_id),
         UNIQUE (user_id, priority)
       );
 
