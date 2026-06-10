@@ -2,6 +2,10 @@ import { query } from '../config/db';
 import { categorizeItem } from '../utils/categorizer';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 import { Item, ReadItemResult, Source } from './types';
+import pLimit from 'p-limit';
+
+const limit = pLimit(5); 
+
 
 export interface Folder {
   user_id: number;
@@ -202,13 +206,14 @@ export const folderItems = async (
   // Categorize items that aren’t categorized yet
   const uncategorized = result.rows.filter((item) => !item.is_categorized);
   if (uncategorized.length) {
-    for (const item of uncategorized) {
-      try {
-        await categorizeItem(item.item_id, item.title, item.description);
-      } catch (err) {
-        console.error(`Error categorizing item ${item.item_id}:`, err);
-      }
-    }
+      await Promise.all(
+        uncategorized.map(item =>
+          limit(async () => {
+            await categorizeItem(item.item_id, item.title, item.description);
+          }
+        )
+      )
+    );
     const refreshed = await query(baseQuery, params);
     logAction(
       `Folder items: User=${userId} Folder=${folderId} itemCount=${refreshed.rows.length} (refreshed after categorization)`
@@ -273,8 +278,8 @@ export const delSourceFromFolder = async (
   logAction(`Removed source from folder: User=${userId} Folder=${folderId} Source=${sourceId}`);
   const folderSources: QueryResult<DeletedSource> = await query(
     `SELECT source_id FROM user_source_folder 
-        WHERE user_id = $1`,
-    [userId]
+        WHERE user_id = $1 AND folder_id = $2`,
+    [userId, folderId]
   );
   return folderSources.rows;
 };

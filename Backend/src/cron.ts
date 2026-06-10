@@ -10,9 +10,9 @@ export interface SourceRow {
   source_id: number;
   url: string;
   feed_type: 'rss' | 'podcast';
-  rss_user_ids: number[] | null;
-  podcast_user_ids: number[] | null;
+  user_ids: number[];
 }
+
 
 export interface AddItemResult {
   insertedIds: number[];
@@ -35,14 +35,17 @@ export async function runFeedRefresh(): Promise<void> {
 
   try {
     const sourcesRes = await query<SourceRow>(`
-      SELECT s.source_id, s.url, s.feed_type, 
-             COALESCE(array_agg(DISTINCT us.user_id), array[]::int[]) AS rss_user_ids,
-             COALESCE(array_agg(DISTINCT up.user_id), array[]::int[]) AS podcast_user_ids
-      FROM source s
-      LEFT JOIN user_source us ON us.source_id = s.source_id
-      LEFT JOIN user_podcast up ON up.podcast_id = s.source_id
-      GROUP BY s.source_id, s.url, s.feed_type
-    `);
+  SELECT 
+    s.source_id,
+    s.url,
+    s.feed_type,
+    COALESCE(array_agg(us.user_id), array[]::int[]) AS user_ids
+  FROM source s
+  LEFT JOIN user_source us 
+    ON us.source_id = s.source_id
+  GROUP BY s.source_id, s.url, s.feed_type
+`);
+
 
     const sources = sourcesRes.rows;
     const TIMEOUT_MS = 15000; // per-feed timeout
@@ -52,8 +55,9 @@ export async function runFeedRefresh(): Promise<void> {
     await Promise.allSettled(
       sources.map((row) =>
         limit(async () => {
-          const { source_id: sourceId, url, feed_type, rss_user_ids, podcast_user_ids } = row;
-          const userIds = feed_type === 'podcast' ? podcast_user_ids : rss_user_ids;
+        const { source_id: sourceId, url, feed_type, user_ids } = row;
+        const userIds = user_ids;
+
 
           const feedStart = Date.now();
 

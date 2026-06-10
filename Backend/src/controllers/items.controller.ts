@@ -55,13 +55,14 @@ export const userFeedItemsHandler = async (
 
 // get items based on category
 export const getItemsByCategoryHandler = async (
-  req: Request<UserId & { categoryName: string }>,
+  req: Request<UserId & { categoryName: string }, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
   res: Response
 ) => {
+  const { timeFilter = 'all' } = req.query;
   const { categoryName } = req.params;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const items = await getItemsByCategory(userId, categoryName);
+    const items = await getItemsByCategory(userId, categoryName, timeFilter);
     res.json(items);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching items by category');
@@ -70,13 +71,14 @@ export const getItemsByCategoryHandler = async (
 
 // get saved items by category for a user
 export const getSavedItemsByCategoryHandler = async (
-  req: Request<UserId & { categoryName: string }>,
+  req: Request<UserId & { categoryName: string }, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
   res: Response
 ) => {
   const { categoryName } = req.params;
+  const { timeFilter = 'all' } = req.query;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const items = await getSavedItemsByCategory(userId, categoryName);
+    const items = await getSavedItemsByCategory(userId, categoryName, timeFilter);
     res.json(items);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching saved items by category');
@@ -158,12 +160,14 @@ export const allSavedItemsHandler = async (
 
 // get all read items for a user
 export const readItemsHandler = async (
-  req: Request<UserId>,
+  req: Request<UserId, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
   res: Response
 ): Promise<void> => {
+  const { timeFilter = 'all' } = req.query;
+
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const allReadItems = await readItems(userId);
+    const allReadItems = await readItems(userId, timeFilter);
 
     console.info(`INFO: Fetched read items for user ${userId} (${allReadItems.length} items)`);
     res.json(allReadItems);

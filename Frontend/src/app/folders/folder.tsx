@@ -5,37 +5,37 @@ import {
   markUserFolderItemsRead,
   saveItem,
 } from "../../services/user.service";
-import { Bookmark, ChevronDown } from "lucide-react";
+import { Bookmark } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getCategoryPresentation } from "../../lib/categoryColors";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+
+
+import AppHeader from "@/components/layout/AppHeader";
 
 interface FolderItems {
   item_id: number;
   title: string;
   link: string;
   description: string;
-  pub_date: string | Date;
+  pub_date: string;
   source_name: string;
   source_id: number;
   is_save: boolean;
   categories?: { name: string; color: string }[];
+  feed_type: "rss" | "podcast";
 }
 
 export default function FolderPage() {
   const [folderItems, setFolderItems] = useState<FolderItems[]>([]);
   const [loading, setLoading] = useState(true);
   const { folderId } = useParams<{ folderId: string }>();
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  // const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
   const [blocklist, setBlocklist] = useState<string[]>([]);
-
+  const [selectedTime, setSelectedTime] = useState<"all" | "today" | "week" | "month">("all");
+  const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
+  const [allCategories, setAllCategories] = useState<string[]>([]);
 
   const userId = 1;
 
@@ -65,7 +65,8 @@ export default function FolderPage() {
         (i: FolderItems) => i.categories?.map((cat) => cat.name) ?? [],
       );
 
-      setUniqueCategories(["all", ...Array.from(new Set<string>(allCats))]);
+      const unique = Array.from(new Set(allCats));
+      setAllCategories(unique);
     } catch (err) {
       console.error("Failed to load folder items:", err);
     } finally {
@@ -76,7 +77,7 @@ export default function FolderPage() {
   useEffect(() => {
     if (!folderId) return;
     fetchFolderItems();
-  }, [folderId]);
+  }, [folderId, selectedTime]);
 
   if (loading) return <p>Loading...</p>;
 
@@ -109,6 +110,10 @@ export default function FolderPage() {
     }
   };
 
+  const handleCategorySelect = (category: string) => {
+  setSelectedCategory(category);
+};
+
   const handleSave = async (itemId: number) => {
     const item = folderItems.find((i) => i.item_id === itemId);
     if (!item) return;
@@ -131,70 +136,32 @@ export default function FolderPage() {
     }
   };
 
+  useEffect(() => {
+  setSelectedCategory("All");
+}, [feedType]);
+
   return (
-    <section className="mt-10 ml-5">
+    <section className="flex min-h-screen w-full">
       <h3 className="mb-4 text-lg font-bold text-[var(--text)]"></h3>
 
       {folderItems.length > 0 ? (
-        <div>
-          <div className="mb-4 flex justify-end items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center text-md font-semibold hover:bg-[var(--light-grey)] hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
-                >
-                  Category
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="bg-white border border-gray-100 rounded-md shadow-md"
-              >
-                <DropdownMenuItem
-                  onClick={() => setCategoryFilter("all")}
-                  className={`cursor-pointer transition-colors ${
-                    categoryFilter === "all"
-                      ? "bg-[var(--navyblue)] text-white"
-                      : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
-                  }`}
-                >
-                  All Categories
-                </DropdownMenuItem>
-
-                {uniqueCategories
-                  .filter((cat) => cat !== "all")
-                  .map((cat) => (
-                    <DropdownMenuItem
-                      key={cat}
-                      onClick={() => setCategoryFilter(cat)}
-                      className={`cursor-pointer transition-colors ${
-                        categoryFilter === cat
-                          ? "bg-[var(--navyblue)] text-white"
-                          : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
-                      }`}
-                    >
-                      {cat}
-                    </DropdownMenuItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              className="text-[var(--text)] bg-[var(--light-grey)] hover:text-[var(--sidebar-active-foreground)] hover:bg-[var(--navyblue)]"
-              onClick={() => handleMarkAsReadFolder()}
-            >
-              Mark all articles as read
-            </Button>
-          </div>
+        <div className="flex-1 w-full">
+          <AppHeader 
+                        feedType={feedType}
+                        setFeedType={setFeedType}
+                        selectedCategory={selectedCategory}
+                        onCategorySelect={handleCategorySelect}
+                        categories={allCategories}
+                        selectedTime={selectedTime}
+                        setSelectedTime={setSelectedTime}
+                        onMarkAllRead={handleMarkAsReadFolder}
+                      />
           <div className="flex flex-col divide-y divide-gray-300">
             {filterWithBlocklist(folderItems, blocklist)
               .filter((item) => {
                 return (
-                  categoryFilter === "all" ||
-                  item.categories?.some((c) => c.name === categoryFilter)
+                  selectedCategory === "all" ||
+                  item.categories?.some((c) => c.name === selectedCategory)
                 );
               })
               .map((item) => (
@@ -285,10 +252,6 @@ export default function FolderPage() {
 
 
 
-
-
-
-
 // import { useEffect, useState } from "react";
 // import {
 //   folderItems as getFolderItems,
@@ -309,7 +272,6 @@ export default function FolderPage() {
 
 // import AppHeader from "../../components/layout/AppHeader";
 // const [selectedTime, setSelectedTime] = useState<'all' | 'today' | 'week' | 'month'>('all');
-
 
 // interface FolderItems {
 //   item_id: number;

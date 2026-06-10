@@ -181,7 +181,7 @@ app.get('/test-rss-parser', async (req: Request, res: Response) => {
     // Example RSS feed URL
     // const feedUrl = 'https://www.reddit.com/subreddits/.rss';
     // const feedUrl = 'https://www.reddit.com/discover.rss';
-    const feedUrl = 'https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml';
+    const feedUrl = 'https://opensourcejoblist.com/job/feed/';
 
     const feed = await rssParser.parseURL(feedUrl);
 
@@ -770,7 +770,7 @@ if (strongFeed) {
 
 
 // async function testFeedFinder() {
-//   const website = "https://www.nytimes.com"; // <-- set your website URL here
+//   const website = "https://www.geeksforgeeks.org/feed/"; // <-- set your website URL here
 
 //   try {
 //     const feeds = await find(website);

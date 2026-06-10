@@ -8,9 +8,11 @@ import { BlocklistProvider } from "./context/blocklistContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   // <StrictMode>
+  // <AppStateProvider>
   <BlocklistProvider>
     <BrowserRouter>
       <App />
     </BrowserRouter>
   </BlocklistProvider>,
+  // </AppStateProvider>
 );

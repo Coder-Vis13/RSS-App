@@ -35,19 +35,23 @@ const addSource = (userId: number, sourceURL: string) =>
 const removeUserSource = (userId: number, sourceId: number) =>
   del(`/users/${userId}/sources/${sourceId}`);
 
-const userFeedItems = (userId: number, timeFilter?: "all" | "today" | "week" | "month") =>
-  get(`/users/${userId}/feed`, { timeFilter});
+const userFeedItems = (
+  userId: number,
+  timeFilter?: "all" | "today" | "week" | "month",
+) => get(`/users/${userId}/feed`, { timeFilter });
 
-const allUserSources = (userId: number) =>
-  get(`/users/${userId}/sources`);
+const allUserSources = (userId: number) => get(`/users/${userId}/sources`);
 
 const getUnfolderedSources = (userId: number) =>
   get(`/users/${userId}/sources/unfoldered`);
 
-const folderItems = (userId: number, folderId: number, timeFilter?: "all" | "today" | "week" | "month") =>
-  get(`/users/${userId}/folders/${folderId}/feed`, {timeFilter});
+const folderItems = (
+  userId: number,
+  folderId: number,
+  timeFilter?: "all" | "today" | "week" | "month",
+) => get(`/users/${userId}/folders/${folderId}/feed`, { timeFilter });
 
-const markItemRead = (userId: number, itemId: number,) => 
+const markItemRead = (userId: number, itemId: number) =>
   post(`/users/${userId}/items/${itemId}/read`);
 
 const markSourceItemsRead = (userId: number, sourceId: number) =>
@@ -59,15 +63,18 @@ const markUserFeedItemsRead = (userId: number) =>
 const markUserFolderItemsRead = (userId: number, folderId: number) =>
   post(`/users/${userId}/folders/${folderId}/read`);
 
-const saveItem = (userId: number, itemId: number, save: boolean,) => 
+const saveItem = (userId: number, itemId: number, save: boolean) =>
   post(`/users/${userId}/items/save`, { userId, itemId, save });
 
-const allSavedItems = (userId: number) =>
-  get(`/users/${userId}/saved`);
+  
+const allSavedItems = (userId: number, timeFilter?: "all" | "today" | "week" | "month",) => 
+  get(`/users/${userId}/saved`, {timeFilter});
 
-const getSourceItems = (userId: number, sourceId: number, timeFilter?: "all" | "today" | "week" | "month") => 
-  get(`users/${userId}/source/${sourceId}/items`, {timeFilter});
-
+const getSourceItems = (
+  userId: number,
+  sourceId: number,
+  timeFilter?: "all" | "today" | "week" | "month",
+) => get(`users/${userId}/source/${sourceId}/items`, { timeFilter });
 
 const sourcePriority = (userId: number, feedType: "rss" | "podcast") =>
   get(`/users/${userId}/sources/priority`, { feedType });
@@ -83,8 +90,8 @@ const updateSourcePriorities = async (
   feedType: "rss" | "podcast",
 ) => post(`/users/${userId}/sources/priority`, { userId, sources, feedType });
 
-const readItems = (userId: number) =>
-  get(`/users/${userId}/read`);
+const readItems = (userId: number, timeFilter?: "all" | "today" | "week" | "month",) => 
+  get(`/users/${userId}/read`, {timeFilter});
 
 const presetSources = (
   userId: number,
@@ -92,14 +99,16 @@ const presetSources = (
   feedType: "rss" | "podcast",
 ) => post(`/users/sources/add`, { userId, sourceId, feedType });
 
-const getItemsByCategory = (
+  
+const getItemsByCategory = (userId: number, categoryName: string, timeFilter?: "all" | "today" | "week" | "month",
+): Promise<any[]> => get(`/users/${userId}/category/${categoryName}`, {timeFilter});
+
+const getSavedItemsByCategory = (
   userId: number,
   categoryName: string,
-): Promise<any[]> =>
-  get(`/users/${userId}/category/${categoryName}`);
+  timeFilter?: "all" | "today" | "week" | "month"
+): Promise<any[]> => get(`/users/${userId}/saved/category/${categoryName}`, {timeFilter});
 
-const getSavedItemsByCategory = (userId: number,categoryName: string,): Promise<any[]> =>
-  get(`/users/${userId}/saved/category/${categoryName}`);
 
 
 export {
@@ -128,5 +137,5 @@ export {
   getUnfolderedSources,
   markSourceItemsRead,
   getSourceItems,
-  allUserSources
+  allUserSources,
 };

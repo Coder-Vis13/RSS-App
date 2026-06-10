@@ -12,9 +12,9 @@ import { handleError } from '../utils/helpers';
 import { Request, Response } from 'express';
 import { SourcePriorityUpdate, UserId } from './types';
 import { parseNumericId } from '../utils/request-parser';
-import {
-  processSource
-} from "../services/source.service";
+import { processSource } from "../services/source.service";
+
+
 interface URL {
   sourceURL: string;
 }

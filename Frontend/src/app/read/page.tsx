@@ -1,32 +1,33 @@
 import { useState, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
-import { Button } from "../../components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import { readItems } from "../../services/user.service";
 import { useLocation } from "react-router-dom";
 import { getCategoryPresentation } from "../../lib/categoryColors";
+import AppHeader from "@/components/layout/AppHeader";
+import { useMemo } from "react";
+
 
 interface ReadItems {
   item_id: number;
   title: string;
   link: string;
   description: string;
-  pub_date: string | Date;
+  pub_date: string;
   source_name: string;
-  read_time: string | Date;
+  read_time: string;
   categories?: { name: string; color: string }[];
   tags?: string[];
+  feed_type: "rss" | "podcast";
 }
 
 export default function ReadPage() {
   const [allReadItems, setAllReadItems] = useState<ReadItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
+  const [selectedTime, setSelectedTime] = useState<"all" | "today" | "week" | "month">("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+
+
   const location = useLocation();
   const userId = 1;
 
@@ -34,8 +35,19 @@ export default function ReadPage() {
     const fetchFeed = async () => {
       setLoading(true);
       try {
-        const data = await readItems(userId, feedType);
+        const data = await readItems(userId, selectedTime);
         setAllReadItems(data);
+        const uniqueCategories: string[] = Array.from(
+  new Set(
+    data.flatMap((i: any) =>
+      (i.categories || []).map((c: any) =>
+        c?.name ? c.name : "Uncategorized"
+      )
+    )
+  )
+);
+
+setAllCategories(uniqueCategories);
       } catch (err) {
         console.error("Failed to load read items:", err);
       } finally {
@@ -44,9 +56,18 @@ export default function ReadPage() {
     };
 
     fetchFeed();
-  }, [userId, feedType, location.pathname]);
+  }, [userId, selectedTime, selectedCategory, location.pathname]);
 
-  const noReadItems = !loading && allReadItems.length === 0;
+const filteredReadItems = useMemo(() => {
+  return allReadItems.filter(i => i.feed_type === feedType);
+}, [allReadItems, feedType]);
+
+const handleCategorySelect = (category: string) => {
+  setSelectedCategory(category);
+};
+
+
+const noReadItems = !loading && filteredReadItems.length === 0;
 
   return (
     <div className="p-6 w-full">
@@ -64,46 +85,24 @@ export default function ReadPage() {
           </p>
         </div>
       ) : (
-        <section className="mt-0 w-full max-w-full">
+        <section className="mt-0 w-full max-w-[1100px] mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 text-2xl font-bold hover:bg-transparent hover:text-[var(--accent)]"
-                >
-                  Read Items ({allReadItems.length})
-                  <ChevronDown className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                align="start"
-                className="bg-white border border-gray-100"
-              >
-                <DropdownMenuItem onClick={() => setFeedType("rss")}>
-                  📰 Blogs / Articles
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFeedType("podcast")}>
-                  🎧 Podcasts
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <p className="text-sm text-gray-500">
-              Showing:{" "}
-              <span className="font-medium text-[var(--accent)]">
-                {feedType === "rss" ? "Blogs / Articles" : "Podcasts"}
-              </span>
-            </p>
-          </div>
+          <AppHeader
+  feedType={feedType}
+  setFeedType={setFeedType}
+  selectedCategory={selectedCategory}
+  onCategorySelect={() => {handleCategorySelect}}
+  categories={allCategories}
+  selectedTime={selectedTime}
+  setSelectedTime={() => {setSelectedTime}}
+  onMarkAllRead={() => {}}
+/>
 
           {loading ? (
             <p className="text-[var(--text-light)]">Loading read items...</p>
           ) : (
             <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-              {allReadItems.map((item) => (
+              {filteredReadItems.map((item) => (
                 <div
                   key={item.item_id}
                   className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
@@ -131,17 +130,17 @@ export default function ReadPage() {
                       </div>
                     )}
                     {item.tags && item.tags.length > 0 && (
-  <div className="flex flex-wrap gap-2 mt-1 mb-4">
-    {item.tags.map((tag) => (
-      <span
-        key={tag}
-        className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-      >
-        {tag}
-      </span>
-    ))}
-  </div>
-)}
+                      <div className="flex flex-wrap gap-2 mt-1 mb-4">
+                        {item.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {/* Title */}
                     <a
                       href={item.link}

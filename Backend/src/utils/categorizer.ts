@@ -8,7 +8,7 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'true';
 
 function getCategoryPrompt(title: string, description?: string): string {
   const context =
@@ -88,7 +88,7 @@ export async function categorizeItem(
     await CategoryModel.linkItemCategory(itemId, categoryId);
   }
 
-  await query(`UPDATE item SET is_categorized = true WHERE item_id = $1`, [itemId]);
+  await query(`UPDATE item SET is_categorized = true WHERE item_id = $1 AND is_categorized = false`, [itemId]);
 
   console.log(`Categories added for item ${itemId}:`, categories);
 }

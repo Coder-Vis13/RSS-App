@@ -4,6 +4,10 @@ import { categorizeItem } from '../utils/categorizer';
 import { getLogo } from '../utils/get-logo';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 import { Source } from './types';
+import pLimit from 'p-limit';
+
+const limit = pLimit(5); 
+
 
 interface UserSource {
   user_id: number;
@@ -486,10 +490,14 @@ export const getSourceItems = async (
   // Auto-categorize uncategorized items
   const uncategorized = result.rows.filter((item) => !item.is_categorized);
 
-  for (const item of uncategorized) {
-    await categorizeItem(item.item_id, item.title, item.description);
-    await query(`UPDATE item SET is_categorized = true WHERE item_id = $1`, [item.item_id]);
-  }
+   await Promise.all(
+      uncategorized.map(item =>
+        limit(async () => {
+          await categorizeItem(item.item_id, item.title, item.description);
+        }
+      )
+    )
+  );
 
   if (uncategorized.length > 0) {
     const refreshed = await query(baseQuery, params);

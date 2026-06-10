@@ -11,7 +11,6 @@ import Landing from "./LandingPage";
 import SourcePage from "./app/source/page";
 
 function Discover() {
-
   return (
     <main className="flex-1 p-2 overflow-y-auto">
       <section className="mb-3 flex items-center gap-4 w-full">
@@ -28,7 +27,6 @@ function Discover() {
         <p className="text-gray-600">
           Pick a source to get started — or add one by URL.
         </p>
-
       </section>
     </main>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Bookmark, ChevronDown } from "lucide-react";
+import { Bookmark } from "lucide-react";
 
 import {
   markItemRead,
@@ -11,12 +11,10 @@ import { getSourceItems } from "../../services/user.service";
 
 import { Button } from "@/components/ui/button";
 import { getCategoryPresentation } from "../../lib/categoryColors";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+
+
+
+import AppHeader from "@/components/layout/AppHeader";
 
 interface SourceItem {
   item_id: number;
@@ -29,19 +27,22 @@ interface SourceItem {
   is_save: boolean;
   categories?: { name: string; color: string }[];
   tags?: string[];
+  feed_type: "rss" | "podcast";
 }
 
 export default function SourcePage() {
   const { sourceId } = useParams<{ sourceId: string }>();
 
   const userId = 1;
-  const feedType: "rss" = "rss";
 
   const [items, setItems] = useState<SourceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
   const [blocklist, setBlocklist] = useState<string[]>([]);
+  const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
+  const [selectedTime, setSelectedTime] = useState<"all" | "today" | "week" | "month">("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
 
   /* ---------- blocklist ---------- */
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function SourcePage() {
     if (!sourceId) return;
 
     try {
-      const data = await getSourceItems(userId, Number(sourceId), feedType);
+      const data = await getSourceItems(userId, Number(sourceId), selectedTime);
 
       const normalized: SourceItem[] = data.map((i: any) => ({
         ...i,
@@ -74,7 +75,7 @@ export default function SourcePage() {
         (i) => i.categories?.map((c) => c.name) ?? [],
       );
 
-      setUniqueCategories(["all", ...Array.from(new Set(allCats))]);
+      setUniqueCategories(Array.from(new Set(allCats)));
     } catch (err) {
       console.error("Failed to load source items:", err);
     } finally {
@@ -84,7 +85,7 @@ export default function SourcePage() {
 
   useEffect(() => {
     fetchSourceItems();
-  }, [sourceId]);
+  }, [sourceId, selectedTime, selectedCategory]);
 
   /* ---------- helpers ---------- */
   const filterWithBlocklist = (items: SourceItem[], blocklist: string[]) =>
@@ -96,7 +97,7 @@ export default function SourcePage() {
 
   /* ---------- actions ---------- */
   const handleMarkAsRead = async (itemId: number) => {
-    await markItemRead(userId, itemId, feedType);
+    await markItemRead(userId, itemId);
     setItems((prev) => prev.filter((i) => i.item_id !== itemId));
   };
 
@@ -117,7 +118,7 @@ export default function SourcePage() {
     );
 
     try {
-      await saveItem(userId, itemId, intended, feedType);
+      await saveItem(userId, itemId, intended);
     } catch {
       setItems((prev) =>
         prev.map((i) =>
@@ -127,44 +128,37 @@ export default function SourcePage() {
     }
   };
 
+  const filteredItems = filterWithBlocklist(items, blocklist)
+  .filter(i => i.feed_type === feedType)
+  .filter(i =>
+    selectedCategory === "All" ||
+    i.categories?.some(c => c.name === selectedCategory)
+  );
+
+  
   if (loading) return <p>Loading...</p>;
 
   return (
-    <section className="mt-10 ml-5">
-      {items.length > 0 ? (
+    <section className="mt-10 max-w-[1100px] mx-auto">
+      {filteredItems.length > 0 ? (
         <>
           {/* header actions */}
-          <div className="mb-4 flex justify-end items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center font-semibold"
-                >
-                  Category
-                  <ChevronDown className="h-4 w-4 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {uniqueCategories.map((cat) => (
-                  <DropdownMenuItem
-                    key={cat}
-                    onClick={() => setCategoryFilter(cat)}
-                  >
-                    {cat === "all" ? "All Categories" : cat}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button variant="ghost" onClick={handleMarkSourceRead}>
-              Mark all articles as read
-            </Button>
-          </div>
+          <div className="flex-1 w-full">
+  <AppHeader
+    feedType={feedType}
+    setFeedType={setFeedType}
+    selectedCategory={selectedCategory}
+    onCategorySelect={setSelectedCategory}
+    categories={uniqueCategories}
+    selectedTime={selectedTime}
+    setSelectedTime={setSelectedTime}
+    onMarkAllRead={handleMarkSourceRead}
+  />
+  </div>
 
           {/* items */}
           <div className="flex flex-col divide-y divide-gray-300">
-            {filterWithBlocklist(items, blocklist)
+            {filteredItems
               .filter(
                 (item) =>
                   categoryFilter === "all" ||
@@ -196,17 +190,17 @@ export default function SourcePage() {
                       </div>
                     )}
                     {item.tags && item.tags.length > 0 && (
-  <div className="flex flex-wrap gap-2 mt-1 mb-4">
-    {item.tags.map((tag) => (
-      <span
-        key={tag}
-        className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-      >
-        {tag}
-      </span>
-    ))}
-  </div>
-)}
+                      <div className="flex flex-wrap gap-2 mt-1 mb-4">
+                        {item.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <a
                       href={item.link}
                       target="_blank"

@@ -583,7 +583,9 @@ export default function SidebarLayout({
         }}
         className="h-full overflow-y-auto overflow-x-hidden bg-[var(--background)]"
       >
-        <div className="max-w-6xl mx-auto w-full px-4 py-6">{children}</div>
+        {/* <div className="max-w-6xl mx-auto w-full px-4 py-6"> */}
+          {children}
+          {/* </div> */}
       </main>
     </div>
   );

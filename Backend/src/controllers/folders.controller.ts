@@ -146,7 +146,7 @@ export const deleteSourceFromFolderHandler = async (
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');
-    const sourceId = parseNumericId(String(req.body.sourceId), 'sourceId');
+    const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
     const delSource = await delSourceFromFolder(userId, folderId, sourceId);
     console.info(`INFO: Source ${sourceId} removed from folder ${folderId} for user ${userId}`);
     res.json(delSource);
