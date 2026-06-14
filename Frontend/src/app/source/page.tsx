@@ -15,6 +15,7 @@ import { getCategoryPresentation } from "../../lib/categoryColors";
 
 
 import AppHeader from "@/components/layout/AppHeader";
+import { useBlocklist } from "@/context/blocklistContext";
 
 interface SourceItem {
   item_id: number;
@@ -38,24 +39,11 @@ export default function SourcePage() {
   const [items, setItems] = useState<SourceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
-  const [blocklist, setBlocklist] = useState<string[]>([]);
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [selectedTime, setSelectedTime] = useState<"all" | "today" | "week" | "month">("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-
-  /* ---------- blocklist ---------- */
-  useEffect(() => {
-    const stored = localStorage.getItem("blocklist");
-    if (!stored) return;
-
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) setBlocklist(parsed);
-    } catch {
-      console.warn("Invalid blocklist");
-    }
-  }, []);
+  const { blocklist } = useBlocklist();
 
   /* ---------- fetch source items ---------- */
   const fetchSourceItems = async () => {
@@ -85,7 +73,11 @@ export default function SourcePage() {
 
   useEffect(() => {
     fetchSourceItems();
-  }, [sourceId, selectedTime, selectedCategory]);
+  }, [sourceId, selectedTime]);
+
+  useEffect(() => {
+    setSelectedCategory("All");
+  }, [feedType]);
 
   /* ---------- helpers ---------- */
   const filterWithBlocklist = (items: SourceItem[], blocklist: string[]) =>
@@ -139,11 +131,8 @@ export default function SourcePage() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <section className="mt-10 max-w-[1100px] mx-auto">
-      {filteredItems.length > 0 ? (
-        <>
-          {/* header actions */}
-          <div className="flex-1 w-full">
+  <div className="flex min-h-screen w-full">
+      <main className="flex-1 w-full">
   <AppHeader
     feedType={feedType}
     setFeedType={setFeedType}
@@ -154,17 +143,27 @@ export default function SourcePage() {
     setSelectedTime={setSelectedTime}
     onMarkAllRead={handleMarkSourceRead}
   />
-  </div>
+
+  {items.length === 0 ? (
+    <div className="flex flex-col items-center justify-center h-[80vh] text-center">
+      <p className="text-lg font-semibold">No unread items</p>
+      <p className="text-sm text-[var(--text-light)] mt-2">
+        You are all caught up for this source.
+      </p>
+    </div>
+  ) : (
+    <>
 
           {/* items */}
-          <div className="flex flex-col divide-y divide-gray-300">
-            {filteredItems
-              .filter(
-                (item) =>
-                  categoryFilter === "all" ||
-                  item.categories?.some((c) => c.name === categoryFilter),
-              )
-              .map((item) => (
+          <div className="px-6">
+          <section className="max-w-[1100px] mx-auto">
+            <div className="flex flex-col divide-y divide-gray-300">
+            {filteredItems.length === 0 ? (
+              <div className="w-full text-center py-10 text-gray-400">
+                No items yet.
+              </div>
+            ) : (
+              filteredItems.map((item) => (
                 <div
                   key={item.item_id}
                   className="py-6 flex justify-between items-start hover:bg-[var(--hover)]"
@@ -188,6 +187,7 @@ export default function SourcePage() {
                           );
                         })}
                       </div>
+                      
                     )}
                     {item.tags && item.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-1 mb-4">
@@ -237,18 +237,15 @@ export default function SourcePage() {
                     />
                   </Button>
                 </div>
-              ))}
+              ))
+            )}
+            </div>
+          </section>
           </div>
-        </>
-      ) : (
-        /* empty state */
-        <div className="flex flex-col items-center justify-center h-[80vh] text-center">
-          <p className="text-lg font-semibold">No unread items</p>
-          <p className="text-sm text-[var(--text-light)] mt-2">
-            You are all caught up for this source.
-          </p>
-        </div>
-      )}
-    </section>
-  );
+          </>
+  )}
+</main>
+</div>
+);
 }
+

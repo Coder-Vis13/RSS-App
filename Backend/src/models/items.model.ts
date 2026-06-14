@@ -110,7 +110,7 @@ export const userFeedItems = async (
       OR
       (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
     )
-  GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
+  GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized, us.priority
   ORDER BY us.priority, i.pub_date DESC`;
 
   const result: QueryResult<FeedItems> = await query(baseQuery, [userId]);
@@ -182,7 +182,7 @@ export const getItemsByCategory = async (
       OR
       (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
     )
-    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, us.priority
     ORDER BY us.priority, i.pub_date DESC
   `;
 

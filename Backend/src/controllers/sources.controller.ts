@@ -182,16 +182,21 @@ export const markSourceItemsReadHandler = async (
 
 
 export const getSourceItemsHandler = async (
-  req: Request<{ userId: string; sourceId: string }>,
+  req: Request<
+    { userId: string; sourceId: string },
+    {},
+    {},
+    { timeFilter?: 'all' | 'today' | 'week' | 'month' }
+  >,
   res: Response
 ): Promise<void> => {
+  const { timeFilter = 'all' } = req.query;
+
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
 
-    const feedType: 'rss' | 'podcast' = req.query.feedType === 'podcast' ? 'podcast' : 'rss';
-
-    const items = await getSourceItems(userId, sourceId);
+    const items = await getSourceItems(userId, sourceId, timeFilter);
 
     res.status(200).json(items);
   } catch (error) {

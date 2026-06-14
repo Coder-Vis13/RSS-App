@@ -69,6 +69,10 @@ export default function SavedPage() {
     fetchSavedItems();
   }, [userId, selectedCategory, selectedTime]);
 
+  useEffect(() => {
+    setSelectedCategory("All");
+  }, [feedType]);
+
   const handleMarkAsReadSaved = async (itemId: number) => {
     try {
       await markItemRead(userId, itemId);
@@ -105,11 +109,23 @@ const filteredSavedItems = useMemo(() => {
     return savedItems.filter(i => i.feed_type === feedType);
   }, [savedItems, feedType]);
 
-const noSavedItems = !loading && filteredSavedItems.length === 0;
+  const handleMarkAllReadSaved = async () => {
+    try {
+      for (const item of filteredSavedItems) {
+        await markItemRead(userId, item.item_id);
+      }
+      const markedIds = new Set(filteredSavedItems.map((item) => item.item_id));
+      setSavedItems((prev) => prev.filter((item) => !markedIds.has(item.item_id)));
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
+  };
+
+const noSavedItems = !loading && savedItems.length === 0;
 
 
   return (
-    <div className="p-6">
+    <div>
       {/* Empty state banner */}
       {noSavedItems ? (
         <div className="flex flex-col items-center justify-center w-full py-24">
@@ -124,10 +140,9 @@ const noSavedItems = !loading && filteredSavedItems.length === 0;
           </p>
         </div>
       ) : (
-        
-        <section className="mt-0 max-w-[1100px] mx-auto">
-          {/* Header */}
-          <AppHeader
+        <>
+        {/* Header */}
+        <AppHeader
   feedType={feedType}
   setFeedType={setFeedType}
   selectedCategory={selectedCategory}
@@ -135,9 +150,11 @@ const noSavedItems = !loading && filteredSavedItems.length === 0;
   categories={allCategories}
   selectedTime={selectedTime}
   setSelectedTime={setSelectedTime}
-  onMarkAllRead={() => {handleMarkAsReadSaved}}
+  onMarkAllRead={handleMarkAllReadSaved}
 />
-
+<div className="px-6">
+        <section className="max-w-[1100px] mx-auto">
+          
           {/* Saved items */}
           {loading ? (
             <p className="text-[var(--text-light)]">Loading saved items...</p>
@@ -204,89 +221,9 @@ const noSavedItems = !loading && filteredSavedItems.length === 0;
             </div>
           )}
         </section>
+        </div>
+        </>
       )}
     </div>
   );
 }
-
-
-
-
-
-
-{/*
-<div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-2 text-md hover:bg-transparent hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
-                  >
-                    Saved Items ({savedItems.length})
-                    <ChevronDown className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent
-                  align="start"
-                  className="bg-white border border-gray-100"
-                >
-                  <DropdownMenuItem onClick={() => setFeedType("rss")}>
-                    📰 Blogs / Articles
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFeedType("podcast")}>
-                    🎧 Podcasts
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center text-md font-semibold hover:bg-[var(--light-grey)] hover:text-[var(--accent)] focus:outline-none focus:ring-0 focus-visible:ring-0"
-                  >
-                    Category
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="bg-white border border-gray-100 rounded-md shadow-md"
-                >
-                  <DropdownMenuItem
-                    onClick={() => handleCategorySelect("All")}
-                    className={`cursor-pointer transition-colors ${
-                      selectedCategory === "All"
-                        ? "bg-[var(--navyblue)] text-white"
-                        : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
-                    }`}
-                  >
-                    All Categories
-                  </DropdownMenuItem>
-                  {allCategories.map((cat) => (
-                    <DropdownMenuItem
-                      key={cat}
-                      onClick={() => handleCategorySelect(cat)}
-                      className={`cursor-pointer transition-colors ${
-                        selectedCategory === cat
-                          ? "bg-[var(--navyblue)] text-white"
-                          : "hover:bg-[var(--light-grey)] hover:text-[var(--accent)]"
-                      }`}
-                    >
-                      {cat}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <p className="text-sm text-gray-500">
-              Showing:{" "}
-              <span className="font-medium text-[var(--accent)]">
-                {feedType === "rss" ? "Blogs / Articles" : "Podcasts"}
-              </span>
-            </p>
-          </div>
-*/}

@@ -6,7 +6,6 @@ import RulesPage from "./app/rules/page";
 import ReadPage from "./app/read/page";
 import FolderPage from "./app/folders/folder";
 import { Toaster } from "./components/ui/sonner";
-import { BlocklistProvider } from "./context/blocklistContext";
 import Landing from "./LandingPage";
 import SourcePage from "./app/source/page";
 
@@ -36,32 +35,30 @@ export default function Dashboard() {
   return (
     <>
       <Toaster richColors position="top-center" />
-      <BlocklistProvider>
-        <Routes>
-          <Route path="/landing" element={<Landing />} />
+      <Routes>
+        <Route path="/landing" element={<Landing />} />
 
-          <Route
-            path="/*"
-            element={
-              <SidebarLayout>
-                <Routes>
-                  <Route path="discover" element={<Discover />} />
-                  <Route path="feed" element={<FeedPage />} />
-                  <Route path="saved" element={<SavedPage />} />
-                  <Route path="priority" element={<RulesPage />} />
-                  <Route path="recently-read" element={<ReadPage />} />
-                  <Route path="folders/:folderId" element={<FolderPage />} />
-                  <Route path="/sources/:sourceId" element={<SourcePage />} />
-                  <Route
-                    path="/"
-                    element={<Navigate to="/landing" replace />}
-                  />
-                </Routes>
-              </SidebarLayout>
-            }
-          />
-        </Routes>
-      </BlocklistProvider>
+        <Route
+          path="/*"
+          element={
+            <SidebarLayout>
+              <Routes>
+                <Route path="discover" element={<Discover />} />
+                <Route path="feed" element={<FeedPage />} />
+                <Route path="saved" element={<SavedPage />} />
+                <Route path="priority" element={<RulesPage />} />
+                <Route path="recently-read" element={<ReadPage />} />
+                <Route path="folders/:folderId" element={<FolderPage />} />
+                <Route path="/sources/:sourceId" element={<SourcePage />} />
+                <Route
+                  path="/"
+                  element={<Navigate to="/landing" replace />}
+                />
+              </Routes>
+            </SidebarLayout>
+          }
+        />
+      </Routes>
     </>
   );
 }

@@ -348,7 +348,9 @@ export default function SidebarLayout({
               </NavLink>
             ))}
 
-          <Separator className="bg-[#b0b0b0] mt-4 mb-4" />
+{unfolderedSources.length > 0 && (
+  <Separator className="bg-[#b0b0b0] mt-4 mb-4" />
+)}
 
           {/* Folders Header */}
           <div className="flex items-center justify-between px-2 mb-4 font-semibold text-[var(--sidebar-foreground)]">

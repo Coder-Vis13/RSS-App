@@ -56,21 +56,31 @@ setAllCategories(uniqueCategories);
     };
 
     fetchFeed();
-  }, [userId, selectedTime, selectedCategory, location.pathname]);
+  }, [userId, selectedTime, location.pathname]);
+
+  useEffect(() => {
+    setSelectedCategory("All");
+  }, [feedType]);
 
 const filteredReadItems = useMemo(() => {
-  return allReadItems.filter(i => i.feed_type === feedType);
-}, [allReadItems, feedType]);
+  return allReadItems
+    .filter((i) => i.feed_type === feedType)
+    .filter(
+      (i) =>
+        selectedCategory === "All" ||
+        i.categories?.some((c) => c.name === selectedCategory),
+    );
+}, [allReadItems, feedType, selectedCategory]);
 
 const handleCategorySelect = (category: string) => {
   setSelectedCategory(category);
 };
 
 
-const noReadItems = !loading && filteredReadItems.length === 0;
+const noReadItems = !loading && allReadItems.length === 0;
 
   return (
-    <div className="p-6 w-full">
+    <div>
       {/*Empty State Banner*/}
       {noReadItems ? (
         <div className="flex flex-col items-center justify-center w-full h-[90vh]">
@@ -85,19 +95,21 @@ const noReadItems = !loading && filteredReadItems.length === 0;
           </p>
         </div>
       ) : (
-        <section className="mt-0 w-full max-w-[1100px] mx-auto">
-          {/* Header */}
-          <AppHeader
+        <>
+        {/*Header*/}
+        <AppHeader
   feedType={feedType}
   setFeedType={setFeedType}
   selectedCategory={selectedCategory}
-  onCategorySelect={() => {handleCategorySelect}}
+  onCategorySelect={handleCategorySelect}
   categories={allCategories}
   selectedTime={selectedTime}
-  setSelectedTime={() => {setSelectedTime}}
+  setSelectedTime={setSelectedTime}
   onMarkAllRead={() => {}}
 />
-
+<div className="px-6">
+        <section className="w-full max-w-[1100px] mx-auto">
+          
           {loading ? (
             <p className="text-[var(--text-light)]">Loading read items...</p>
           ) : (
@@ -171,6 +183,8 @@ const noReadItems = !loading && filteredReadItems.length === 0;
             </div>
           )}
         </section>
+    </div>
+</>
       )}
     </div>
   );
