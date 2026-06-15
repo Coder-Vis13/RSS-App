@@ -106,7 +106,7 @@ export const userFeedItems = async (
     ${timeClause}
     AND (uim.read_time IS NULL)
     AND (
-      (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
+      (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '30 days')
       OR
       (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
     )
@@ -178,7 +178,7 @@ export const getItemsByCategory = async (
       ${timeClause}
     AND (uim.read_time IS NULL)
     AND (
-      (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
+      (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '30 days')
       OR
       (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
     )
@@ -240,7 +240,7 @@ export const getSavedItemsByCategory = async (
       AND c.name = $2
       ${timeClause}
       AND (
-        (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
+        (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '30 days')
         OR
         (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
       )
@@ -364,54 +364,6 @@ export const addItem = async (
 
 
 
-// //add an item into the item table
-// // const limit = pLimit(5);  //limit to 5 concurrent AI category calls
-// export const addItem = async (
-//   sourceId: number,
-//   items: {
-//     link: string;
-//     title: string;
-//     description: string | null;
-//     pubDate: string | Date | null;
-//     tags?: string[];
-//   }[]
-// ): Promise<AddItemResult> => {
-//   const insertedIds: number[] = [];
-//   let insertCount = 0;
-
-//   for (const i of items) {
-//     const result: QueryResult<InsertedItem> = await query<InsertedItem>(
-//       `INSERT INTO item(source_id, link, title, description, pub_date)
-//        VALUES ($1, $2, $3, $4, $5)
-//        ON CONFLICT (source_id, link) DO NOTHING
-//        RETURNING item_id`,
-//       [sourceId, i.link, i.title, i.description, i.pubDate]
-//     );
-
-//     const insertedRow = getFirstRow(result);
-//     if (insertedRow) {
-//       insertCount++;
-//       insertedIds.push(insertedRow.item_id);
-
-//       if (i.tags?.length) {
-//         const tagsToInsert = i.tags.slice(0, 3); // limit to 3
-//         const valuesString = tagsToInsert.map((_, idx) => `($1, $${idx + 2})`).join(', ');
-
-//         await query(
-//           `INSERT INTO item_tag(item_id, tag)
-//            VALUES ${valuesString}
-//            ON CONFLICT (item_id, tag) DO NOTHING`,
-//           [insertedRow.item_id, ...tagsToInsert]
-//         );
-//       }
-//     }
-//   }
-
-//   logAction(`Inserted items of Source=${sourceId} itemCount=${insertCount}`);
-//   return { insertCount, insertedIds };
-// };
-
-
 //mark all unread items of all sources read
 export const markUserFeedItemsRead = async (
   userId: number
@@ -424,7 +376,7 @@ export const markUserFeedItemsRead = async (
      JOIN source s ON s.source_id = i.source_id
      WHERE us.user_id = $1
        AND (
-         (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
+         (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '30 days')
          OR
          (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
        )
@@ -438,32 +390,6 @@ export const markUserFeedItemsRead = async (
   return { readCount: result.rowCount ?? 0 };
 };
 
-
-//save or unsave an item
-// export const saveItem = async (
-//   userId: number,
-//   itemId: number,
-//   save: boolean
-// ): Promise<Save & { feed_type: 'rss' | 'podcast' }> => {
-//   const insertResult: QueryResult<Save & { feed_type: 'rss' | 'podcast' }> = await query(
-//     `INSERT INTO user_item_metadata (user_id, item_id, is_save)
-//      VALUES ($1, $2, $3)
-//      ON CONFLICT (user_id, item_id) DO UPDATE
-//        SET is_save = EXCLUDED.is_save
-//      RETURNING uim.user_id, uim.item_id, uim.is_save, s.feed_type
-//      FROM user_item_metadata uim
-//      JOIN item i ON i.item_id = uim.item_id
-//      JOIN source s ON i.source_id = s.source_id
-//      WHERE uim.user_id = $1 AND uim.item_id = $2`,
-//     [userId, itemId, save]
-//   );
-
-//   const savedItem = getFirstRow(insertResult);
-//   logAction(`Saved/unsaved item: User=${userId} Item=${itemId} Save=${!!save}`);
-//   if (!savedItem) return { user_id: userId, item_id: itemId, is_save: save, feed_type: 'rss' }; // fallback
-
-//   return savedItem;
-// };
 
 
 export const saveItem = async (
@@ -491,7 +417,7 @@ export const saveItem = async (
 
 
 //get all items published in the past 2 days
-export const getRecentItems = async (sourceId: number, days = 2): Promise<number[]> => {
+export const getRecentItems = async (sourceId: number, days = 30): Promise<number[]> => {
   const result: QueryResult<Pick<Item, 'item_id'>> = await query(
     `SELECT item_id FROM item 
      WHERE source_id = $1 

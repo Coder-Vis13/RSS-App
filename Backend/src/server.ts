@@ -30,6 +30,12 @@ app.use(loggingHandler);
 
 
 
+
+
+
+
+
+
 app.get('/test-feed-discovery', async (req: Request, res: Response) => {
   try {
     const websiteUrl = req.query.website as string;
@@ -766,8 +772,113 @@ if (strongFeed) {
 });
 
 
+// 14 june 
+import { extract } from "@extractus/feed-extractor";
 
 
+app.post("/test-feed-2026", async (req, res) => {
+  try {
+    const { feedUrl } = req.body;
+
+    if (!feedUrl) {
+      return res.status(400).json({
+        error: "feedUrl is required",
+      });
+    }
+
+    const feed = await extract(feedUrl);
+
+    return res.json(feed);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Failed to parse feed",
+    });
+  }
+});
+
+
+// // @ts-ignore
+// import { discoverFeeds } from "feedscout";
+
+
+
+// app.post("/discover-feed-2026", async (req, res) => {
+
+//   try {
+//     const { websiteUrl } = req.body;
+
+//     if (!websiteUrl) {
+//       return res.status(400).json({
+//         error: "websiteUrl is required",
+//       });
+//     }
+
+//     const feeds = await discoverFeeds(websiteUrl);
+
+//     return res.json({
+//       count: feeds.length,
+//       feeds,
+//     });
+//   } catch (error) {
+//     console.error(error);
+
+//     return res.status(500).json({
+//       error: "Feed discovery failed",
+//     });
+//   }
+// });
+
+
+
+
+// @ts-ignore
+import { discoverFeeds } from "feedscout";
+
+app.get("/discover-feed-2026", async (_req, res) => {
+  const websites = [
+    "https://www.reddit.com/r/findareddit/",
+    "https://www.youtube.com/@RaunaqRajani",
+    "https://www.joerogan.com/",
+    "https://www.callherdaddy.com/"
+  ];
+
+  const results = [];
+
+  for (const website of websites) {
+    try {
+      console.log(`Checking ${website}`);
+
+      const feeds = await Promise.race([
+        discoverFeeds(website),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 10000)
+        ),
+      ]);
+
+      results.push({
+        website,
+        success: true,
+        feedCount: (feeds as any[]).length,
+        feeds,
+      });
+    } catch (err: any) {
+      results.push({
+        website,
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  res.json({
+    total: websites.length,
+    results,
+  });
+});
+
+export default router;
 
 // async function testFeedFinder() {
 //   const website = "https://www.geeksforgeeks.org/feed/"; // <-- set your website URL here

@@ -8,7 +8,7 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'true';
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
 
 function getCategoryPrompt(title: string, description?: string): string {
   const context =

@@ -45,9 +45,7 @@ function normalizeUrl(url: string): string {
 export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResult | null>  {
   const startTime = Date.now();
   const normalizedBase = normalizeUrl(sourceURL);
-  // -------------------------
   // PHASE 1 — feedfinder-ts
-  // -------------------------
   try {
     const feeds = (await find(sourceURL)) as { title: string; link: string }[];
 
