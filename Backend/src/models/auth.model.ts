@@ -1,14 +1,14 @@
 import { query } from '../config/db';
 import { AuthUser, UserRefreshToken, UserId } from './types';
 
-export async function createUser(email: string, passwordHash: string): Promise<UserId> {
+export async function createUser(name: string, email: string, passwordHash: string): Promise<UserId> {
   const result = await query(
     `
-    INSERT INTO users (email, password_hash)
-    VALUES ($1, $2)
+    INSERT INTO users (name, email, password_hash)
+    VALUES ($1, $2, $3)
     RETURNING user_id
     `,
-    [email, passwordHash]
+    [name, email, passwordHash]
   );
   return result.rows[0];
 }

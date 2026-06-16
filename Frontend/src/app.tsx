@@ -2,12 +2,17 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import SidebarLayout from "./components/sidebar/SidebarLayout";
 import FeedPage from "./app/feed/page";
 import SavedPage from "./app/saved/page";
-import RulesPage from "./app/rules/page";
 import ReadPage from "./app/read/page";
 import FolderPage from "./app/folders/folder";
 import { Toaster } from "./components/ui/sonner";
 import Landing from "./LandingPage";
 import SourcePage from "./app/source/page";
+import { getAuthUserId } from "./auth";
+
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  return getAuthUserId() ? <>{children}</> : <Navigate to="/landing" replace />;
+}
 
 function Discover() {
   return (
@@ -41,18 +46,19 @@ export default function Dashboard() {
         <Route
           path="/*"
           element={
+            <RequireAuth>
             <SidebarLayout>
               <Routes>
                 <Route path="discover" element={<Discover />} />
                 <Route path="feed" element={<FeedPage />} />
                 <Route path="saved" element={<SavedPage />} />
-                <Route path="priority" element={<RulesPage />} />
                 <Route path="recently-read" element={<ReadPage />} />
                 <Route path="folders/:folderId" element={<FolderPage />} />
                 <Route path="/sources/:sourceId" element={<SourcePage />} />
                 <Route path="/" element={<Navigate to="/landing" replace />} />
               </Routes>
             </SidebarLayout>
+            </RequireAuth>
           }
         />
       </Routes>

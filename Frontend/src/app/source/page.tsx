@@ -14,6 +14,7 @@ import { getCategoryPresentation } from "../../lib/categoryColors";
 
 import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
+import { getAuthUserId } from "@/auth";
 
 interface SourceItem {
   item_id: number;
@@ -33,7 +34,10 @@ export default function SourcePage() {
   const { sourceId } = useParams<{ sourceId: string }>();
   const location = useLocation();
 
-  const userId = 1;
+    const userId = getAuthUserId();
+    if (!userId) {
+    return null;
+  }
 
   const [items, setItems] = useState<SourceItem[]>([]);
   const [loading, setLoading] = useState(true);

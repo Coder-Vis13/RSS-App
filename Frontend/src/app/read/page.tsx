@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { getCategoryPresentation } from "../../lib/categoryColors";
 import AppHeader from "@/components/layout/AppHeader";
 import { useMemo } from "react";
+import { getAuthUserId } from "@/auth";
 
 interface ReadItems {
   item_id: number;
@@ -40,7 +41,10 @@ export default function ReadPage() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
 
   const location = useLocation();
-  const userId = 1;
+    const userId = getAuthUserId();
+    if (!userId) {
+    return null;
+  }
 
   useEffect(() => {
     const fetchFeed = async () => {

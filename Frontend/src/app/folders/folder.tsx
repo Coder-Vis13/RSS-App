@@ -12,6 +12,7 @@ import { getCategoryPresentation } from "../../lib/categoryColors";
 
 import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
+import { getAuthUserId } from "@/auth";
 
 interface FolderItems {
   item_id: number;
@@ -49,7 +50,10 @@ export default function FolderPage() {
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [allCategories, setAllCategories] = useState<string[]>([]);
 
-  const userId = 1;
+    const userId = getAuthUserId();
+    if (!userId) {
+    return null;
+  }
 
   const { blocklist } = useBlocklist();
 
@@ -142,6 +146,19 @@ export default function FolderPage() {
     }
   };
 
+  const filteredFolderItems = filterWithBlocklist(folderItems, blocklist)
+  .filter((item) => item.feed_type === feedType)
+  .filter(
+    (item) =>
+      selectedCategory === "All" ||
+      item.categories?.some((c) => c.name === selectedCategory),
+  )
+  .sort(
+    (a, b) =>
+      new Date(b.pub_date).getTime() -
+      new Date(a.pub_date).getTime(),
+  );
+
   return (
     <section className="flex min-h-screen w-full">
       <h3 className="mb-4 text-lg font-bold text-[var(--text)]"></h3>
@@ -161,15 +178,7 @@ export default function FolderPage() {
           <div className="px-6">
             <section className="max-w-[1100px] mx-auto">
               <div className="flex flex-col divide-y divide-gray-300">
-                {filterWithBlocklist(folderItems, blocklist)
-                  .filter((item) => item.feed_type === feedType)
-                  .filter((item) => {
-                    return (
-                      selectedCategory === "All" ||
-                      item.categories?.some((c) => c.name === selectedCategory)
-                    );
-                  })
-                  .map((item) => (
+                {filteredFolderItems.map((item) => (
                     <div
                       key={item.item_id}
                       className="py-4 flex justify-between items-start hover:bg-[var(--hover)] transition"

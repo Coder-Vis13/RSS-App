@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express from 'express';
 
 import { addUserHandler } from '../controllers';
 
@@ -39,17 +39,23 @@ import { loginHandler } from '../controllers/auth/login.controller';
 import { registerHandler } from '../controllers/auth/register.controller';
 import { refreshHandler } from '../controllers/auth/refresh.controller';
 import { logoutHandler } from '../controllers/auth/logout.controller';
+import { verifyJWT } from '../middleware/verifyJWT';
+import { attachAuthenticatedUser } from '../middleware/authenticatedUserContext';
 
-const router: Router = express.Router();
+const router = express.Router();
 
 //User
 router.post('/users/add', addUserHandler);
 
 //Auth
+//Auth
 router.post('/login', loginHandler);
 router.post('/register', registerHandler);
 router.post('/refresh', refreshHandler);
 router.post('/logout', logoutHandler);
+
+// Protected app routes: derive userId from JWT, ignore client-provided userId.
+router.use('/users/:userId', verifyJWT, attachAuthenticatedUser);
 
 // Sources
 router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources for a user

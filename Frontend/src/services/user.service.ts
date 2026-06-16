@@ -64,7 +64,7 @@ const markUserFolderItemsRead = (userId: number, folderId: number) =>
   post(`/users/${userId}/folders/${folderId}/read`);
 
 const saveItem = (userId: number, itemId: number, save: boolean) =>
-  post(`/users/${userId}/items/save`, { userId, itemId, save });
+  post(`/users/${userId}/items/save`, { itemId, save });
 
 const allSavedItems = (
   userId: number,
@@ -89,7 +89,7 @@ const updateSourcePriorities = async (
   userId: number,
   sources: SourcePriorityUpdate[],
   feedType: "rss" | "podcast",
-) => post(`/users/${userId}/sources/priority`, { userId, sources, feedType });
+) => post(`/users/${userId}/sources/priority`, { sources, feedType });
 
 const readItems = (
   userId: number,

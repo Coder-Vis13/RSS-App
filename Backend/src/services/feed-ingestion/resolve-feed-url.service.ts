@@ -46,10 +46,31 @@ const FEED_CONTENT_TYPES = [
   'application/feed+json',
 ];
 
+// Final fallback for a few popular websites whose feed URLs are not derivable from site paths.
+const DOMAIN_FEED_FALLBACKS: Record<string, string> = {
+  'timesofindia.indiatimes.com': 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms',
+  'thehindu.com': 'https://www.thehindu.com/feeder/default.rss',
+  'ndtv.com': 'https://feeds.feedburner.com/NDTV-LatestNews',
+  'indiatoday.in': 'https://www.indiatoday.in/rss/home',
+  'hindustantimes.com': 'https://www.hindustantimes.com/rss/india/rssfeed.xml',
+  'news18.com': 'https://www.news18.com/rss/india.xml',
+  'economictimes.indiatimes.com': 'https://b2b.economictimes.indiatimes.com/rss/topstories',
+  'cnn.com': 'http://rss.cnn.com/rss/cnn_topstories.rss',
+  'espn.com': 'https://www.espn.com/espn/rss/news',
+  'buzzfeed.com': 'https://www.buzzfeed.com/feed.xml',
+  'npr.org': 'https://feeds.npr.org/1001/rss.xml',
+  'bbc.co.uk': 'https://feeds.bbci.co.uk/news/rss.xml',
+  'aljazeera.com': 'https://www.aljazeera.com/xml/rss/all.xml',
+};
+
 function parseUserUrl(input: string): URL {
   const trimmed = input.trim();
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   return new URL(withProtocol);
+}
+
+function normalizeHostnameForLookup(url: URL): string {
+  return url.hostname.toLowerCase().replace(/^www\./, '');
 }
 
 function probeBase(url: URL): string {
@@ -230,7 +251,13 @@ async function resolveWebsiteFeed(userUrl: string): Promise<string | null> {
     return probed;
   }
 
-  return discoverWithFeedScout(userUrl);
+  const discovered = await discoverWithFeedScout(userUrl);
+  if (discovered) {
+    return discovered;
+  }
+
+  // Keep this as the last step to preserve the existing discovery priority.
+  return DOMAIN_FEED_FALLBACKS[normalizeHostnameForLookup(url)] ?? null;
 }
 
 interface AppleLookupResult {

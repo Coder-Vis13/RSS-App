@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { SiteShowcase } from "./components/Sites";
-// import { Benefits } from "./components/benefits"
 import { Button } from "./components/ui/button";
 import {
   Sparkles,
@@ -11,10 +10,9 @@ import {
   Filter,
   Bookmark,
 } from "lucide-react";
-//import { signUp, signIn, signOut } from "./auth";
-import { useState } from "react";
-//import { supabase } from "./lib/supabase";
-// import { addUser } from "./services/api";
+import { useEffect, useState } from "react";
+import { signIn, signUp, signOut, getAuthUserId } from "./auth";
+
 
 export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -24,39 +22,49 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   // const [user, setUser] = useState<any>(null);
   const [name, setName] = useState("");
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // const [showOnboarding, setShowOnboarding] = useState(false);
 
-  async function handleAuth() {
-    // Supabase removed — mock successful auth
-    const mockUser = { email };
-
-    setUser(mockUser);
-    localStorage.setItem("mock_user_email", email);
-
-    setShowAuthModal(false);
-    window.location.href = "/home";
-  }
-
-  function handleFinishOnboarding() {
-    if (!name.trim()) {
-      alert("Please enter your name to continue.");
-      return;
+ async function handleAuth() {
+  try {
+    if (mode === "signup") {
+      await signUp(name, email, password);
+    } else {
+      await signIn(email, password);
     }
 
-    // Store name for UI purposes
-    localStorage.setItem("user_name", name);
-
-    setShowOnboarding(false);
-
-    // Navigate to home page
-    window.location.href = "/home";
+    setUser({ email });
+    setShowAuthModal(false);
+    window.location.href = "/feed";
+  } catch {
+    alert("Authentication failed. Please check credentials and try again.");
   }
+}
 
-  async function handleLogout() {
-    // Supabase removed — mock logout
-    setUser(null);
-    localStorage.removeItem("mock_user_email");
-  }
+  // function handleFinishOnboarding() {
+  //   if (!name.trim()) {
+  //     alert("Please enter your name to continue.");
+  //     return;
+  //   }
+
+  //   // Store name for UI purposes
+  //   localStorage.setItem("user_name", name);
+
+  //   setShowOnboarding(false);
+
+  //   // Navigate to home page
+  //   window.location.href = "/home";
+  // }
+
+  
+async function handleLogout() {
+  await signOut();
+  setUser(null);
+  window.location.href = "/landing";
+}
+
+useEffect(() => {
+  if (getAuthUserId()) setUser({ email: "authenticated" });
+}, []);
 
   return (
     <div className="bg-base min-h-screen text-primary relative overflow-hidden">
@@ -432,6 +440,22 @@ export default function App() {
             </p>
 
             <div className="flex flex-col gap-5">
+              {/* Name Field */}
+
+              {mode === "signup" && (
+  <div className="flex flex-col">
+    <label className="mb-2 text-sm text-gray-500 font-medium">
+      Your name
+    </label>
+    <input
+      type="text"
+      className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30"
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      required
+    />
+  </div>
+)}
               {/* Email Field */}
               <div className="flex flex-col">
                 <label className="mb-2 text-sm text-gray-500 font-medium">
@@ -507,39 +531,6 @@ export default function App() {
               onClick={() => setShowAuthModal(false)}
             >
               Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Onboarding Modal */}
-      {showOnboarding && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl w-[420px] max-w-full text-center border border-black/5">
-            <h2 className="text-2xl font-bold mb-3 text-[var(--navyblue)]">
-              Welcome to ReadArchive
-            </h2>
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Let’s personalize your experience. Please tell us your name.
-            </p>
-            <input
-              type="text"
-              placeholder="Your name"
-              className="w-full p-4 border border-black/10 rounded-2xl mb-6 text-center focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Button
-              className="w-full mb-3 h-11 rounded-2xl"
-              onClick={handleFinishOnboarding}
-            >
-              Continue
-            </Button>
-            <button
-              className="w-full text-sm text-gray-500 hover:text-gray-900 transition-colors"
-              onClick={handleFinishOnboarding}
-            >
-              Skip for now
             </button>
           </div>
         </div>

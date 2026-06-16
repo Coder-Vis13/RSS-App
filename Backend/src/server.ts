@@ -8,7 +8,6 @@ import { routeNotFound } from './middleware/route-not-found';
 import debugRoutes from './routes/debug.routes';
 import cookieParser from 'cookie-parser';
 import { findFeed } from 'find-feed';
-import { find } from 'feedfinder-ts';
 
 const PORT = process.env.PORT;
 
@@ -17,6 +16,7 @@ const app = express();
 app.post('/_debug', (req, res) => {
   res.json({ ok: true, body: req.body, headers: req.headers });
 });
+
 
 app.use(corsHandler);
 
@@ -719,59 +719,60 @@ app.get('/test-feed-discovery-top-3', async (req: Request, res: Response) => {
   }
 });
 
-// 14 june
-import { extract } from '@extractus/feed-extractor';
+// // 14 june
+// import { extract } from '@extractus/feed-extractor';
 
-app.post('/test-feed-2026', async (req, res) => {
+// app.post('/test-feed-2026', async (req, res) => {
+//   try {
+//     const { feedUrl } = req.body;
+
+//     if (!feedUrl) {
+//       return res.status(400).json({
+//         error: 'feedUrl is required',
+//       });
+//     }
+
+//     const feed = await extract(feedUrl);
+
+//     return res.json(feed);
+//   } catch (error) {
+//     console.error(error);
+
+//     return res.status(500).json({
+//       error: 'Failed to parse feed',
+//     });
+//   }
+// });
+
+import { extract } from "@extractus/feed-extractor";
+
+app.post("/test-feed-2026", async (req, res) => {
   try {
-    const { feedUrl } = req.body;
+    const TEST_FEED =
+      req.body.feedUrl ||
+      "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml";
 
-    if (!feedUrl) {
-      return res.status(400).json({
-        error: 'feedUrl is required',
-      });
-    }
+    const feed = await extract(TEST_FEED);
 
-    const feed = await extract(feedUrl);
+    const feedAny: any = await extract(TEST_FEED);
+
+
+console.log("FIRST ENTRY:");
+console.dir(feedAny.entries?.[0], { depth: null });
+
+console.log("FULL FEED:");
+console.dir(feedAny, { depth: null });
 
     return res.json(feed);
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
-      error: 'Failed to parse feed',
+      error: "Failed to parse feed",
     });
   }
 });
 
-// // @ts-ignore
-// import { discoverFeeds } from "feedscout";
-
-// app.post("/discover-feed-2026", async (req, res) => {
-
-//   try {
-//     const { websiteUrl } = req.body;
-
-//     if (!websiteUrl) {
-//       return res.status(400).json({
-//         error: "websiteUrl is required",
-//       });
-//     }
-
-//     const feeds = await discoverFeeds(websiteUrl);
-
-//     return res.json({
-//       count: feeds.length,
-//       feeds,
-//     });
-//   } catch (error) {
-//     console.error(error);
-
-//     return res.status(500).json({
-//       error: "Feed discovery failed",
-//     });
-//   }
-// });
 
 // @ts-ignore
 import { discoverFeeds } from 'feedscout';
@@ -818,19 +819,6 @@ app.get('/discover-feed-2026', async (_req, res) => {
 
 export default router;
 
-// async function testFeedFinder() {
-//   const website = "https://www.geeksforgeeks.org/feed/"; // <-- set your website URL here
-
-//   try {
-//     const feeds = await find(website);
-//     console.log("Website:", website);
-//     console.log("Discovered feeds:", feeds);
-//   } catch (err) {
-//     console.error("Failed to find feeds:", err);
-//   }
-// }
-
-// testFeedFinder();
 
 app.use('/', router);
 app.use('/debug', debugRoutes);

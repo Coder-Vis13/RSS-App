@@ -17,6 +17,7 @@ import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
 
 import { getCategoryPresentation } from "../../lib/categoryColors";
+import { getAuthUserId } from "@/auth";
 
 interface FeedItems {
   item_id: number;
@@ -36,15 +37,9 @@ export default function FeedPage() {
   const [feedItems, setFeedItems] = useState<FeedItems[]>([]);
   // const [sources, setSources] = useState<UserSources[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedSources, setExpandedSources] = useState<
-    Record<string, boolean>
-  >({});
-
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-
   const [allCategories, setAllCategories] = useState<string[]>([]);
-  // const [readCount, setReadCount] = useState(0);
   const [selectedTime, setSelectedTime] = useState<
     "all" | "today" | "week" | "month"
   >(() => {
@@ -60,41 +55,13 @@ export default function FeedPage() {
     return "all";
   });
 
-  const userId = 1;
+    const userId = getAuthUserId();
+    if (!userId) {
+    return null;
+  }
 
   const { blocklist } = useBlocklist();
 
-  // useEffect(() => {
-  //   let cancelled = false;
-
-  //   const fetchReadCount = async () => {
-  //     try {
-  //       const items = await readItems(userId);
-
-  //       const today = new Date();
-  //       today.setHours(0, 0, 0, 0);
-
-  //       const todayCount = items.filter((item: any) => {
-  //         if (!item.read_time) return false;
-  //         const d = new Date(item.read_time);
-  //         d.setHours(0, 0, 0, 0);
-  //         return d.getTime() === today.getTime();
-  //       }).length;
-
-  //       if (!cancelled) setReadCount(todayCount);
-  //     } catch (err) {
-  //       console.error("Failed to load read count:", err);
-  //     }
-  //   };
-
-  //   fetchReadCount();
-  //   const intervalId = window.setInterval(fetchReadCount, 10_000);
-
-  //   return () => {
-  //     cancelled = true;
-  //     window.clearInterval(intervalId);
-  //   };
-  // }, [userId, feedType]);
 
   //Fetch feed
   useEffect(() => {
@@ -207,30 +174,14 @@ export default function FeedPage() {
   };
 
   const filteredFeedItems = useMemo(() => {
-    return filterWithBlocklist(
-      feedItems.filter((i) => i.feed_type === feedType),
-      blocklist,
-    );
-  }, [feedItems, feedType, blocklist]);
+  return filterWithBlocklist(
+    feedItems.filter((i) => i.feed_type === feedType),
+    blocklist,
+  ).sort((a, b) => b.pub_date.localeCompare(a.pub_date));
+}, [feedItems, feedType, blocklist]);
 
   const noFeedItems = !loading && feedItems.length === 0;
 
-  //Group feed by source name
-  const groupedFeed = filteredFeedItems.reduce(
-    (acc, item) => {
-      if (!acc[item.source_name]) acc[item.source_name] = [];
-      acc[item.source_name].push(item);
-      return acc;
-    },
-    {} as Record<string, FeedItems[]>,
-  );
-
-  const toggleSource = (source: string) => {
-    setExpandedSources((i) => ({
-      ...i,
-      [source]: !i[source],
-    }));
-  };
 
   return (
     <div className="flex min-h-screen w-full">
@@ -273,114 +224,86 @@ export default function FeedPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-gray-300">
-                    {Object.entries(groupedFeed).map(([source, items]) => {
-                      const isExpanded = expandedSources[source];
-                      const visibleItems = isExpanded
-                        ? items
-                        : items.slice(0, 15);
-                      return (
-                        <div key={source} className="mb-4 mt-8">
-                          <h4 className="text-lg font-semibold mb-3">
-                            {source}
-                          </h4>
-                          <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-                            {visibleItems.map((item) => (
-                              <div
-                                key={item.item_id}
-                                className="py-6 flex divide-gray-300 items-start hover:bg-[var(--hover)] transition"
-                              >
-                                <div className="flex-1 pr-4">
-                                  <div className="flex flex-wrap gap-2 mb-2">
-                                    {item.categories?.map((cat) => {
-                                      const {
-                                        className: backendClasses,
-                                        style: backendStyle,
-                                      } = getCategoryPresentation(
-                                        cat.color,
-                                        cat.name,
-                                      );
-                                      return (
-                                        <span
-                                          key={cat.name}
-                                          className={`text-[12px] px-2 py-0. rounded-full ${backendClasses}`}
-                                          style={backendStyle}
-                                        >
-                                          {cat.name}
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-                                  {item.tags && item.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-1 mb-4">
-                                      {item.tags.map((tag) => (
-                                        <span
-                                          key={tag}
-                                          className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-                                        >
-                                          {tag}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <a
-                                    href={item.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={() =>
-                                      handleMarkAsRead(item.item_id)
-                                    }
-                                    className="text-[var(--accent)] hover:underline font-medium"
-                                  >
-                                    {item.title}
-                                  </a>
+  {filteredFeedItems.map((item) => (
+    <div
+      key={item.item_id}
+      className="py-6 flex divide-gray-300 items-start hover:bg-[var(--hover)] transition"
+    >
+      <div className="flex-1 pr-4">
+        <div className="flex flex-wrap gap-2 mb-2">
+          {item.categories?.map((cat) => {
+            const {
+              className: backendClasses,
+              style: backendStyle,
+            } = getCategoryPresentation(
+              cat.color,
+              cat.name,
+            );
 
-                                  {item.description && (
-                                    <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
-                                      {item.description}
-                                    </p>
-                                  )}
-                                  {item.pub_date && (
-                                    <p className="text-xs text-gray-500 mt-4">
-                                      {new Date(
-                                        item.pub_date,
-                                      ).toLocaleDateString()}
-                                    </p>
-                                  )}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleSave(item.item_id)}
-                                >
-                                  <Bookmark
-                                    size={24}
-                                    className={
-                                      item.is_save
-                                        ? "text-[var(--accent)] fill-[var(--accent)]"
-                                        : "text-gray-400"
-                                    }
-                                  />
-                                </Button>
-                              </div>
-                            ))}
-                            {items.length > 15 && (
-                              <div className="flex justify-center mt-4 mb-4">
-                                <Button
-                                  variant="ghost"
-                                  className="text-[var(--accent)] hover:text-[var(--navyblue)]"
-                                  onClick={() => toggleSource(source)}
-                                >
-                                  {isExpanded
-                                    ? "Show less"
-                                    : `Show ${items.length - 15} more`}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            return (
+              <span
+                key={cat.name}
+                className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
+                style={backendStyle}
+              >
+                {cat.name}
+              </span>
+            );
+          })}
+        </div>
+
+        {item.tags && item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-1 mb-4">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <a
+          href={item.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => handleMarkAsRead(item.item_id)}
+          className="text-[var(--accent)] hover:underline font-medium"
+        >
+          {item.title}
+        </a>
+
+        {item.description && (
+          <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
+            {item.description}
+          </p>
+        )}
+
+        <p className="text-xs text-gray-500 mt-4">
+          {item.source_name} •{" "}
+          {new Date(item.pub_date).toLocaleDateString()}
+        </p>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => handleSave(item.item_id)}
+      >
+        <Bookmark
+          size={24}
+          className={
+            item.is_save
+              ? "text-[var(--accent)] fill-[var(--accent)]"
+              : "text-gray-400"
+          }
+        />
+      </Button>
+    </div>
+  ))}
+</div>
                 )}
               </section>
             </div>

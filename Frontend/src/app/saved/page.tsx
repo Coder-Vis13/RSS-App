@@ -7,6 +7,7 @@ import {
 } from "../../services/user.service";
 import { getCategoryPresentation } from "../../lib/categoryColors";
 import AppHeader from "@/components/layout/AppHeader";
+import { getAuthUserId } from "@/auth";
 
 interface SavedItems {
   item_id: number;
@@ -41,7 +42,10 @@ export default function SavedPage() {
     return "all";
   });
 
-  const userId = 1;
+    const userId = getAuthUserId();
+    if (!userId) {
+    return null;
+  }
 
   // Fetch saved items
   useEffect(() => {
