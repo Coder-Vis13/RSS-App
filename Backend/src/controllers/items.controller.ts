@@ -27,12 +27,7 @@ interface SaveItem {
 
 //get unread items for all sources in user's home page
 export const userFeedItemsHandler = async (
-  req: Request<
-    UserId,
-    {},
-    {},
-    { timeFilter?: 'all' | 'today' | 'week' | 'month' }
-  >,
+  req: Request<UserId, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
   res: Response
 ): Promise<void> => {
   const { timeFilter = 'all' } = req.query;
@@ -43,9 +38,7 @@ export const userFeedItemsHandler = async (
     // feedType is removed; userFeedItems now returns both RSS and podcast items
     const unreadItems = await userFeedItems(userId, timeFilter);
 
-    console.info(
-      `INFO: Fetched unread items for user ${userId}`
-    );
+    console.info(`INFO: Fetched unread items for user ${userId}`);
 
     res.json(unreadItems);
   } catch (error) {
@@ -55,7 +48,12 @@ export const userFeedItemsHandler = async (
 
 // get items based on category
 export const getItemsByCategoryHandler = async (
-  req: Request<UserId & { categoryName: string }, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
+  req: Request<
+    UserId & { categoryName: string },
+    {},
+    {},
+    { timeFilter?: 'all' | 'today' | 'week' | 'month' }
+  >,
   res: Response
 ) => {
   const { timeFilter = 'all' } = req.query;
@@ -71,7 +69,12 @@ export const getItemsByCategoryHandler = async (
 
 // get saved items by category for a user
 export const getSavedItemsByCategoryHandler = async (
-  req: Request<UserId & { categoryName: string }, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
+  req: Request<
+    UserId & { categoryName: string },
+    {},
+    {},
+    { timeFilter?: 'all' | 'today' | 'week' | 'month' }
+  >,
   res: Response
 ) => {
   const { categoryName } = req.params;
@@ -84,7 +87,6 @@ export const getSavedItemsByCategoryHandler = async (
     handleError(res, error, 500, 'Error fetching saved items by category');
   }
 };
-
 
 // mark an item read for a user
 export const markItemReadHandler = async (
@@ -112,7 +114,9 @@ export const markUserFeedItemsReadHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
     const readItems = await markUserFeedItemsRead(userId);
 
-    console.info(`INFO: Marked all feed items as read for user ${userId}, count=${readItems.readCount}`);
+    console.info(
+      `INFO: Marked all feed items as read for user ${userId}, count=${readItems.readCount}`
+    );
     res.json(readItems);
   } catch (error) {
     handleError(res, error, 500, 'Error marking items as read');
@@ -135,7 +139,9 @@ export const saveItemHandler = async (
     const parsedItemId = parseNumericId(String(itemId), 'itemId');
     const result = await saveItem(parsedUserId, parsedItemId, save);
 
-    console.info(`INFO: Save status for item ${parsedItemId} (user ${parsedUserId}): ${result.is_save}`);
+    console.info(
+      `INFO: Save status for item ${parsedItemId} (user ${parsedUserId}): ${result.is_save}`
+    );
     res.json({ userId: result.user_id, itemId: result.item_id, is_save: result.is_save });
   } catch (error) {
     handleError(res, error, 500, 'Could not save the item for the user');
@@ -144,12 +150,13 @@ export const saveItemHandler = async (
 
 // get all saved items for a user
 export const allSavedItemsHandler = async (
-  req: Request<UserId>,
+  req: Request<UserId, {}, {}, { timeFilter?: 'all' | 'today' | 'week' | 'month' }>,
   res: Response
 ): Promise<void> => {
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const savedItems = await allSavedItems(userId);
+    const { timeFilter = 'all' } = req.query;
+    const savedItems = await allSavedItems(userId, timeFilter);
 
     console.info(`INFO: Fetched saved items for user ${userId} (${savedItems.length} items)`);
     res.json(savedItems);

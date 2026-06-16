@@ -10,7 +10,7 @@ import {
   sourcePriorityHandler,
   updateSourcePrioritiesHandler,
   getSourceItemsHandler,
-  addSourceHandler
+  addSourceHandler,
 } from '../controllers';
 
 import {
@@ -56,7 +56,7 @@ router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources 
 router.get('/users/:userId/sources/unfoldered', getUnfolderedSourcesHandler); // get all unfoldered sources for a user
 router.delete('/users/:userId/sources/:sourceId', removeUserSourceHandler); // remove source for user
 router.get('/users/:userId/source/:sourceId/items', getSourceItemsHandler); //get all unread items of a source for a user
-router.post("/users/:userId/source", addSourceHandler); //adds a source for a user
+router.post('/users/:userId/source', addSourceHandler); //adds a source for a user
 
 // Items
 router.get('/users/:userId/feed', userFeedItemsHandler); // get unread home feed

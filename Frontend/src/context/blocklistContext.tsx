@@ -1,4 +1,3 @@
-
 import {
   createContext,
   useContext,
@@ -26,15 +25,15 @@ export const useBlocklist = () => {
 
 export const BlocklistProvider = ({ children }: { children: ReactNode }) => {
   const [blocklist, setBlocklist] = useState<string[]>(() => {
-  const stored = localStorage.getItem("blocklist");
-  if (!stored) return [];
-  try {
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-});
+    const stored = localStorage.getItem("blocklist");
+    if (!stored) return [];
+    try {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Save to localStorage
   useEffect(() => {

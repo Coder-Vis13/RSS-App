@@ -26,16 +26,6 @@ app.use(cookieParser());
 
 app.use(loggingHandler);
 
-
-
-
-
-
-
-
-
-
-
 app.get('/test-feed-discovery', async (req: Request, res: Response) => {
   try {
     const websiteUrl = req.query.website as string;
@@ -148,7 +138,7 @@ app.get('/test-feed-discovery', async (req: Request, res: Response) => {
       primaryIndexUrl,
       totalRawFeeds: allFeeds.length,
       importantFeeds: filteredFeeds.length,
-      feeds: filteredFeeds.slice(0, 30), // Top 30 
+      feeds: filteredFeeds.slice(0, 30), // Top 30
     });
   } catch (err: unknown) {
     console.error(err);
@@ -166,9 +156,6 @@ app.get('/test-feed-discovery', async (req: Request, res: Response) => {
   }
 });
 
-
-
-
 import Parser from 'rss-parser';
 
 const rssParser = new Parser({
@@ -179,8 +166,6 @@ const rssParser = new Parser({
   },
   timeout: 15000,
 });
-
-
 
 app.get('/test-rss-parser', async (req: Request, res: Response) => {
   try {
@@ -216,10 +201,6 @@ app.get('/test-rss-parser', async (req: Request, res: Response) => {
     }
   }
 });
-
-
-
-
 
 app.get('/test-apple-search', async (_req: Request, res: Response) => {
   try {
@@ -268,8 +249,6 @@ app.get('/test-apple-search', async (_req: Request, res: Response) => {
     });
   }
 });
-
-
 
 const parser = new Parser({ timeout: 2500 });
 
@@ -360,8 +339,6 @@ app.get('/test-feed-discovery-top', async (req: Request, res: Response) => {
         const parsed = await parser.parseURL(feedUrl);
         const itemCount = parsed.items ? parsed.items.length : 0;
 
-        
-
         if (itemCount > 0) {
           results.push({ feedUrl, itemCount });
         }
@@ -390,7 +367,6 @@ app.get('/test-feed-discovery-top', async (req: Request, res: Response) => {
       bestFeed: results[0],
       topFeeds: results.slice(0, 5),
     });
-
   } catch (err: unknown) {
     return res.status(500).json({
       success: false,
@@ -398,7 +374,6 @@ app.get('/test-feed-discovery-top', async (req: Request, res: Response) => {
     });
   }
 });
-
 
 import pLimit from 'p-limit';
 
@@ -419,9 +394,7 @@ app.get('/test-feed-discovery-top-new', async (req: Request, res: Response) => {
       });
     }
 
-    const normalizedBase = websiteUrl.endsWith('/')
-      ? websiteUrl.slice(0, -1)
-      : websiteUrl;
+    const normalizedBase = websiteUrl.endsWith('/') ? websiteUrl.slice(0, -1) : websiteUrl;
 
     const rssPatterns = [
       '/rss/',
@@ -497,10 +470,7 @@ app.get('/test-feed-discovery-top-new', async (req: Request, res: Response) => {
       limit(async () => {
         try {
           // Quick guard: skip obvious HTML pages
-          if (
-            feedUrl.endsWith('.html') ||
-            feedUrl.endsWith('.htm')
-          ) {
+          if (feedUrl.endsWith('.html') || feedUrl.endsWith('.htm')) {
             return null;
           }
 
@@ -546,7 +516,6 @@ app.get('/test-feed-discovery-top-new', async (req: Request, res: Response) => {
       bestFeed: validFeeds[0],
       topFeeds: validFeeds.slice(0, 5),
     });
-
   } catch (err: unknown) {
     return res.status(500).json({
       success: false,
@@ -554,12 +523,6 @@ app.get('/test-feed-discovery-top-new', async (req: Request, res: Response) => {
     });
   }
 });
-
-
-
-
-
-
 
 async function isLikelyRSS(url: string): Promise<boolean> {
   try {
@@ -577,16 +540,11 @@ async function isLikelyRSS(url: string): Promise<boolean> {
 
     const text = await res.text();
 
-    return (
-      text.includes('<rss') ||
-      text.includes('<feed') ||
-      text.includes('<channel>')
-    );
+    return text.includes('<rss') || text.includes('<feed') || text.includes('<channel>');
   } catch {
     return false;
   }
 }
-
 
 app.get('/test-feed-discovery-top-3', async (req: Request, res: Response) => {
   try {
@@ -602,9 +560,7 @@ app.get('/test-feed-discovery-top-3', async (req: Request, res: Response) => {
       });
     }
 
-    const normalizedBase = websiteUrl.endsWith('/')
-      ? websiteUrl.slice(0, -1)
-      : websiteUrl;
+    const normalizedBase = websiteUrl.endsWith('/') ? websiteUrl.slice(0, -1) : websiteUrl;
 
     const rssPatterns = [
       '/rss/',
@@ -683,10 +639,7 @@ app.get('/test-feed-discovery-top-3', async (req: Request, res: Response) => {
             return null;
           }
 
-          if (
-            feedUrl.endsWith('.html') ||
-            feedUrl.endsWith('.htm')
-          ) {
+          if (feedUrl.endsWith('.html') || feedUrl.endsWith('.htm')) {
             return null;
           }
 
@@ -697,12 +650,12 @@ app.get('/test-feed-discovery-top-3', async (req: Request, res: Response) => {
           // FULL PARSE (unchanged logic)
           const parsed = await parser.parseURL(feedUrl);
           if (parsed.items.length > 100) {
-   return {
-      feedUrl,
-      itemCount: parsed.items.length,
-      strong: true
-   };
-}
+            return {
+              feedUrl,
+              itemCount: parsed.items.length,
+              strong: true,
+            };
+          }
 
           if (!parsed?.items?.length) {
             return null;
@@ -720,28 +673,24 @@ app.get('/test-feed-discovery-top-3', async (req: Request, res: Response) => {
 
     const parsedResults = await Promise.all(parseTasks);
 
-    
-
     const validFeeds = parsedResults.filter(
       (r): r is { feedUrl: string; itemCount: number } => r !== null
     );
 
-    const strongFeed = validFeeds.find(f => (f as any).strong);
+    const strongFeed = validFeeds.find((f) => (f as any).strong);
 
-if (strongFeed) {
-   return res.json({
-      success: true,
-      website: normalizedBase,
-      primaryIndexUrl,
-      totalDiscoveredFeeds: feedSet.size,
-      parsedFeeds: allFeeds.length,
-      validFeedsParsed: validFeeds.length,
-      bestFeed: strongFeed,
-      topFeeds: validFeeds
-        .sort((a, b) => b.itemCount - a.itemCount)
-        .slice(0, 5),
-    });
-}
+    if (strongFeed) {
+      return res.json({
+        success: true,
+        website: normalizedBase,
+        primaryIndexUrl,
+        totalDiscoveredFeeds: feedSet.size,
+        parsedFeeds: allFeeds.length,
+        validFeedsParsed: validFeeds.length,
+        bestFeed: strongFeed,
+        topFeeds: validFeeds.sort((a, b) => b.itemCount - a.itemCount).slice(0, 5),
+      });
+    }
 
     if (validFeeds.length === 0) {
       return res.status(404).json({
@@ -762,7 +711,6 @@ if (strongFeed) {
       bestFeed: validFeeds[0],
       topFeeds: validFeeds.slice(0, 5),
     });
-
   } catch (err: unknown) {
     return res.status(500).json({
       success: false,
@@ -771,18 +719,16 @@ if (strongFeed) {
   }
 });
 
+// 14 june
+import { extract } from '@extractus/feed-extractor';
 
-// 14 june 
-import { extract } from "@extractus/feed-extractor";
-
-
-app.post("/test-feed-2026", async (req, res) => {
+app.post('/test-feed-2026', async (req, res) => {
   try {
     const { feedUrl } = req.body;
 
     if (!feedUrl) {
       return res.status(400).json({
-        error: "feedUrl is required",
+        error: 'feedUrl is required',
       });
     }
 
@@ -793,16 +739,13 @@ app.post("/test-feed-2026", async (req, res) => {
     console.error(error);
 
     return res.status(500).json({
-      error: "Failed to parse feed",
+      error: 'Failed to parse feed',
     });
   }
 });
 
-
 // // @ts-ignore
 // import { discoverFeeds } from "feedscout";
-
-
 
 // app.post("/discover-feed-2026", async (req, res) => {
 
@@ -830,18 +773,15 @@ app.post("/test-feed-2026", async (req, res) => {
 //   }
 // });
 
-
-
-
 // @ts-ignore
-import { discoverFeeds } from "feedscout";
+import { discoverFeeds } from 'feedscout';
 
-app.get("/discover-feed-2026", async (_req, res) => {
+app.get('/discover-feed-2026', async (_req, res) => {
   const websites = [
-    "https://www.reddit.com/r/findareddit/",
-    "https://www.youtube.com/@RaunaqRajani",
-    "https://www.joerogan.com/",
-    "https://www.callherdaddy.com/"
+    'https://www.reddit.com/r/findareddit/',
+    'https://www.youtube.com/@RaunaqRajani',
+    'https://www.joerogan.com/',
+    'https://www.callherdaddy.com/',
   ];
 
   const results = [];
@@ -852,9 +792,7 @@ app.get("/discover-feed-2026", async (_req, res) => {
 
       const feeds = await Promise.race([
         discoverFeeds(website),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 10000)
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000)),
       ]);
 
       results.push({
@@ -893,9 +831,6 @@ export default router;
 // }
 
 // testFeedFinder();
-
-
-
 
 app.use('/', router);
 app.use('/debug', debugRoutes);

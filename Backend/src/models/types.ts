@@ -8,7 +8,7 @@ export interface Item {
   categories: Category[];
   is_categorized: boolean;
   tags?: string[];
-  feed_type?: "rss" | "podcast"
+  feed_type?: 'rss' | 'podcast';
 }
 
 export interface Source {

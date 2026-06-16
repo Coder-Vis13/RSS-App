@@ -88,7 +88,10 @@ export async function categorizeItem(
     await CategoryModel.linkItemCategory(itemId, categoryId);
   }
 
-  await query(`UPDATE item SET is_categorized = true WHERE item_id = $1 AND is_categorized = false`, [itemId]);
+  await query(
+    `UPDATE item SET is_categorized = true WHERE item_id = $1 AND is_categorized = false`,
+    [itemId]
+  );
 
   console.log(`Categories added for item ${itemId}:`, categories);
 }

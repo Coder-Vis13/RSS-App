@@ -1,14 +1,9 @@
-
-
-
 //container - all logic, owns its own data
-
 
 import { useState, useEffect, useMemo } from "react";
 import { Bookmark } from "lucide-react";
 import { Button } from "../../components/ui/button";
 // import { readItems } from "../../services/user.service";
-
 
 import {
   userFeedItems,
@@ -41,16 +36,29 @@ export default function FeedPage() {
   const [feedItems, setFeedItems] = useState<FeedItems[]>([]);
   // const [sources, setSources] = useState<UserSources[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
-  
+  const [expandedSources, setExpandedSources] = useState<
+    Record<string, boolean>
+  >({});
+
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const [allCategories, setAllCategories] = useState<string[]>([]);
   // const [readCount, setReadCount] = useState(0);
-  const [selectedTime, setSelectedTime] = useState<"all" | "today" | "week" | "month">("all");
-
-  
+  const [selectedTime, setSelectedTime] = useState<
+    "all" | "today" | "week" | "month"
+  >(() => {
+    const stored = sessionStorage.getItem("activeTimeFilter");
+    if (
+      stored === "today" ||
+      stored === "week" ||
+      stored === "month" ||
+      stored === "all"
+    ) {
+      return stored;
+    }
+    return "all";
+  });
 
   const userId = 1;
 
@@ -88,7 +96,6 @@ export default function FeedPage() {
   //   };
   // }, [userId, feedType]);
 
-
   //Fetch feed
   useEffect(() => {
     if (!userId) return;
@@ -101,7 +108,11 @@ export default function FeedPage() {
         if (selectedCategory === "All") {
           data = await userFeedItems(userId, selectedTime);
         } else {
-          data = await getItemsByCategory(userId, selectedCategory, selectedTime);
+          data = await getItemsByCategory(
+            userId,
+            selectedCategory,
+            selectedTime,
+          );
         }
         const normalized = data.map((i: any) => ({
           ...i,
@@ -151,7 +162,11 @@ export default function FeedPage() {
       if (selectedCategory === "All") {
         updatedFeed = await userFeedItems(userId, selectedTime);
       } else {
-        updatedFeed = await getItemsByCategory(userId, selectedCategory, selectedTime);
+        updatedFeed = await getItemsByCategory(
+          userId,
+          selectedCategory,
+          selectedTime,
+        );
       }
       const normalized = updatedFeed.map((i: any) => ({
         ...i,
@@ -164,8 +179,8 @@ export default function FeedPage() {
   };
 
   const handleCategorySelect = (category: string) => {
-  setSelectedCategory(category);
-};
+    setSelectedCategory(category);
+  };
 
   const handleSave = async (itemId: number) => {
     const item = feedItems.find((i) => i.item_id === itemId);
@@ -180,8 +195,6 @@ export default function FeedPage() {
       console.error("Failed to toggle save:", err);
     }
   };
-
-
 
   const filterWithBlocklist = (items: FeedItems[], blocklist: string[]) => {
     return items.filter((article) => {
@@ -232,11 +245,11 @@ export default function FeedPage() {
             Your feed is empty right now. Add some sources to start receiving
             articles and podcasts!
           </p>
-        </div> 
+        </div>
       ) : (
         <>
           <main className="flex-1 w-full">
-            <AppHeader 
+            <AppHeader
               feedType={feedType}
               setFeedType={setFeedType}
               selectedCategory={selectedCategory}
@@ -247,126 +260,129 @@ export default function FeedPage() {
               onMarkAllRead={handleMarkAsReadFeed}
             />
 
-              {/* <Separator className="bg-[#b0b0b0] mt-4" /> */}
-            
+            {/* <Separator className="bg-[#b0b0b0] mt-4" /> */}
 
             {/* Feed */}
             <div className="px-6">
-            <section className=" max-w-[1100px] mx-auto">
-              {loading ? (
-                <p className="text-gray-500">Loading feed...</p>
-              ) : filteredFeedItems.length === 0 ? (
-                <div className="w-full text-center py-10 text-gray-400">
-                  No items yet.
-                </div>
-              ) : (
-                <div className="flex flex-col divide-y divide-gray-300">
-                  {Object.entries(groupedFeed).map(([source, items]) => {
-                    const isExpanded = expandedSources[source];
-                    const visibleItems = isExpanded
-                      ? items
-                      : items.slice(0, 15);
-                    return (
-                      <div key={source} className="mb-4 mt-8">
-                        <h4 className="text-lg font-semibold mb-3">{source}</h4>
-                        <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-                          {visibleItems.map((item) => (
-                            <div
-                              key={item.item_id}
-                              className="py-6 flex divide-gray-300 items-start hover:bg-[var(--hover)] transition"
-                            >
-                              <div className="flex-1 pr-4">
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                  {item.categories?.map((cat) => {
-                                    const {
-                                      className: backendClasses,
-                                      style: backendStyle,
-                                    } = getCategoryPresentation(
-                                      cat.color,
-                                      cat.name,
-                                    );
-                                    return (
-                                      <span
-                                        key={cat.name}
-                                        className={`text-[12px] px-2 py-0. rounded-full ${backendClasses}`}
-                                        style={backendStyle}
-                                      >
-                                        {cat.name}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                                {item.tags && item.tags.length > 0 && (
-                                  <div className="flex flex-wrap gap-2 mt-1 mb-4">
-                                    {item.tags.map((tag) => (
-                                      <span
-                                        key={tag}
-                                        className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
+              <section className=" max-w-[1100px] mx-auto">
+                {loading ? (
+                  <p className="text-gray-500">Loading feed...</p>
+                ) : filteredFeedItems.length === 0 ? (
+                  <div className="w-full text-center py-10 text-gray-400">
+                    No items yet.
+                  </div>
+                ) : (
+                  <div className="flex flex-col divide-y divide-gray-300">
+                    {Object.entries(groupedFeed).map(([source, items]) => {
+                      const isExpanded = expandedSources[source];
+                      const visibleItems = isExpanded
+                        ? items
+                        : items.slice(0, 15);
+                      return (
+                        <div key={source} className="mb-4 mt-8">
+                          <h4 className="text-lg font-semibold mb-3">
+                            {source}
+                          </h4>
+                          <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
+                            {visibleItems.map((item) => (
+                              <div
+                                key={item.item_id}
+                                className="py-6 flex divide-gray-300 items-start hover:bg-[var(--hover)] transition"
+                              >
+                                <div className="flex-1 pr-4">
+                                  <div className="flex flex-wrap gap-2 mb-2">
+                                    {item.categories?.map((cat) => {
+                                      const {
+                                        className: backendClasses,
+                                        style: backendStyle,
+                                      } = getCategoryPresentation(
+                                        cat.color,
+                                        cat.name,
+                                      );
+                                      return (
+                                        <span
+                                          key={cat.name}
+                                          className={`text-[12px] px-2 py-0. rounded-full ${backendClasses}`}
+                                          style={backendStyle}
+                                        >
+                                          {cat.name}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
-                                )}
-                                <a
-                                  href={item.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={() => handleMarkAsRead(item.item_id)}
-                                  className="text-[var(--accent)] hover:underline font-medium"
-                                >
-                                  {item.title}
-                                </a>
+                                  {item.tags && item.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-1 mb-4">
+                                      {item.tags.map((tag) => (
+                                        <span
+                                          key={tag}
+                                          className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <a
+                                    href={item.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() =>
+                                      handleMarkAsRead(item.item_id)
+                                    }
+                                    className="text-[var(--accent)] hover:underline font-medium"
+                                  >
+                                    {item.title}
+                                  </a>
 
-                                {item.description && (
-                                  <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
-                                    {item.description}
-                                  </p>
-                                )}
-                                {item.pub_date && (
-                                  <p className="text-xs text-gray-500 mt-4">
-                                    {new Date(
-                                      item.pub_date,
-                                    ).toLocaleDateString()}
-                                  </p>
-                                )}
+                                  {item.description && (
+                                    <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
+                                      {item.description}
+                                    </p>
+                                  )}
+                                  {item.pub_date && (
+                                    <p className="text-xs text-gray-500 mt-4">
+                                      {new Date(
+                                        item.pub_date,
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleSave(item.item_id)}
+                                >
+                                  <Bookmark
+                                    size={24}
+                                    className={
+                                      item.is_save
+                                        ? "text-[var(--accent)] fill-[var(--accent)]"
+                                        : "text-gray-400"
+                                    }
+                                  />
+                                </Button>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleSave(item.item_id)}
-                              >
-                                <Bookmark
-                                  size={24}
-                                  className={
-                                    item.is_save
-                                      ? "text-[var(--accent)] fill-[var(--accent)]"
-                                      : "text-gray-400"
-                                  }
-                                />
-                              </Button>
-                            </div>
-                          ))}
-                          {items.length > 15 && (
-                            <div className="flex justify-center mt-4 mb-4">
-                              <Button
-                                variant="ghost"
-                                className="text-[var(--accent)] hover:text-[var(--navyblue)]"
-                                onClick={() => toggleSource(source)}
-                              >
-                                {isExpanded
-                                  ? "Show less"
-                                  : `Show ${items.length - 15} more`}
-                              </Button>
-                            </div>
-                          )}
+                            ))}
+                            {items.length > 15 && (
+                              <div className="flex justify-center mt-4 mb-4">
+                                <Button
+                                  variant="ghost"
+                                  className="text-[var(--accent)] hover:text-[var(--navyblue)]"
+                                  onClick={() => toggleSource(source)}
+                                >
+                                  {isExpanded
+                                    ? "Show less"
+                                    : `Show ${items.length - 15} more`}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             </div>
           </main>
         </>

@@ -6,14 +6,13 @@ import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/hel
 import { Source } from './types';
 import pLimit from 'p-limit';
 
-const limit = pLimit(5); 
-
+const limit = pLimit(5);
 
 interface UserSource {
   user_id: number;
   source_id: number;
   priority: number;
-  feed_type: "rss" | "podcast";
+  feed_type: 'rss' | 'podcast';
 }
 
 interface AddUserSourceResult extends UserSource {
@@ -35,7 +34,6 @@ interface UserSources {
   source_name: string;
   url: string;
 }
-
 
 interface SourceWithPriority extends Source {
   priority: number;
@@ -92,7 +90,8 @@ export const getUnfolderedSources = async (
 // add a new source to the source table
 export const addSource = async (
   sourceName: string,
-  sourceURL: string
+  sourceURL: string,
+  feedType: 'rss' | 'podcast' = 'rss'
 ): Promise<AddSource> => {
   const selectResult: QueryResult<Pick<Source, 'source_id' | 'source_name'>> = await query(
     `SELECT source_id, source_name FROM source WHERE url = $1`,
@@ -106,22 +105,21 @@ export const addSource = async (
   }
 
   const insertResult: QueryResult<Pick<Source, 'source_id' | 'source_name'>> = await query(
-    `INSERT INTO source(source_name, url)
-     VALUES ($1, $2)
+    `INSERT INTO source(source_name, url, feed_type)
+     VALUES ($1, $2, $3)
      RETURNING source_id, source_name`,
-    [sourceName, sourceURL]
+    [sourceName, sourceURL, feedType]
   );
   const newSource = getFirstRow(insertResult);
   logAction(`Added new source: Name=${sourceName} URL=${sourceURL}`);
   return markAsCreated(newSource);
 };
 
-
 // add a source (RSS or podcast) for a user
 export const addUserSource = async (
   userId: number,
   sourceId: number,
-  feedType: "rss" | "podcast"
+  feedType: 'rss' | 'podcast'
 ): Promise<AddUserSourceResult> => {
   // check if the user already has this source
   const selectResult: QueryResult<UserSource> = await query(
@@ -162,10 +160,6 @@ export const addUserSource = async (
 
   return markAsCreated(newUserSource);
 };
-
-
-
-
 
 // // add a source for a user
 // export const addUserRSS = async (
@@ -208,7 +202,6 @@ export const addUserSource = async (
 //   return markAsCreated(newUserSource);
 // };
 
-
 // //adding a podcast source for a user
 // export const addUserPodcast = async (
 //   userId: number,
@@ -216,7 +209,7 @@ export const addUserSource = async (
 // ): Promise<AddUserSourceResult> => {
 //   const selectResult: QueryResult<UserSource> = await query(
 //     `SELECT user_id, podcast_id AS source_id, priority
-//      FROM user_podcast 
+//      FROM user_podcast
 //      WHERE user_id = $1 AND podcast_id = $2`,
 //     [userId, sourceId]
 //   );
@@ -254,7 +247,6 @@ export const addUserSource = async (
 //   return markAsCreated(newUserPodcast);
 // };
 
-
 // remove a source for a user
 export const removeUserSource = async (
   userId: number,
@@ -269,10 +261,7 @@ export const removeUserSource = async (
   const removedPriority = userRow?.priority ?? null;
   const feedType = userRow?.feed_type ?? 'rss';
 
-  await query(`DELETE FROM user_source WHERE user_id = $1 AND source_id = $2`, [
-    userId,
-    sourceId,
-  ]);
+  await query(`DELETE FROM user_source WHERE user_id = $1 AND source_id = $2`, [userId, sourceId]);
 
   await query(
     `DELETE FROM user_item_metadata
@@ -316,7 +305,6 @@ export const removeUserSource = async (
   return sourcesResult.rows;
 };
 
-
 // get all sources for a user (RSS + Podcasts combined)
 export const allUserSources = async (userId: number): Promise<UserSources[]> => {
   const result: QueryResult<UserSources> = await query(
@@ -339,7 +327,6 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
 
   return sourcesWithLogos;
 };
-
 
 // //get all the blog sources for a user
 // export const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
@@ -381,8 +368,6 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
 //   return sourcesWithLogos;
 // };
 
-
-
 // mark all items of a specific source as read for a user
 export const markSourceItemsRead = async (
   userId: number,
@@ -395,9 +380,6 @@ export const markSourceItemsRead = async (
   const source = sourceResult.rows[0];
   if (!source) throw new Error(`Source ${sourceId} not found`);
 
-  // Determine the interval based on feed_type
-  const interval = source.feed_type === 'podcast' ? '6 months' : '2 days';
-
   const result: QueryResult<MarkReadRow> = await query(
     `
     INSERT INTO user_item_metadata (user_id, item_id, read_time)
@@ -406,7 +388,6 @@ export const markSourceItemsRead = async (
     JOIN user_source us ON us.source_id = i.source_id
     WHERE us.user_id = $1
       AND i.source_id = $2
-      AND i.pub_date >= NOW() - interval '${interval}'
     ON CONFLICT (user_id, item_id)
       DO UPDATE SET read_time = EXCLUDED.read_time
     RETURNING user_id, item_id, read_time
@@ -421,19 +402,16 @@ export const markSourceItemsRead = async (
   return { readCount: result.rows.length ?? 0 };
 };
 
-
-//get all items of a source 
+//get all items of a source
 export const getSourceItems = async (
   userId: number,
   sourceId: number,
   timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
 ): Promise<SourceItem[]> => {
-
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-
 
   const sourceRow = await query<{ feed_type: 'rss' | 'podcast' }>(
     `SELECT feed_type FROM source WHERE source_id = $1`,
@@ -475,11 +453,7 @@ export const getSourceItems = async (
     WHERE us.user_id = $1
       AND i.source_id = $2
       AND uim.read_time IS NULL
-      AND (
-      (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
-      OR
-      (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
-    )
+      ${timeClause}
     GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
     ORDER BY us.priority, i.pub_date DESC
   `;
@@ -490,12 +464,11 @@ export const getSourceItems = async (
   // Auto-categorize uncategorized items
   const uncategorized = result.rows.filter((item) => !item.is_categorized);
 
-   await Promise.all(
-      uncategorized.map(item =>
-        limit(async () => {
-          await categorizeItem(item.item_id, item.title, item.description);
-        }
-      )
+  await Promise.all(
+    uncategorized.map((item) =>
+      limit(async () => {
+        await categorizeItem(item.item_id, item.title, item.description);
+      })
     )
   );
 
@@ -506,7 +479,6 @@ export const getSourceItems = async (
 
   return result.rows;
 };
-
 
 //checks if the user has the source in the feed already
 export const checkSourceExists = async (userId: number, sourceURL: string): Promise<boolean> => {
@@ -544,12 +516,6 @@ export const checkSourceExists = async (userId: number, sourceURL: string): Prom
 
   return exists;
 };
-
-
-
-
-
-
 
 //get all sources for a user ordered by priority
 export const sourcePriority = async (

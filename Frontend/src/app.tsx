@@ -50,10 +50,7 @@ export default function Dashboard() {
                 <Route path="recently-read" element={<ReadPage />} />
                 <Route path="folders/:folderId" element={<FolderPage />} />
                 <Route path="/sources/:sourceId" element={<SourcePage />} />
-                <Route
-                  path="/"
-                  element={<Navigate to="/landing" replace />}
-                />
+                <Route path="/" element={<Navigate to="/landing" replace />} />
               </Routes>
             </SidebarLayout>
           }

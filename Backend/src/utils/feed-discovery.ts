@@ -1,10 +1,7 @@
-
-
-import { find } from "feedfinder-ts";
-import Parser from "rss-parser";
-import pLimit from "p-limit";
-import { FeedItem, RSSResult } from "./types";
-
+import { find } from 'feedfinder-ts';
+import Parser from 'rss-parser';
+import pLimit from 'p-limit';
+import { FeedItem, RSSResult } from './types';
 
 const parser = new Parser<FeedItem>();
 
@@ -39,10 +36,10 @@ const CONCURRENCY_LIMIT = 8;
 // }
 
 function normalizeUrl(url: string): string {
-  return url.endsWith("/") ? url.slice(0, -1) : url;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
-export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResult | null>  {
+export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResult | null> {
   const startTime = Date.now();
   const normalizedBase = normalizeUrl(sourceURL);
   // PHASE 1 — feedfinder-ts
@@ -66,10 +63,10 @@ export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResul
             // immediately return first valid feed
             return {
               feedUrl: link,
-              sourceName: parsed.title || "",
-              sourceItems: parsed.items.map(item => ({
-                title: item.title || "Untitled",
-                link: item.link || "",
+              sourceName: parsed.title || '',
+              sourceItems: parsed.items.map((item) => ({
+                title: item.title || 'Untitled',
+                link: item.link || '',
                 pubDate: item.pubDate,
                 description: item.contentSnippet || item.content,
               })),
@@ -85,20 +82,20 @@ export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResul
     // feedfinder-ts failed, move to Phase 2
   }
 
-  // PHASE 2 — Advanced Discovery 
+  // PHASE 2 — Advanced Discovery
 
   const rssPatterns = [
-    "/rss/",
-    "/rss",
-    "/feed/",
-    "/feeds/",
-    "/rss.html",
-    "/rss.cms",
-    "",
-    "",
-    "/rss-feeds/",
-    "/rss-feeds/listing",
-    "/info/rssfeed",
+    '/rss/',
+    '/rss',
+    '/feed/',
+    '/feeds/',
+    '/rss.html',
+    '/rss.cms',
+    '',
+    '',
+    '/rss-feeds/',
+    '/rss-feeds/listing',
+    '/info/rssfeed',
   ];
 
   const feedSet = new Set<string>();
@@ -130,7 +127,6 @@ export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResul
     return null;
   }
 
-
   const allFeeds = Array.from(feedSet).slice(0, MAX_FEEDS_TO_PARSE);
   const limit = pLimit(CONCURRENCY_LIMIT);
 
@@ -139,13 +135,9 @@ export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResul
       try {
         if (Date.now() - startTime > MAX_TOTAL_TIME) return null;
 
-        if (
-          feedUrl.endsWith(".html") ||
-          feedUrl.endsWith(".htm")
-        ) {
+        if (feedUrl.endsWith('.html') || feedUrl.endsWith('.htm')) {
           return null;
         }
-
 
         const parsed = await parser.parseURL(feedUrl);
 
@@ -154,7 +146,7 @@ export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResul
         return {
           feedUrl,
           itemCount: parsed.items.length,
-          title: parsed.title || "",
+          title: parsed.title || '',
           items: parsed.items,
         };
       } catch {
@@ -165,18 +157,19 @@ export async function resolveWorkingRSSFeed(sourceURL: string): Promise<RSSResul
 
   const parsedResults = await Promise.allSettled(parseTasks);
 
-const validFeeds = parsedResults
-  .filter(
-    (r): r is PromiseFulfilledResult<{ 
-      feedUrl: string; 
-      itemCount: number; 
-      title: string; 
-      items: any[]; 
-    }> => r.status === "fulfilled" && r.value !== null
-  )
-  .map(r => r.value);
+  const validFeeds = parsedResults
+    .filter(
+      (
+        r
+      ): r is PromiseFulfilledResult<{
+        feedUrl: string;
+        itemCount: number;
+        title: string;
+        items: any[];
+      }> => r.status === 'fulfilled' && r.value !== null
+    )
+    .map((r) => r.value);
 
-  
   if (!validFeeds.length) {
     return null;
   }
@@ -193,33 +186,10 @@ const validFeeds = parsedResults
   };
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import { find } from "feedfinder-ts";
 // import Parser from "rss-parser";
 // import pLimit from "p-limit";
 // import { FeedItem, RSSResult } from "./types";
-
 
 // const parser = new Parser<FeedItem>();
 
@@ -311,8 +281,7 @@ const validFeeds = parsedResults
 //   // feedfinder failed, move to Phase 2
 // }
 
-
-//   // PHASE 2 — Advanced Discovery 
+//   // PHASE 2 — Advanced Discovery
 
 //   const rssPatterns = [
 //     "/rss/",
@@ -357,7 +326,6 @@ const validFeeds = parsedResults
 //     return null;
 //   }
 
-
 //   const allFeeds = Array.from(feedSet).slice(0, MAX_FEEDS_TO_PARSE);
 //   const limit = pLimit(CONCURRENCY_LIMIT);
 
@@ -372,7 +340,6 @@ const validFeeds = parsedResults
 //         ) {
 //           return null;
 //         }
-
 
 //         const parsed = await parser.parseURL(feedUrl);
 
@@ -394,16 +361,15 @@ const validFeeds = parsedResults
 
 // const validFeeds = parsedResults
 //   .filter(
-//     (r): r is PromiseFulfilledResult<{ 
-//       feedUrl: string; 
-//       itemCount: number; 
-//       title: string; 
-//       items: any[]; 
+//     (r): r is PromiseFulfilledResult<{
+//       feedUrl: string;
+//       itemCount: number;
+//       title: string;
+//       items: any[];
 //     }> => r.status === "fulfilled" && r.value !== null
 //   )
 //   .map(r => r.value);
 
-  
 //   if (!validFeeds.length) {
 //     return null;
 //   }

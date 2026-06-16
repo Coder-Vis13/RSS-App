@@ -8,7 +8,6 @@ import {
 import { getCategoryPresentation } from "../../lib/categoryColors";
 import AppHeader from "@/components/layout/AppHeader";
 
-
 interface SavedItems {
   item_id: number;
   title: string;
@@ -18,7 +17,7 @@ interface SavedItems {
   source_name: string;
   categories?: { name: string; color: string }[];
   tags?: string[];
-    feed_type: "rss" | "podcast";
+  feed_type: "rss" | "podcast";
 }
 
 export default function SavedPage() {
@@ -27,10 +26,22 @@ export default function SavedPage() {
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [allCategories, setAllCategories] = useState<string[]>([]);
-  const [selectedTime, setSelectedTime] = useState<"all" | "today" | "week" | "month">("all");
-  
-  const userId = 1;
+  const [selectedTime, setSelectedTime] = useState<
+    "all" | "today" | "week" | "month"
+  >(() => {
+    const stored = sessionStorage.getItem("activeTimeFilter");
+    if (
+      stored === "today" ||
+      stored === "week" ||
+      stored === "month" ||
+      stored === "all"
+    ) {
+      return stored;
+    }
+    return "all";
+  });
 
+  const userId = 1;
 
   // Fetch saved items
   useEffect(() => {
@@ -44,7 +55,11 @@ export default function SavedPage() {
         if (selectedCategory === "All") {
           data = await allSavedItems(userId, selectedTime);
         } else {
-          data = await getSavedItemsByCategory(userId, selectedCategory, selectedTime);
+          data = await getSavedItemsByCategory(
+            userId,
+            selectedCategory,
+            selectedTime,
+          );
         }
 
         setSavedItems(data);
@@ -100,13 +115,12 @@ export default function SavedPage() {
   //   }
   // };
 
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+  };
 
-   const handleCategorySelect = (category: string) => {
-  setSelectedCategory(category);
-};
-
-const filteredSavedItems = useMemo(() => {
-    return savedItems.filter(i => i.feed_type === feedType);
+  const filteredSavedItems = useMemo(() => {
+    return savedItems.filter((i) => i.feed_type === feedType);
   }, [savedItems, feedType]);
 
   const handleMarkAllReadSaved = async () => {
@@ -115,14 +129,15 @@ const filteredSavedItems = useMemo(() => {
         await markItemRead(userId, item.item_id);
       }
       const markedIds = new Set(filteredSavedItems.map((item) => item.item_id));
-      setSavedItems((prev) => prev.filter((item) => !markedIds.has(item.item_id)));
+      setSavedItems((prev) =>
+        prev.filter((item) => !markedIds.has(item.item_id)),
+      );
     } catch (err) {
       console.error("Failed to mark all as read:", err);
     }
   };
 
-const noSavedItems = !loading && savedItems.length === 0;
-
+  const noSavedItems = !loading && savedItems.length === 0;
 
   return (
     <div>
@@ -141,87 +156,88 @@ const noSavedItems = !loading && savedItems.length === 0;
         </div>
       ) : (
         <>
-        {/* Header */}
-        <AppHeader
-  feedType={feedType}
-  setFeedType={setFeedType}
-  selectedCategory={selectedCategory}
-  onCategorySelect={handleCategorySelect}
-  categories={allCategories}
-  selectedTime={selectedTime}
-  setSelectedTime={setSelectedTime}
-  onMarkAllRead={handleMarkAllReadSaved}
-/>
-<div className="px-6">
-        <section className="max-w-[1100px] mx-auto">
-          
-          {/* Saved items */}
-          {loading ? (
-            <p className="text-[var(--text-light)]">Loading saved items...</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-              {filteredSavedItems.map((item) => (
-                <div
-                  key={item.item_id}
-                  className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
-                >
-                  <div className="flex-1 pr-4">
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {item.categories?.map((cat) => {
-                        const {
-                          className: backendClasses,
-                          style: backendStyle,
-                        } = getCategoryPresentation(cat.color, cat.name);
-                        return (
-                          <span
-                            key={cat.name}
-                            className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
-                            style={backendStyle}
-                          >
-                            {cat.name}
-                          </span>
-                        );
-                      })}
-                    </div>
-                    {item.tags && item.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-1 mb-4">
-                        {item.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => handleMarkAsReadSaved(item.item_id)}
-                      className="text-[var(--accent)] hover:underline font-medium"
+          {/* Header */}
+          <AppHeader
+            feedType={feedType}
+            setFeedType={setFeedType}
+            selectedCategory={selectedCategory}
+            onCategorySelect={handleCategorySelect}
+            categories={allCategories}
+            selectedTime={selectedTime}
+            setSelectedTime={setSelectedTime}
+            onMarkAllRead={handleMarkAllReadSaved}
+          />
+          <div className="px-6">
+            <section className="max-w-[1100px] mx-auto">
+              {/* Saved items */}
+              {loading ? (
+                <p className="text-[var(--text-light)]">
+                  Loading saved items...
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
+                  {filteredSavedItems.map((item) => (
+                    <div
+                      key={item.item_id}
+                      className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
                     >
-                      {item.title}
-                    </a>
-                    {item.description && (
-                      <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
-                        {item.description}
-                      </p>
-                    )}
-                    {item.pub_date && (
-                      <p className="text-xs text-[var(--text-light)] mt-4">
-                        {item.source_name} •{" "}
-                        {new Date(item.pub_date).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
+                      <div className="flex-1 pr-4">
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {item.categories?.map((cat) => {
+                            const {
+                              className: backendClasses,
+                              style: backendStyle,
+                            } = getCategoryPresentation(cat.color, cat.name);
+                            return (
+                              <span
+                                key={cat.name}
+                                className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
+                                style={backendStyle}
+                              >
+                                {cat.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        {item.tags && item.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1 mb-4">
+                            {item.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleMarkAsReadSaved(item.item_id)}
+                          className="text-[var(--accent)] hover:underline font-medium"
+                        >
+                          {item.title}
+                        </a>
+                        {item.description && (
+                          <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
+                            {item.description}
+                          </p>
+                        )}
+                        {item.pub_date && (
+                          <p className="text-xs text-[var(--text-light)] mt-4">
+                            {item.source_name} •{" "}
+                            {new Date(item.pub_date).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-        </div>
+              )}
+            </section>
+          </div>
         </>
       )}
     </div>

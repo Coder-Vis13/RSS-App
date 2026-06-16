@@ -66,9 +66,10 @@ const markUserFolderItemsRead = (userId: number, folderId: number) =>
 const saveItem = (userId: number, itemId: number, save: boolean) =>
   post(`/users/${userId}/items/save`, { userId, itemId, save });
 
-  
-const allSavedItems = (userId: number, timeFilter?: "all" | "today" | "week" | "month",) => 
-  get(`/users/${userId}/saved`, {timeFilter});
+const allSavedItems = (
+  userId: number,
+  timeFilter?: "all" | "today" | "week" | "month",
+) => get(`/users/${userId}/saved`, { timeFilter });
 
 const getSourceItems = (
   userId: number,
@@ -90,8 +91,10 @@ const updateSourcePriorities = async (
   feedType: "rss" | "podcast",
 ) => post(`/users/${userId}/sources/priority`, { userId, sources, feedType });
 
-const readItems = (userId: number, timeFilter?: "all" | "today" | "week" | "month",) => 
-  get(`/users/${userId}/read`, {timeFilter});
+const readItems = (
+  userId: number,
+  timeFilter?: "all" | "today" | "week" | "month",
+) => get(`/users/${userId}/read`, { timeFilter });
 
 const presetSources = (
   userId: number,
@@ -99,17 +102,19 @@ const presetSources = (
   feedType: "rss" | "podcast",
 ) => post(`/users/sources/add`, { userId, sourceId, feedType });
 
-  
-const getItemsByCategory = (userId: number, categoryName: string, timeFilter?: "all" | "today" | "week" | "month",
-): Promise<any[]> => get(`/users/${userId}/category/${categoryName}`, {timeFilter});
+const getItemsByCategory = (
+  userId: number,
+  categoryName: string,
+  timeFilter?: "all" | "today" | "week" | "month",
+): Promise<any[]> =>
+  get(`/users/${userId}/category/${categoryName}`, { timeFilter });
 
 const getSavedItemsByCategory = (
   userId: number,
   categoryName: string,
-  timeFilter?: "all" | "today" | "week" | "month"
-): Promise<any[]> => get(`/users/${userId}/saved/category/${categoryName}`, {timeFilter});
-
-
+  timeFilter?: "all" | "today" | "week" | "month",
+): Promise<any[]> =>
+  get(`/users/${userId}/saved/category/${categoryName}`, { timeFilter });
 
 export {
   addUser,

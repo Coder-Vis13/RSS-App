@@ -1,9 +1,8 @@
 import { schedule } from 'node-cron';
+import { FeedEntry } from '@extractus/feed-extractor';
 import { query } from './config/db';
-import { RSSParser, ParsedRSS, RSSItem } from './services/rss.service';
-import { podcastParser } from './services/podcast.service';
+import { parseFeed, FeedParseError } from './services/feed-ingestion/parse-feed.service';
 import { addItem, addUserItemMetadata } from './models/items.model';
-import { addSource } from './models/sources.model';
 import pLimit from 'p-limit';
 
 export interface SourceRow {
@@ -13,13 +12,18 @@ export interface SourceRow {
   user_ids: number[];
 }
 
+const REFRESH_SCAN_LIMIT = 50;
+const TIMEOUT_MS = 12_000;
+const CONCURRENCY = 8;
 
-export interface AddItemResult {
-  insertedIds: number[];
-  insertCount: number;
+interface RefreshItem {
+  link: string;
+  title: string;
+  description: string | null;
+  pubDate: Date;
+  tags?: string[];
 }
 
-// Utility: timeout per feed
 async function withTimeout<T>(promise: Promise<T>, ms: number, url: string): Promise<T> {
   return Promise.race([
     promise,
@@ -29,99 +33,126 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, url: string): Pro
   ]);
 }
 
-export async function runFeedRefresh(): Promise<void> {
-  const startTime = new Date();
-  console.log(`🕓 CRON -> Starting feed refresh at ${startTime.toISOString()}`);
+function resolveLink(entry: FeedEntry): string | null {
+  const link = typeof entry.link === 'string' ? entry.link.trim() : '';
+  const id = typeof entry.id === 'string' ? entry.id.trim() : '';
+  return link || id || null;
+}
+
+function resolvePubDate(entry: FeedEntry): Date {
+  const published = entry.published as unknown;
+
+  if (published instanceof Date && !Number.isNaN(published.getTime())) {
+    return published;
+  }
+
+  if (typeof entry.published === 'string' || typeof entry.published === 'number') {
+    const parsed = new Date(entry.published);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return new Date();
+}
+
+/**
+ * Refresh-specific normalizer — NO initial-import cap.
+ * normalizeItems() applies INITIAL_RSS/PODCAST_IMPORT_LIMIT and must NOT be used here.
+ */
+function normalizeEntriesForRefresh(entries: FeedEntry[], scanLimit: number): RefreshItem[] {
+  const items: RefreshItem[] = [];
+
+  for (const entry of entries) {
+    const link = resolveLink(entry);
+    if (!link) continue;
+
+    items.push({
+      link,
+      title:
+        typeof entry.title === 'string' && entry.title.trim() ? entry.title.trim() : 'Untitled',
+      description:
+        typeof entry.description === 'string' && entry.description.trim()
+          ? entry.description.trim()
+          : null,
+      pubDate: resolvePubDate(entry),
+    });
+  }
+
+  return items.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime()).slice(0, scanLimit);
+}
+
+async function refreshSource(row: SourceRow): Promise<void> {
+  const { source_id: sourceId, url, feed_type, user_ids: userIds } = row;
+  const feedStart = Date.now();
 
   try {
-    const sourcesRes = await query<SourceRow>(`
-  SELECT 
-    s.source_id,
-    s.url,
-    s.feed_type,
-    COALESCE(array_agg(us.user_id), array[]::int[]) AS user_ids
-  FROM source s
-  LEFT JOIN user_source us 
-    ON us.source_id = s.source_id
-  GROUP BY s.source_id, s.url, s.feed_type
-`);
+    const parsed = await withTimeout(parseFeed(url), TIMEOUT_MS, url);
+    const entries = parsed.entries ?? [];
 
+    if (!entries.length) {
+      console.log(`CRON -> Empty feed: ${url}`);
+      return;
+    }
 
-    const sources = sourcesRes.rows;
-    const TIMEOUT_MS = 15000; // per-feed timeout
-    const CONCURRENCY = 10; // process 10 feeds at a time
-    const limit = pLimit(CONCURRENCY);
+    const items = normalizeEntriesForRefresh(entries, REFRESH_SCAN_LIMIT);
 
-    await Promise.allSettled(
-      sources.map((row) =>
-        limit(async () => {
-        const { source_id: sourceId, url, feed_type, user_ids } = row;
-        const userIds = user_ids;
+    const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, items);
 
+    if (insertCount > 0) {
+      const label = feed_type === 'podcast' ? 'episodes' : 'items';
+      console.log(`CRON -> +${insertCount} ${label} | ${parsed.title ?? url}`);
 
-          const feedStart = Date.now();
+      if (userIds.length) {
+        await Promise.allSettled(userIds.map((uid) => addUserItemMetadata(uid, insertedIds)));
+      }
+    }
 
-          try {
-            if (feed_type === 'rss') {
-              const { sourceName, sourceItems }: ParsedRSS = await withTimeout(
-                RSSParser(url),
-                TIMEOUT_MS,
-                url
-              );
-
-              console.log(`CRON -> Processing RSS: ${sourceName} (${sourceItems.length} items)`);
-
-              // Ensure source exists or update its name
-              await addSource(sourceName, url);
-
-              if (sourceItems.length === 0) return;
-
-              // Bulk insert items
-              const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, sourceItems);
-              if (insertCount > 0) console.log(`CRON -> Inserted ${insertCount} RSS items`);
-
-              if (insertedIds.length > 0 && userIds?.length) {
-                await Promise.allSettled(
-                  userIds.map((uid) => addUserItemMetadata(uid, insertedIds))
-                );
-              }
-            } else if (feed_type === 'podcast') {
-              const { podcastTitle, episodeItems } = await withTimeout(
-                podcastParser(url),
-                TIMEOUT_MS,
-                url
-              );
-
-              console.log(
-                `CRON -> Processing Podcast: ${podcastTitle} (${episodeItems.length} episodes)`
-              );
-
-              const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, episodeItems);
-              if (insertCount > 0) console.log(`CRON -> Inserted ${insertCount} podcast episodes`);
-
-              if (insertedIds.length > 0 && userIds?.length) {
-                await Promise.allSettled(
-                  userIds.map((uid) => addUserItemMetadata(uid, insertedIds))
-                );
-              }
-            }
-
-            console.log(`CRON -> Done ${feed_type} ${url} in ${(Date.now() - feedStart) / 1000}s`);
-          } catch (err: unknown) {
-            console.error(`CRON -> Error processing ${feed_type} ${url}:`, (err as Error).message);
-          }
-        })
-      )
+    console.log(
+      `CRON -> OK ${feed_type} ${url} (${((Date.now() - feedStart) / 1000).toFixed(1)}s, ` +
+        `scanned ${items.length}, new ${insertCount})`
     );
-
-    console.log(`CRON -> Finished feed refresh at ${new Date().toISOString()}`);
   } catch (err: unknown) {
-    console.error('CRON -> Fatal error:', (err as Error).message);
+    const message = err instanceof Error ? err.message : String(err);
+    const prefix = err instanceof FeedParseError ? 'parse' : 'fetch';
+    console.error(`CRON -> ${prefix} error [${feed_type}] ${url}: ${message}`);
   }
 }
 
-// Schedule every 7 minutes
-// schedule('0 */7 * * *', runFeedRefresh);
+export async function runFeedRefresh(): Promise<void> {
+  const startTime = new Date();
+  console.log(`CRON -> Starting feed refresh at ${startTime.toISOString()}`);
 
-// Run immediately at startup
+  try {
+    const sourcesRes = await query<SourceRow>(`
+      SELECT
+        s.source_id,
+        s.url,
+        s.feed_type,
+        COALESCE(
+          array_agg(us.user_id) FILTER (WHERE us.user_id IS NOT NULL),
+          '{}'
+        ) AS user_ids
+      FROM source s
+      INNER JOIN user_source us ON us.source_id = s.source_id
+      GROUP BY s.source_id, s.url, s.feed_type
+    `);
+
+    const sources = sourcesRes.rows;
+    const limit = pLimit(CONCURRENCY);
+
+    console.log(`CRON -> Refreshing ${sources.length} subscribed source(s)`);
+
+    await Promise.allSettled(sources.map((row) => limit(() => refreshSource(row))));
+
+    console.log(`CRON -> Finished at ${new Date().toISOString()}`);
+  } catch (err: unknown) {
+    console.error('CRON -> Fatal error:', err instanceof Error ? err.message : err);
+  }
+}
+
+// default: every 30 minutes
+// schedule('*/15 * * * *', runFeedRefresh);
+
+// Dev: run once at startup
 // runFeedRefresh();

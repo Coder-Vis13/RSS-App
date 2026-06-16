@@ -12,8 +12,7 @@ import { handleError } from '../utils/helpers';
 import { Request, Response } from 'express';
 import { SourcePriorityUpdate, UserId } from './types';
 import { parseNumericId } from '../utils/request-parser';
-import { processSource } from "../services/source.service";
-
+import { processSource } from '../services/source.service';
 
 interface URL {
   sourceURL: string;
@@ -60,7 +59,6 @@ export const getUnfolderedSourcesHandler = async (
   }
 };
 
-
 //adds a source for a user
 export const addSourceHandler = async (
   req: Request<UserIdParam, {}, URLBody>,
@@ -70,27 +68,29 @@ export const addSourceHandler = async (
     const { sourceURL } = req.body;
 
     if (!sourceURL) {
-      res.status(400).json({ message: "sourceURL is required" });
+      res.status(400).json({ message: 'sourceURL is required' });
       return;
     }
 
-    const userId = parseNumericId(req.params.userId, "userId");
+    const userId = parseNumericId(req.params.userId, 'userId');
 
     const exists = await checkSourceExists(userId, sourceURL);
     if (exists) {
-      res.status(409).json({ message: "Already added" });
+      res.status(409).json({ message: 'Already added' });
       return;
     }
 
     let result = await processSource(userId, sourceURL);
 
     res.status(200).json(result);
-
   } catch (error) {
-    handleError(res, error, 500, "Failed to add source");
+    handleError(res, error, 500, 'Failed to add source');
+    if (error instanceof Error && error.name === 'SourceAlreadyAddedError') {
+      res.status(409).json({ message: 'Already added' });
+      return;
+    }
   }
 };
-
 
 // remove a source for a user
 export const removeUserSourceHandler = async (
@@ -111,7 +111,6 @@ export const removeUserSourceHandler = async (
     handleError(res, error, 500, 'Could not delete source for user');
   }
 };
-
 
 //display all the sources the user follows in the home page above the feed
 export const allUserSourcesHandler = async (
@@ -179,8 +178,6 @@ export const markSourceItemsReadHandler = async (
   }
 };
 
-
-
 export const getSourceItemsHandler = async (
   req: Request<
     { userId: string; sourceId: string },
@@ -203,10 +200,6 @@ export const getSourceItemsHandler = async (
     handleError(res, error, 500, 'Error fetching source items');
   }
 };
-
-
-
-
 
 //get priority list for a user
 export const sourcePriorityHandler = async (
