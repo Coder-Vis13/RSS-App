@@ -1,7 +1,7 @@
 import cors, { CorsOptions, CorsRequest } from 'cors';
 import { RequestHandler } from 'express';
 
-const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://rss-app-delta.vercel.app'];
 
 const corsOptions: CorsOptions = {
   origin: (
