@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5001";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const ACCESS_TOKEN_KEY = "accessToken";
 
 const authApi = axios.create({
