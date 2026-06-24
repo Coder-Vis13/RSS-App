@@ -16,9 +16,7 @@ const corsOptions: CorsOptions = {
       return callback(null, true);
     }
 
-    console.log('CORS check:', origin);
     if (allowedOrigins.includes(origin)) {
-      // Return the specific origin instead of `true` when credentials are used
       callback(null, origin);
     } else {
       callback(new Error(`Not allowed by CORS: ${origin}`));

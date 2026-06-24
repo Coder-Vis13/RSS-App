@@ -1,43 +1,67 @@
-// // fake auth version
-// export async function signUp(email: string, _password: string) {
-//   return { data: { user: { id: "8", email } }, error: null };
-// }
+import axios from "axios";
 
-// export async function signIn(email: string, _password: string) {
-//   return { data: { user: { id: "8", email } }, error: null };
-// }
+const API_BASE_URL = "http://localhost:5001";
+const ACCESS_TOKEN_KEY = "accessToken";
 
-// export async function signOut() {
-//   return { error: null };
-// }
+const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
 
-// export async function getCurrentUser() {
-//   return { data: { user: { id: "8", email: "demo@example.com" } }, error: null };
-// }
+type AuthResponse = { accessToken: string };
 
-//previous code
+export function getAccessToken() {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+export function setAccessToken(token: string) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+export function clearAccessToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
 
-// import { supabase } from "./lib/supabase";
+function decodeJwtPayload(token: string): { userId: number } | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return typeof payload?.userId === "number" ? payload : null;
+  } catch {
+    return null;
+  }
+}
 
-// export async function signUp(email: string, password: string) {
-//   const { data, error } = await supabase.auth.signUp({ email, password });
-//   return { data, error };
-// }
+export function getAuthUserId(): number | null {
+  const token = getAccessToken();
+  if (!token) return null;
+  return decodeJwtPayload(token)?.userId ?? null;
+}
 
-// export async function signIn(email: string, password: string) {
-//   const { data, error } = await supabase.auth.signInWithPassword({
-//     email,
-//     password,
-//   });
-//   return { data, error };
-// }
+export async function signUp(name: string, email: string, password: string) {
+  const { data } = await authApi.post<AuthResponse>("/register", {
+    name,
+    email,
+    password,
+  });
+  setAccessToken(data.accessToken);
+  return data;
+}
 
-// export async function signOut() {
-//   const { error } = await supabase.auth.signOut();
-//   return { error };
-// }
+export async function signIn(email: string, password: string) {
+  const { data } = await authApi.post<AuthResponse>("/login", {
+    email,
+    password,
+  });
+  setAccessToken(data.accessToken);
+  return data;
+}
 
-// export async function getCurrentUser() {
-//   const { data, error } = await supabase.auth.getUser();
-//   return { data, error };
-// }
+export async function refreshSession() {
+  const { data } = await authApi.post<AuthResponse>("/refresh");
+  setAccessToken(data.accessToken);
+  return data.accessToken;
+}
+
+export async function signOut() {
+  await authApi.post("/logout");
+  clearAccessToken();
+}

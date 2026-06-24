@@ -6,8 +6,3 @@ export interface DelFolderParams {
 export interface UserId {
   userId: string;
 }
-
-export interface SourcePriorityUpdate {
-  source_id: number;
-  priority: number;
-}

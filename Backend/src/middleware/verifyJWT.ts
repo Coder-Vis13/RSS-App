@@ -13,7 +13,7 @@ export function verifyJWT(req: Request, res: Response, next: NextFunction): void
 
   try {
     const payload = verifyAccessToken(token);
-    req.user = { id: payload.userId };
+    req.user = { userId: payload.userId };
     next();
   } catch {
     res.sendStatus(403);

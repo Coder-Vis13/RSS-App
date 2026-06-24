@@ -4,8 +4,7 @@ import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/hel
 import { Item, ReadItemResult, Source } from './types';
 import pLimit from 'p-limit';
 
-const limit = pLimit(5); 
-
+const limit = pLimit(5);
 
 export interface Folder {
   user_id: number;
@@ -142,20 +141,16 @@ export const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
   return Array.from(map.values());
 };
 
-
 //get all unread items of a folder
 export const folderItems = async (
   userId: number,
   folderId: number,
   timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
 ): Promise<FolderItems[]> => {
-  const interval = '2 days';
-
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-  else timeClause = `AND i.pub_date >= NOW() - interval '${interval}'`;
 
   const baseQuery = `SELECT 
       i.item_id,
@@ -168,7 +163,7 @@ export const folderItems = async (
       s.feed_type,
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
+      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name)) 
            FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories,
       COALESCE(
       json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
@@ -193,35 +188,11 @@ export const folderItems = async (
     WHERE 1=1
           ${timeClause}
       AND (uim.read_time IS NULL)
-            AND (
-        (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
-        OR
-        (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
-      )
-    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
-    ORDER BY us.priority, i.pub_date DESC`;
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
+    ORDER BY i.pub_date DESC`;
 
   const params = [userId, folderId];
   const result: QueryResult<FolderItems> = await query(baseQuery, params);
-  // Categorize items that aren’t categorized yet
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-  if (uncategorized.length) {
-      await Promise.all(
-        uncategorized.map(item =>
-          limit(async () => {
-            await categorizeItem(item.item_id, item.title, item.description);
-          }
-        )
-      )
-    );
-    const refreshed = await query(baseQuery, params);
-    logAction(
-      `Folder items: User=${userId} Folder=${folderId} itemCount=${refreshed.rows.length} (refreshed after categorization)`
-    );
-    return refreshed.rows;
-  }
-
-  logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${result.rows.length}`);
   return result.rows;
 };
 
@@ -284,7 +255,6 @@ export const delSourceFromFolder = async (
   return folderSources.rows;
 };
 
-
 //mark all items of a folder of a user as read
 export const markFolderItemsRead = async (
   userId: number,
@@ -303,17 +273,14 @@ export const markFolderItemsRead = async (
        AND us.source_id = i.source_id
      JOIN source s 
        ON s.source_id = i.source_id
-     WHERE 
-       (s.feed_type = 'rss' AND i.pub_date >= NOW() - interval '2 days')
-       OR
-       (s.feed_type = 'podcast' AND i.pub_date >= NOW() - interval '6 months')
      ON CONFLICT (user_id, item_id)
        DO UPDATE SET read_time = EXCLUDED.read_time
      RETURNING item_id;`,
     [userId, folderId]
   );
 
-  logAction(`Marked folder items as read: User=${userId} Folder=${folderId} itemCount=${result.rowCount ?? 0}`);
+  logAction(
+    `Marked folder items as read: User=${userId} Folder=${folderId} itemCount=${result.rowCount ?? 0}`
+  );
   return { readCount: result.rowCount ?? 0 };
 };
-

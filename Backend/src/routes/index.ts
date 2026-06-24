@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express from 'express';
 
 import { addUserHandler } from '../controllers';
 
@@ -7,10 +7,8 @@ import {
   getUnfolderedSourcesHandler,
   removeUserSourceHandler,
   markSourceItemsReadHandler,
-  sourcePriorityHandler,
-  updateSourcePrioritiesHandler,
   getSourceItemsHandler,
-  addSourceHandler
+  addSourceHandler,
 } from '../controllers';
 
 import {
@@ -39,24 +37,29 @@ import { loginHandler } from '../controllers/auth/login.controller';
 import { registerHandler } from '../controllers/auth/register.controller';
 import { refreshHandler } from '../controllers/auth/refresh.controller';
 import { logoutHandler } from '../controllers/auth/logout.controller';
+import { verifyJWT } from '../middleware/verifyJWT';
+import { attachAuthenticatedUser } from '../middleware/authenticatedUserContext';
 
-const router: Router = express.Router();
+const router = express.Router();
 
 //User
 router.post('/users/add', addUserHandler);
 
+//Auth
 //Auth
 router.post('/login', loginHandler);
 router.post('/register', registerHandler);
 router.post('/refresh', refreshHandler);
 router.post('/logout', logoutHandler);
 
+router.use('/users/:userId', verifyJWT, attachAuthenticatedUser);
+
 // Sources
 router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources for a user
 router.get('/users/:userId/sources/unfoldered', getUnfolderedSourcesHandler); // get all unfoldered sources for a user
 router.delete('/users/:userId/sources/:sourceId', removeUserSourceHandler); // remove source for user
 router.get('/users/:userId/source/:sourceId/items', getSourceItemsHandler); //get all unread items of a source for a user
-router.post("/users/:userId/source", addSourceHandler); //adds a source for a user
+router.post('/users/:userId/source', addSourceHandler); //adds a source for a user
 
 // Items
 router.get('/users/:userId/feed', userFeedItemsHandler); // get unread home feed
@@ -80,9 +83,5 @@ router.put('/users/:userId/folders/:folderId', renameFolderHandler); //rename fo
 router.post('/users/:userId/folders/:folderId/sources', addSourceIntoFolderHandler); // add source into folder
 router.delete('/users/:userId/folders/:folderId/sources/:sourceId', deleteSourceFromFolderHandler); // remove source from folder
 router.get('/users/:userId/folders/:folderId/feed', folderItemsHandler); // get unread items for folder
-
-// Source Priority
-router.get('/users/:userId/sources/priority', sourcePriorityHandler); // get sources with priority
-router.post('/users/:userId/sources/priority', updateSourcePrioritiesHandler); //update priorities
 
 export default router;

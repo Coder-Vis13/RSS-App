@@ -23,6 +23,6 @@ export interface PodcastResult {
 export class FeedResolutionError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "FeedResolutionError";
+    this.name = 'FeedResolutionError';
   }
 }

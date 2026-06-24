@@ -82,13 +82,8 @@ export async function RSSParser(sourceURL: string): Promise<ParsedRSS> {
     ? parsedSource.title.replace(/<[^>]+>/g, '')
     : 'Untitled Source';
 
-  // Only keep recent items (last 2 days)
-  const twoDaysAgo = new Date();
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
   const sourceItems: RSSItem[] = (parsedSource.items || [])
     .filter((item) => item && (item.link || item.guid))
-    .filter((item) => item.pubDate && new Date(item.pubDate) >= twoDaysAgo)
     .map((item) => ({
       link: item.link || item.guid!,
       title: item.title ? stripHtml(item.title) : 'Untitled',

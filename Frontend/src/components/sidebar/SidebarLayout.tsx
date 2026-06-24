@@ -31,12 +31,78 @@ import {
   markSourceItemsRead,
   addSourceIntoFolder,
   addUserSource,
+  allUserSources,
 } from "../../services/user.service";
 import axios from "axios";
 
 import { AddSourceToFolderDialog } from "./dialogs/AddSourceToFolderDialog";
 import { RenameFolderDialog } from "./dialogs/RenameFolderDialog";
 import { AddSourceDialog } from "./dialogs/AddSourceDialog";
+import {
+  buildGoogleFaviconUrl,
+  getDomainFromFeedUrl,
+  logoUrlFromFeedUrl,
+} from "@/lib/sourceLogo";
+
+import { getAuthUserId } from "@/auth";
+
+type SourceLogoProps = {
+  name: string;
+  logoUrl?: string | null;
+  feedUrl?: string | null;
+  isActive?: boolean;
+};
+
+function SourceLogo({ name, logoUrl, feedUrl, isActive }: SourceLogoProps) {
+  const domain = feedUrl ? getDomainFromFeedUrl(feedUrl) : null;
+  const googleFallback = domain ? buildGoogleFaviconUrl(domain) : null;
+
+  const [src, setSrc] = useState<string | null>(logoUrl ?? googleFallback);
+  const [showLetter, setShowLetter] = useState(false);
+
+  useEffect(() => {
+    setShowLetter(false);
+    setSrc(logoUrl ?? googleFallback);
+  }, [logoUrl, googleFallback, name]);
+
+  const letter = (name?.trim()?.[0] ?? "?").toUpperCase();
+
+  const handleError = () => {
+    if (src && googleFallback && src !== googleFallback) {
+      setSrc(googleFallback);
+      return;
+    }
+    setShowLetter(true);
+  };
+
+  return (
+    <span
+      className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full bg-[var(--light-grey)] ring-1 ring-black/5"
+      aria-hidden="true"
+    >
+      {!showLetter && src ? (
+        <img
+          src={src}
+          alt=""
+          width={20}
+          height={20}
+          loading="lazy"
+          decoding="async"
+          onError={handleError}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span
+          className={`flex h-full w-full items-center justify-center text-[10px] font-semibold leading-none ${
+            isActive ? "text-[var(--beige)]" : "text-[var(--text)]"
+          }`}
+        >
+          {letter}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default function SidebarLayout({
   children,
@@ -55,17 +121,55 @@ export default function SidebarLayout({
   const [activeSourceId, setActiveSourceId] = useState<number | null>(null);
   const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
   const [addFeedDialogOpen, setAddFeedDialogOpen] = useState(false);
+  const [sourceFeedTypes, setSourceFeedTypes] = useState<
+    Record<number, "rss" | "podcast">
+  >({});
+  const [sourceLogos, setSourceLogos] = useState<Record<number, string>>({});
+  const [sourceFeedUrls, setSourceFeedUrls] = useState<Record<number, string>>(
+    {},
+  );
 
   const navigate = useNavigate();
-  const userId = 1;
+  const userId = getAuthUserId();
+  if (!userId) {
+    return null;
+  }
   const sidebarWidth = 260;
 
   const refetchSidebarData = async () => {
-    const folders = await getUserFolders(userId);
-    const unfoldered = await getUnfolderedSources(userId);
+    const [folders, unfoldered, allSources] = await Promise.all([
+      getUserFolders(userId),
+      getUnfolderedSources(userId),
+      allUserSources(userId),
+    ]);
+
+    const feedTypeMap: Record<number, "rss" | "podcast"> = {};
+    const logoMap: Record<number, string> = {};
+    const feedUrlMap: Record<number, string> = {};
+
+    for (const s of allSources as {
+      source_id: number;
+      feed_type: "rss" | "podcast";
+      url: string;
+      logo_url?: string | null;
+    }[]) {
+      feedTypeMap[s.source_id] = s.feed_type;
+      feedUrlMap[s.source_id] = s.url;
+      if (s.logo_url) logoMap[s.source_id] = s.logo_url;
+    }
+
+    setSourceFeedTypes(feedTypeMap);
+    setSourceLogos(logoMap);
+    setSourceFeedUrls(feedUrlMap);
+
     setUserFolders(folders);
     setUnfolderedSources(unfoldered);
   };
+
+  useEffect(() => {
+    if (!userId) return;
+    refetchSidebarData();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -148,7 +252,7 @@ export default function SidebarLayout({
       setUserFolders((prev) =>
         prev.map((f) =>
           f.folder_id === selectedFolderId
-            ? { ...f, folder_name: updatedFolder.name }
+            ? { ...f, name: updatedFolder.name }
             : f,
         ),
       );
@@ -205,7 +309,27 @@ export default function SidebarLayout({
 
   const handleAddSource = async (url: string) => {
     try {
-      await addUserSource(userId, url);
+      const result = await addUserSource(userId, url);
+
+      // Backend returns detected type — sync global UI
+      if (result?.feed_type === "rss" || result?.feed_type === "podcast") {
+        sessionStorage.setItem("activeFeedType", result.feed_type);
+      }
+
+      if (result?.source_id && result?.feed_url) {
+        const id = result.source_id as number;
+        const feedUrl = result.feed_url as string;
+        const optimisticLogo = logoUrlFromFeedUrl(feedUrl);
+
+        setSourceFeedUrls((prev) => ({ ...prev, [id]: feedUrl }));
+        if (optimisticLogo) {
+          setSourceLogos((prev) => ({ ...prev, [id]: optimisticLogo }));
+        }
+        if (result.feed_type === "rss" || result.feed_type === "podcast") {
+          setSourceFeedTypes((prev) => ({ ...prev, [id]: result.feed_type }));
+        }
+      }
+
       const unfolderedBefore = new Set(
         unfolderedSources.map((s) => s.source_id),
       );
@@ -225,8 +349,14 @@ export default function SidebarLayout({
       );
 
       if (newlyAdded) {
-        navigate(`/sources/${newlyAdded.source_id}`);
+        const detectedType =
+          result?.feed_type === "podcast" ? "podcast" : "rss";
+
+        navigate(`/sources/${newlyAdded.source_id}`, {
+          state: { feedType: detectedType },
+        });
       }
+
       await refetchSidebarData();
 
       toast.success("Source added!");
@@ -240,6 +370,11 @@ export default function SidebarLayout({
       console.error("Failed to add feed", err);
       toast.error(message);
     }
+  };
+
+  const handleSourceClick = (sourceId: number) => {
+    const type = sourceFeedTypes[sourceId] ?? "rss";
+    sessionStorage.setItem("activeFeedType", type);
   };
 
   return (
@@ -297,208 +432,234 @@ export default function SidebarLayout({
         <Separator className="bg-[#b0b0b0] mt-4" />
 
         {/* Unfoldered sources */}
-        <nav className="space-y-1 mt-4 text-sm">
-          {unfolderedSources.length > 0 &&
-            unfolderedSources.map((source) => (
-              <NavLink
-                key={source.source_id}
-                to={`/sources/${source.source_id}`}
-                className={({ isActive }) =>
-                  `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
-                }
-              >
-                {({ isActive }) => (
-                  <div className="mb-1 flex items-center justify-between px-2 py-1 group">
-                    <span className="text-sm">{source.source_name}</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1 focus-visible:outline-none opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0">
-                          <Ellipsis
-                            className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
-                          />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-44 rounded-xl border bg-white shadow-xl"
-                      >
-                        <DropdownMenuItem
-                          onClick={() => handleMarkSourceRead(source.source_id)}
-                        >
-                          Mark all as read
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setActiveSourceId(source.source_id);
-                            setAddToFolderOpen(true);
-                          }}
-                        >
-                          Add to folder
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleRemoveSource(source.source_id)}
-                          className="text-red-600 hover:text-red-600 focus:text-red-600 hover:bg-red-50"
-                        >
-                          Remove source
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
-              </NavLink>
-            ))}
-
-          <Separator className="bg-[#b0b0b0] mt-4 mb-4" />
-
-          {/* Folders Header */}
-          <div className="flex items-center justify-between px-2 mb-4 font-semibold text-[var(--sidebar-foreground)]">
-            <span>Folders</span>
-            <button
-              onClick={() => {
-                setFolderName("");
-                setCreateFolderDialogOpen(true);
-              }}
-              className="p-1 rounded hover:bg-[var(--light-grey)]"
-              aria-label="Create Folder"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Foldered sources */}
-          {userFolders.map((folder) => {
-            const isOpen = openFolders.has(folder.folder_id);
-            return (
-              <div key={folder.folder_id}>
+        <div className="flex-1 min-h-0 overflow-y-auto mt-4 pr-1 sidebar-scroll">
+          <nav className="space-y-1 text-sm">
+            {unfolderedSources.length > 0 &&
+              unfolderedSources.map((source) => (
                 <NavLink
-                  to={`/folders/${folder.folder_id}`}
+                  key={source.source_id}
+                  to={`/sources/${source.source_id}`}
+                  onClick={() => handleSourceClick(source.source_id)}
                   className={({ isActive }) =>
                     `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
                   }
                 >
                   {({ isActive }) => (
-                    <div className="w-full flex items-center justify-between px-2 py-2 group">
-                      <span>{folder.name}</span>
-                      <div className="flex items-center gap-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Ellipsis
-                                className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
-                              />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setRenameUserFolder(folder.name);
-                                setSelectedFolderId(folder.folder_id);
-                                setRenameModalOpen(true);
-                              }}
-                            >
-                              Rename folder
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                if (confirm("Delete this folder?"))
-                                  handleDeleteFolder(folder.folder_id);
-                              }}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              Delete folder
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const next = new Set(openFolders);
-                            isOpen
-                              ? next.delete(folder.folder_id)
-                              : next.add(folder.folder_id);
-                            setOpenFolders(next);
-                          }}
-                        >
-                          <ChevronRight
-                            className={`h-4 w-4 transition-transform ${isOpen ? "rotate-90" : ""}`}
-                          />
-                        </button>
+                    <div className="mb-1 flex items-center justify-between gap-2 px-2 py-1 group">
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <SourceLogo
+                          name={source.source_name}
+                          logoUrl={sourceLogos[source.source_id]}
+                          feedUrl={sourceFeedUrls[source.source_id]}
+                          isActive={isActive}
+                        />
+                        <span className="truncate text-sm">
+                          {source.source_name}
+                        </span>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 focus-visible:outline-none opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0">
+                            <Ellipsis
+                              className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
+                            />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-44 rounded-xl border bg-white shadow-xl"
+                        >
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleMarkSourceRead(source.source_id)
+                            }
+                          >
+                            Mark all as read
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setActiveSourceId(source.source_id);
+                              setAddToFolderOpen(true);
+                            }}
+                          >
+                            Add to folder
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleRemoveSource(source.source_id)}
+                            className="text-red-600 hover:text-red-600 focus:text-red-600 hover:bg-red-50"
+                          >
+                            Remove source
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   )}
                 </NavLink>
+              ))}
 
-                {isOpen && folder.sources.length > 0 && (
-                  <div className="ml-4 space-y-1">
-                    {folder.sources.map((source) => (
-                      <NavLink
-                        key={source.source_id}
-                        to={`/sources/${source.source_id}`}
-                        className={({ isActive }) =>
-                          `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
-                        }
-                      >
-                        {({ isActive }) => (
-                          <div className="flex items-center justify-between px-2 py-1 group">
-                            <span className="text-sm">
-                              {source.source_name}
-                            </span>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button className="p-1 focus-visible:outline-none focus-visible:ring-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Ellipsis
-                                    className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
-                                  />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleRemoveSourceFromFolder(
-                                      folder.folder_id,
-                                      source.source_id,
-                                    )
-                                  }
-                                >
-                                  Remove from folder
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleMarkSourceRead(source.source_id)
-                                  }
-                                >
-                                  Mark all as read
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleRemoveSource(source.source_id)
-                                  }
-                                  className="text-red-600 hover:text-red-600 focus:text-red-600 hover:bg-red-50"
-                                >
-                                  Remove source
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
+            {unfolderedSources.length > 0 && (
+              <Separator className="bg-[#b0b0b0] mt-4 mb-4" />
+            )}
+
+            {/* Folders Header */}
+            <div className="flex items-center justify-between px-2 mb-4 font-semibold text-[var(--sidebar-foreground)]">
+              <span>Folders</span>
+              <button
+                onClick={() => {
+                  setFolderName("");
+                  setCreateFolderDialogOpen(true);
+                }}
+                className="p-1 rounded hover:bg-[var(--light-grey)]"
+                aria-label="Create Folder"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Foldered sources */}
+            {userFolders.map((folder) => {
+              const isOpen = openFolders.has(folder.folder_id);
+              return (
+                <div key={folder.folder_id}>
+                  <NavLink
+                    to={`/folders/${folder.folder_id}`}
+                    className={({ isActive }) =>
+                      `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <div className="w-full flex items-center justify-between px-2 py-2 group">
+                        <span>{folder.name}</span>
+                        <div className="flex items-center gap-1">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Ellipsis
+                                  className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
+                                />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setRenameUserFolder(folder.name);
+                                  setSelectedFolderId(folder.folder_id);
+                                  setRenameModalOpen(true);
+                                }}
+                              >
+                                Rename folder
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (confirm("Delete this folder?"))
+                                    handleDeleteFolder(folder.folder_id);
+                                }}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                Delete folder
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const next = new Set(openFolders);
+                              isOpen
+                                ? next.delete(folder.folder_id)
+                                : next.add(folder.folder_id);
+                              setOpenFolders(next);
+                            }}
+                          >
+                            <ChevronRight
+                              className={`h-4 w-4 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </NavLink>
+
+                  {isOpen && folder.sources.length > 0 && (
+                    <div className="ml-4 space-y-1">
+                      {folder.sources.map((source) => (
+                        <NavLink
+                          key={source.source_id}
+                          to={`/sources/${source.source_id}`}
+                          onClick={() => handleSourceClick(source.source_id)}
+                          className={({ isActive }) =>
+                            `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
+                          }
+                        >
+                          {({ isActive }) => (
+                            <div className="flex items-center justify-between gap-2 px-2 py-1 group">
+                              <div className="flex min-w-0 flex-1 items-center gap-2">
+                                <SourceLogo
+                                  name={source.source_name}
+                                  logoUrl={sourceLogos[source.source_id]}
+                                  feedUrl={sourceFeedUrls[source.source_id]}
+                                  isActive={isActive}
+                                />
+                                <span className="truncate text-sm">
+                                  {source.source_name}
+                                </span>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="p-1 focus-visible:outline-none focus-visible:ring-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Ellipsis
+                                      className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
+                                    />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleRemoveSourceFromFolder(
+                                        folder.folder_id,
+                                        source.source_id,
+                                      )
+                                    }
+                                  >
+                                    Remove from folder
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleMarkSourceRead(source.source_id)
+                                    }
+                                  >
+                                    Mark all as read
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleRemoveSource(source.source_id)
+                                    }
+                                    className="text-red-600 hover:text-red-600 focus:text-red-600 hover:bg-red-50"
+                                  >
+                                    Remove source
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
       </aside>
 
       <AddSourceToFolderDialog
@@ -583,9 +744,7 @@ export default function SidebarLayout({
         }}
         className="h-full overflow-y-auto overflow-x-hidden bg-[var(--background)]"
       >
-        {/* <div className="max-w-6xl mx-auto w-full px-4 py-6"> */}
-          {children}
-          {/* </div> */}
+        {children}
       </main>
     </div>
   );

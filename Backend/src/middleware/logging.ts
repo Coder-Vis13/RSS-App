@@ -1,23 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 
-const logging = {
-  log: (message: string) => console.log(`[LOG] ${message}`),
+const isDev = process.env.NODE_ENV !== 'production';
+
+const logger = {
+  info: (msg: string) => {
+    if (isDev) console.log(`[INFO] ${msg}`);
+  },
 };
 
 export function loggingHandler(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
 
-  //when request starts
-  logging.log(
-    `Incoming -> METHOD: [${req.method}] | URL: [${req.url}] | IP: [${req.socket.remoteAddress}]`
-  );
-
-  //when response ends
   res.on('finish', () => {
     const duration = Date.now() - start;
-    logging.log(
-      `Completed -> METHOD: [${req.method}] | URL: [${req.url}] | STATUS: [${res.statusCode}] | TIME: ${duration}ms`
-    );
+
+    logger.info(`Completed ${req.method} ${req.url} status=${res.statusCode} time=${duration}ms`);
   });
 
   next();

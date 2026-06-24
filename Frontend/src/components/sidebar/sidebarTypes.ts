@@ -7,4 +7,5 @@ export interface UserFolder {
 export interface Source {
   source_id: number;
   source_name: string;
+  feed_type?: "rss" | "podcast";
 }

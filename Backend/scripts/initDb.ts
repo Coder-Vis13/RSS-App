@@ -36,20 +36,17 @@ const createTables = async () => {
         created_at TIMESTAMP NOT NULL DEFAULT now(),
         UNIQUE (user_id, name)
       );
-
-      CREATE TABLE IF NOT EXISTS user_source (
-        user_id INT NOT NULL
-          REFERENCES users(user_id)
-          ON DELETE CASCADE ON UPDATE CASCADE,
-        source_id INT NOT NULL
-          REFERENCES source(source_id)
-          ON DELETE CASCADE ON UPDATE CASCADE,
-        feed_type VARCHAR(10) NOT NULL
-          CHECK (feed_type IN ('rss', 'podcast')),
-        priority INT DEFAULT 0,
-        PRIMARY KEY (user_id, source_id),
-        UNIQUE (user_id, priority)
-      );
+CREATE TABLE IF NOT EXISTS user_source (
+    user_id INT NOT NULL
+      REFERENCES users(user_id)
+      ON DELETE CASCADE ON UPDATE CASCADE,
+    source_id INT NOT NULL
+      REFERENCES source(source_id)
+      ON DELETE CASCADE ON UPDATE CASCADE,
+    feed_type VARCHAR(10) NOT NULL
+      CHECK (feed_type IN ('rss', 'podcast')),
+    PRIMARY KEY (user_id, source_id)
+);
 
       CREATE TABLE IF NOT EXISTS user_source_folder (
         user_id INT NOT NULL,
@@ -107,7 +104,6 @@ const createTables = async () => {
       CREATE TABLE IF NOT EXISTS category (
         category_id SERIAL PRIMARY KEY,
         name TEXT UNIQUE NOT NULL,
-        color TEXT
       );
 
       CREATE TABLE IF NOT EXISTS item_category (
