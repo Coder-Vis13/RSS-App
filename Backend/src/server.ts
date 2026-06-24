@@ -19,6 +19,13 @@ app.use(cookieParser());
 
 app.use(loggingHandler);
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "RSS Backend is running",
+  });
+});
+
 app.use('/', router);
 
 app.use(routeNotFound);
