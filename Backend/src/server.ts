@@ -7,7 +7,7 @@ import { corsHandler } from './middleware/cors';
 import { routeNotFound } from './middleware/route-not-found';
 import cookieParser from 'cookie-parser';
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 
