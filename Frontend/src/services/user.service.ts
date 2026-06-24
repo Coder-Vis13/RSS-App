@@ -1,7 +1,7 @@
 import { get, post, del, put } from "../lib/api-client";
 
-const addUser = (email: string, supabase_uid: string) =>
-  post("/users/add", { email, supabase_uid });
+const addUser = (userName: string, userEmail: string, password: string) =>
+  post("/users/add", { userName, userEmail, password });
 
 const createFolder = async (userId: number, folderName: string) =>
   post(`users/${userId}/folders`, { folderName });
@@ -76,7 +76,6 @@ const getSourceItems = (
   sourceId: number,
   timeFilter?: "all" | "today" | "week" | "month",
 ) => get(`users/${userId}/source/${sourceId}/items`, { timeFilter });
-
 
 const readItems = (
   userId: number,

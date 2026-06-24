@@ -3,12 +3,7 @@ import { SiteShowcase } from "./components/Sites";
 import { Button } from "./components/ui/button";
 import { useEffect, useState } from "react";
 import { signIn, signUp, signOut, getAuthUserId } from "./auth";
-import {
-  Github,
-  Linkedin,
-  ArrowRight,
-} from "lucide-react";
-
+import { Github, Linkedin, ArrowRight } from "lucide-react";
 
 export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -18,34 +13,32 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   // const [user, setUser] = useState<any>(null);
   const [name, setName] = useState("");
-  // const [showOnboarding, setShowOnboarding] = useState(false);
 
- async function handleAuth() {
-  try {
-    if (mode === "signup") {
-      await signUp(name, email, password);
-    } else {
-      await signIn(email, password);
+  async function handleAuth() {
+    try {
+      if (mode === "signup") {
+        await signUp(name, email, password);
+      } else {
+        await signIn(email, password);
+      }
+
+      setUser({ email });
+      setShowAuthModal(false);
+      window.location.href = "/feed";
+    } catch {
+      alert("Authentication failed. Please check credentials and try again.");
     }
-
-    setUser({ email });
-    setShowAuthModal(false);
-    window.location.href = "/feed";
-  } catch {
-    alert("Authentication failed. Please check credentials and try again.");
   }
-}
 
-  
-async function handleLogout() {
-  await signOut();
-  setUser(null);
-  window.location.href = "/landing";
-}
+  async function handleLogout() {
+    await signOut();
+    setUser(null);
+    window.location.href = "/landing";
+  }
 
-useEffect(() => {
-  if (getAuthUserId()) setUser({ email: "authenticated" });
-}, []);
+  useEffect(() => {
+    if (getAuthUserId()) setUser({ email: "authenticated" });
+  }, []);
 
   return (
     <div className="bg-base min-h-screen text-primary relative overflow-hidden">
@@ -129,7 +122,8 @@ useEffect(() => {
               transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
               className="mx-auto mt-5 max-w-2xl text-[15px] sm:text-base leading-relaxed text-gray-600 whitespace-nowrap"
             >
-              Follow any website, blog, podcast, or YouTube channel—all in one personalized, AI-powered feed.
+              Follow any website, blog, podcast, or YouTube channel—all in one
+              personalized, AI-powered feed.
               <span className="hidden sm:inline"> </span>
             </motion.p>
 
@@ -160,141 +154,126 @@ useEffect(() => {
               </Button>
             </motion.div>
           </div>
-
-          
         </div>
       </section>
 
       {/* Site Showcase */}
       <section className="mx-auto px-6">
-          <div className="relative py-3">
-            <SiteShowcase />
-          </div>
+        <div className="relative py-3">
+          <SiteShowcase />
+        </div>
       </section>
 
-{/* App Preview */}
-<section className="mx-auto mt-16 max-w-6xl px-6">
-  <div className="rounded-3xl border border-black/10 bg-white p-3 shadow-xl">
-    <img
-      src="/app_img.png"
-      alt="ReadArchive interface"
-      className="w-full rounded-2xl"
-    />
-  </div>
-</section>
+      {/* App Preview */}
+      <section className="mx-auto mt-16 max-w-8xl px-6">
+        <img
+          src="/app_img.png"
+          alt="ReadArchive interface"
+          className="w-full rounded-2xl"
+        />
+      </section>
 
       {/* How It Works */}
-      {/* Workflow */}
-<section 
-id="workflow"
-className="mx-auto mt-24 max-w-6xl px-6">
-  
-  <div className="text-center">
-    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-      HOW IT WORKS
-    </p>
+      <section id="workflow" className="mx-auto mt-24 max-w-6xl px-6">
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+            HOW IT WORKS
+          </p>
 
-    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--navyblue)]">
-      Build your perfect feed
-    </h2>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--navyblue)]">
+            Build your perfect feed
+          </h2>
 
-    <p className="mx-auto mt-4 max-w-xl text-gray-600">
-      Add your favourite sources once. <br /> ReadArchive keeps everything updated,
-      organised and easy to browse.
-    </p>
-  </div>
+          <p className="mx-auto mt-4 max-w-xl text-gray-600">
+            Add your favourite sources once. <br /> ReadArchive keeps everything
+            updated, organised and easy to browse.
+          </p>
+        </div>
 
-  <div className="mt-16 grid gap-6 md:grid-cols-3 ">
-    <Step
-      number="01"
-      title="Add your favourite sources"
-      desc="Import RSS feeds, blogs, podcasts and YouTube channels into one place."
-    />
+        <div className="mt-16 grid gap-6 md:grid-cols-3 ">
+          <Step
+            number="01"
+            title="Add your favourite sources"
+            desc="Import RSS feeds, blogs, podcasts and YouTube channels into one place."
+          />
 
-    <Step
-      number="02"
-      title="Stay organised"
-      desc="Group sources into folders, filter by category and save articles for later."
-    />
+          <Step
+            number="02"
+            title="Stay organised"
+            desc="Group sources into folders, filter by category and save articles for later."
+          />
 
-    <Step
-      number="03"
-      title="Never miss an update"
-      desc="New content is fetched automatically so your feed is always up to date."
-    />
-  </div>
-</section>
+          <Step
+            number="03"
+            title="Never miss an update"
+            desc="New content is fetched automatically so your feed is always up to date."
+          />
+        </div>
+      </section>
 
-{/* Final CTA */}
-<section className="mx-auto mt-28 max-w-6xl px-6">
-  <div className="relative overflow-hidden rounded-[40px] bg-[var(--navyblue)] px-8 py-20 text-center shadow-2xl">
+      {/* Final CTA */}
+      <section className="mx-auto mt-28 max-w-6xl px-6">
+        <div className="relative overflow-hidden rounded-[40px] bg-[var(--navyblue)] px-8 py-20 text-center shadow-2xl">
+          <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
 
-    <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative">
+            <h2 className="text-4xl font-semibold tracking-tight text-white">
+              Ready to build your own feed?
+            </h2>
 
-    <div className="relative">
-      <h2 className="text-4xl font-semibold tracking-tight text-white">
-        Ready to build your own feed?
-      </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white/75">
+              Organize everything you read in one place with AI-powered
+              categories, folders, saved articles and automatic updates.
+            </p>
 
-      <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-white/75">
-        Organize everything you read in one place with AI-powered categories,
-        folders, saved articles and automatic updates.
-      </p>
-
-      <Button
-        onClick={() => {
-          setMode("signup");
-          setShowAuthModal(true);
-        }}
-        className="mt-10 h-12 rounded-2xl bg-white px-7 text-[var(--navyblue)] hover:bg-white/90"
-      >
-        Create Account
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-</section>
+            <Button
+              onClick={() => {
+                setMode("signup");
+                setShowAuthModal(true);
+              }}
+              className="mt-10 h-12 rounded-2xl bg-white px-7 text-[var(--navyblue)] hover:bg-white/90"
+            >
+              Create Account
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="mt-24 border-t border-black/10">
-  <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-12">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-12">
+          <h3 className="text-lg font-semibold text-[var(--navyblue)]">
+            Designed & developed by Vis
+          </h3>
 
-    <h3 className="text-lg font-semibold text-[var(--navyblue)]">
-      Designed & developed by Vis
-    </h3>
+          <div className="flex items-center gap-8">
+            <a
+              href="https://github.com/Coder-Vis13"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 transition hover:text-[var(--navyblue)]"
+            >
+              <Github size={22} />
+              <span>GitHub</span>
+            </a>
 
-    <div className="flex items-center gap-8">
+            <a
+              href="https://www.linkedin.com/in/vismaya-gowda-8450612bb"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 transition hover:text-[#0A66C2]"
+            >
+              <Linkedin size={22} />
+              <span>LinkedIn</span>
+            </a>
+          </div>
 
-      <a
-        href="https://github.com/Coder-Vis13"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 text-gray-600 transition hover:text-[var(--navyblue)]"
-      >
-        <Github size={22} />
-        <span>GitHub</span>
-      </a>
-
-      <a
-        href="https://www.linkedin.com/in/vismaya-gowda-8450612bb"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 text-gray-600 transition hover:text-[#0A66C2]"
-      >
-        <Linkedin size={22} />
-        <span>LinkedIn</span>
-      </a>
-
-    </div>
-
-    <p className="text-sm text-gray-400">
-      ReadArchive • Full-stack portfolio project
-    </p>
-
-  </div>
-</footer>
-
-
+          <p className="text-sm text-gray-400">
+            ReadArchive • Full-stack portfolio project
+          </p>
+        </div>
+      </footer>
 
       {/* Authentication Modal */}
       {showAuthModal && (
@@ -314,19 +293,19 @@ className="mx-auto mt-24 max-w-6xl px-6">
               {/* Name Field */}
 
               {mode === "signup" && (
-  <div className="flex flex-col">
-    <label className="mb-2 text-sm text-gray-500 font-medium">
-      Your name
-    </label>
-    <input
-      type="text"
-      className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30"
-      value={name}
-      onChange={(e) => setName(e.target.value)}
-      required
-    />
-  </div>
-)}
+                <div className="flex flex-col">
+                  <label className="mb-2 text-sm text-gray-500 font-medium">
+                    Your name
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
               {/* Email Field */}
               <div className="flex flex-col">
                 <label className="mb-2 text-sm text-gray-500 font-medium">
@@ -338,7 +317,7 @@ className="mx-auto mt-24 max-w-6xl px-6">
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="new-email" // Prevent autofill
+                  autoComplete="new-email"
                 />
               </div>
 
@@ -355,7 +334,7 @@ className="mx-auto mt-24 max-w-6xl px-6">
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  autoComplete="new-password" // Prevent autofill
+                  autoComplete="new-password"
                 />
               </div>
             </div>
@@ -404,7 +383,6 @@ className="mx-auto mt-24 max-w-6xl px-6">
   );
 }
 
-// Step Component
 function Step({
   number,
   title,
@@ -428,9 +406,7 @@ function Step({
         {title}
       </h3>
 
-      <p className="mt-3 leading-7 text-gray-600">
-        {desc}
-      </p>
+      <p className="mt-3 leading-7 text-gray-600">{desc}</p>
     </motion.div>
   );
 }

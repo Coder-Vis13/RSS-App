@@ -70,7 +70,8 @@ export const renameFolderHandler = async (
     }
     res.json(updatedFolder);
   } catch (err: any) {
-    if (err.code === '23505') { // unique_violation in PostgreSQL
+    if (err.code === '23505') {
+      // unique_violation in PostgreSQL
       res
         .status(400)
         .json({ error: 'A folder with that name already exists. Please choose a different name' });

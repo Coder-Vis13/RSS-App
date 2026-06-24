@@ -14,7 +14,10 @@ export function getFirstRow<T>(insertResult: QueryResult<T> | null | undefined):
 
 // logs a message with optional description
 export function logAction(action: string, description: string = ''): void {
-  const message = description ? `SUCCESS: ${action} | ${description}` : `SUCCESS: ${action}`;
+  const message = description
+    ? `[INFO] SUCCESS ${action} | ${description}`
+    : `[INFO] SUCCESS ${action}`;
+
   console.info(message);
 }
 
@@ -31,6 +34,8 @@ export function handleError(
   msg: string = 'Internal server error'
 ): Response {
   const errorMsg = error instanceof Error ? error.message : String(error);
-  console.error(`ERROR: ${msg}: ${errorMsg}`);
+
+  console.error(`[ERROR] ${msg} | detail=${errorMsg}`);
+
   return res.status(status).json({ error: msg });
 }

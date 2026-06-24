@@ -5,18 +5,11 @@ import './cron';
 import { loggingHandler } from './middleware/logging';
 import { corsHandler } from './middleware/cors';
 import { routeNotFound } from './middleware/route-not-found';
-import debugRoutes from './routes/debug.routes';
 import cookieParser from 'cookie-parser';
-import { findFeed } from 'find-feed';
 
 const PORT = process.env.PORT;
 
 const app = express();
-
-app.post('/_debug', (req, res) => {
-  res.json({ ok: true, body: req.body, headers: req.headers });
-});
-
 
 app.use(corsHandler);
 
@@ -27,13 +20,12 @@ app.use(cookieParser());
 app.use(loggingHandler);
 
 app.use('/', router);
-app.use('/debug', debugRoutes);
 
 app.use(routeNotFound);
 
 //Error handler
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack);
+  console.error(`[ERROR] ${err.message}`);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 

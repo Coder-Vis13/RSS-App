@@ -6,4 +6,3 @@ export interface DelFolderParams {
 export interface UserId {
   userId: string;
 }
-

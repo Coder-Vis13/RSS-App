@@ -1,3 +1,5 @@
+//categorise items using OpenAI API
+
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -5,19 +7,34 @@ import { CategoryModel } from '../models/category.model';
 import { query } from '../config/db';
 import pLimit from 'p-limit';
 
-
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
 export const ALLOWED_CATEGORIES = [
-  "Technology", "Health", "News", "Business", "Sports", "Entertainment",
-  "Fashion", "Science", "Education", "Productivity", "Lifestyle", "Food",
-  "Photography", "Finance", "Career", "Spirituality", "Culture",
-  "Real Estate", "Environment", "Politics",
+  'Technology',
+  'Health',
+  'News',
+  'Business',
+  'Sports',
+  'Entertainment',
+  'Fashion',
+  'Science',
+  'Education',
+  'Productivity',
+  'Lifestyle',
+  'Food',
+  'Photography',
+  'Finance',
+  'Career',
+  'Spirituality',
+  'Culture',
+  'Real Estate',
+  'Environment',
+  'Politics',
 ] as const;
 
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'true';
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
 
 function getCategoryPrompt(title: string, description?: string): string {
   const context =
@@ -42,39 +59,39 @@ function getCategoryPrompt(title: string, description?: string): string {
 async function askOpenAI(prompt: string): Promise<string> {
   try {
     const response = await client.chat.completions.create({
-  model: "gpt-4.1-nano",
-  temperature: 0,
-  response_format: {
-    type: "json_schema",
-    json_schema: {
-      name: "article_categories",
-      strict: true,
-      schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          categories: {
-            type: "array",
-            minItems: 1,
-            maxItems: 3,
-            items: { type: "string", enum: [...ALLOWED_CATEGORIES] },
+      model: 'gpt-4.1-nano',
+      temperature: 0,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'article_categories',
+          strict: true,
+          schema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              categories: {
+                type: 'array',
+                minItems: 1,
+                maxItems: 3,
+                items: { type: 'string', enum: [...ALLOWED_CATEGORIES] },
+              },
+            },
+            required: ['categories'],
           },
         },
-        required: ["categories"],
       },
-    },
-  },
-  messages: [
-    { role: "system", content: "Classify the article using only allowed categories." },
-    { role: "user", content: prompt },
-  ],
-});
+      messages: [
+        { role: 'system', content: 'Classify the article using only allowed categories.' },
+        { role: 'user', content: prompt },
+      ],
+    });
 
-const parsed = JSON.parse(response.choices[0].message.content || "{}");
-return (parsed.categories || []).join(", ");
-  }catch (error) {
-    console.error("OpenAI categorization failed:", error);
-    return "General";
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    return (parsed.categories || []).join(', ');
+  } catch (error) {
+    console.error('OpenAI categorization failed:', error);
+    return 'General';
   }
 }
 
@@ -101,17 +118,17 @@ export async function categorizeItem(
     const prompt = getCategoryPrompt(title, description ?? '');
     categoryString = await askOpenAI(prompt);
   } else {
-  console.log('AI category generation disabled — marking item as categorized');
+    console.log('AI category generation disabled — marking item as categorized');
 
-  await query(
-    `UPDATE item
+    await query(
+      `UPDATE item
      SET is_categorized = true
      WHERE item_id = $1 AND is_categorized = false`,
-    [itemId]
-  );
+      [itemId]
+    );
 
-  return;
-}
+    return;
+  }
 
   // Parse and sanitize categories
   const categories = sanitizeCategories(categoryString);
@@ -129,8 +146,6 @@ export async function categorizeItem(
 
   console.log(`Categories added for item ${itemId}:`, categories);
 }
-
-
 
 const categorizeLimit = pLimit(5);
 const categorizeQueue = new Set<number>();
@@ -157,21 +172,21 @@ export function enqueueCategorization(itemIds: number[]) {
 
 function mapToAllowedCategory(raw: string): string | null {
   const normalized = raw.trim().toLowerCase();
-  const exact = ALLOWED_CATEGORIES.find(c => c.toLowerCase() === normalized);
+  const exact = ALLOWED_CATEGORIES.find((c) => c.toLowerCase() === normalized);
   if (exact) return exact;
 
   const aliases: Record<string, string> = {
-    tech: "Technology",
-    "real estate": "Real Estate",
+    tech: 'Technology',
+    'real estate': 'Real Estate',
   };
   return aliases[normalized] ?? null;
 }
 
 function sanitizeCategories(raw: string): string[] {
   const mapped = raw
-    .split(",")
+    .split(',')
     .map(mapToAllowedCategory)
     .filter((c): c is string => Boolean(c));
 
-  return mapped.length ? [...new Set(mapped)] : ["News"];
+  return mapped.length ? [...new Set(mapped)] : ['News'];
 }

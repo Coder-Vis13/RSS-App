@@ -6,7 +6,7 @@ export type IngestionUrlType =
   | 'website' // user provides website url
   | 'podcast-page' // user provides podcast page url
   | 'reddit' // user provides reddit/subreddit url
-  | 'youtube'; // user provides any youtube video or playlist url
+  | 'youtube'; // user provides any youtube channel or playlist url
 
 const YOUTUBE_HOSTS = new Set(['youtube.com', 'm.youtube.com', 'music.youtube.com']);
 

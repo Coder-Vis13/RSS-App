@@ -1,10 +1,4 @@
-import {
-  Home,
-  List,
-  Bookmark,
-  BookOpen,
-  Plus,
-} from "lucide-react";
+import { Home, List, Bookmark, BookOpen, Plus } from "lucide-react";
 
 export const navbarItems = [
   { label: "Discover", icon: Home, path: "/discover" },

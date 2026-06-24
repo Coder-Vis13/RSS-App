@@ -9,7 +9,6 @@ import Landing from "./LandingPage";
 import SourcePage from "./pages/SourcePage";
 import { getAuthUserId } from "./auth";
 
-
 function RequireAuth({ children }: { children: React.ReactNode }) {
   return getAuthUserId() ? <>{children}</> : <Navigate to="/landing" replace />;
 }
@@ -47,17 +46,17 @@ export default function Dashboard() {
           path="/*"
           element={
             <RequireAuth>
-            <SidebarLayout>
-              <Routes>
-                <Route path="discover" element={<Discover />} />
-                <Route path="feed" element={<FeedPage />} />
-                <Route path="saved" element={<SavedPage />} />
-                <Route path="recently-read" element={<ReadPage />} />
-                <Route path="folders/:folderId" element={<FolderPage />} />
-                <Route path="/sources/:sourceId" element={<SourcePage />} />
-                <Route path="/" element={<Navigate to="/feed" replace />} />
-              </Routes>
-            </SidebarLayout>
+              <SidebarLayout>
+                <Routes>
+                  <Route path="discover" element={<Discover />} />
+                  <Route path="feed" element={<FeedPage />} />
+                  <Route path="saved" element={<SavedPage />} />
+                  <Route path="recently-read" element={<ReadPage />} />
+                  <Route path="folders/:folderId" element={<FolderPage />} />
+                  <Route path="/sources/:sourceId" element={<SourcePage />} />
+                  <Route path="/" element={<Navigate to="/feed" replace />} />
+                </Routes>
+              </SidebarLayout>
             </RequireAuth>
           }
         />

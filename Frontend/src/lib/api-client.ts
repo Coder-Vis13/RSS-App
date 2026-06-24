@@ -36,7 +36,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export const get = async (url: string, params?: Record<string, any>) => {
@@ -47,7 +47,7 @@ export const get = async (url: string, params?: Record<string, any>) => {
 export const post = async (
   url: string,
   body?: any,
-  params?: Record<string, any>
+  params?: Record<string, any>,
 ) => {
   const response = await api.post(url, body, { params });
   return response.data;
@@ -56,16 +56,13 @@ export const post = async (
 export const put = async (
   url: string,
   body?: any,
-  params?: Record<string, any>
+  params?: Record<string, any>,
 ) => {
   const response = await api.put(url, body, { params });
   return response.data;
 };
 
-export const del = async (
-  url: string,
-  params?: Record<string, any>
-) => {
+export const del = async (url: string, params?: Record<string, any>) => {
   const response = await api.delete(url, { params });
   return response.data;
 };

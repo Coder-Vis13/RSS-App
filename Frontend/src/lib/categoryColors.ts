@@ -109,7 +109,7 @@ export const CATEGORY_COLOR_MAP: Record<string, CategoryColorEntry> = {
   },
 
   history: {
-    classes: "bg-gray-100 text-gray-700", // assigned neutral (missing in DB)
+    classes: "bg-gray-100 text-gray-700",
     bg: "#F3F4F6",
     text: "#374151",
   },
@@ -145,63 +145,29 @@ export const CATEGORY_COLOR_MAP: Record<string, CategoryColorEntry> = {
   },
 };
 
-const normalizeKey = (name: string | undefined) =>
-  (name || "").toString().trim().toLowerCase().replace(/\s+/g, "");
-
+const normalizeKey = (name: string | null | undefined) =>
+  (name || "").trim().toLowerCase().replace(/\s+/g, "");
 
 export const getCategoryPresentation = (
-  backendColorStr: string | null | undefined,
   categoryName: string | null | undefined,
 ): { className: string; style: React.CSSProperties } => {
   const defaultCls = "bg-gray-200 text-gray-700";
-  const defaultStyle: React.CSSProperties = {
+
+  const defaultStyle = {
     backgroundColor: "#E5E7EB",
     color: "#374151",
   };
 
-  let backendClasses = "";
-  let inlineStyle: React.CSSProperties = {};
+  const key = normalizeKey(categoryName);
+  const mapEntry = CATEGORY_COLOR_MAP[key];
 
-  if (
-    backendColorStr &&
-    typeof backendColorStr === "string" &&
-    backendColorStr.trim()
-  ) {
-    backendClasses = backendColorStr.trim();
-    const tokens = backendClasses.split(/\s+/);
-    const bgToken = tokens.find((t) => t.startsWith("bg-"));
-    const textToken = tokens.find((t) => t.startsWith("text-"));
-
-    if (bgToken) {
-      const found = Object.values(CATEGORY_COLOR_MAP).find(
-        (e) => e.classes && e.classes.includes(bgToken),
-      );
-      if (found?.bg) inlineStyle.backgroundColor = found.bg;
-    }
-    if (textToken) {
-      const foundText = Object.values(CATEGORY_COLOR_MAP).find(
-        (e) => e.classes && e.classes.includes(textToken),
-      );
-      if (foundText?.text) inlineStyle.color = foundText.text;
-    }
-  }
-
-  if ((!inlineStyle.backgroundColor || !inlineStyle.color) && categoryName) {
-    const key = normalizeKey(categoryName);
-    const mapEntry = CATEGORY_COLOR_MAP[key];
-    if (mapEntry) {
-      if (!inlineStyle.backgroundColor && mapEntry.bg)
-        inlineStyle.backgroundColor = mapEntry.bg;
-      if (!inlineStyle.color && mapEntry.text)
-        inlineStyle.color = mapEntry.text;
-      // if backend didn't provide classes, use map classes
-      if (!backendClasses && mapEntry.classes)
-        backendClasses = mapEntry.classes;
-    }
-  }
-
-  const className = backendClasses || defaultCls;
-  const style = Object.keys(inlineStyle).length ? inlineStyle : defaultStyle;
-
-  return { className, style };
+  return {
+    className: mapEntry?.classes || defaultCls,
+    style: mapEntry
+      ? {
+          backgroundColor: mapEntry.bg,
+          color: mapEntry.text,
+        }
+      : defaultStyle,
+  };
 };

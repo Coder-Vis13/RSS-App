@@ -38,8 +38,8 @@ export default function SourcePage() {
   const { sourceId } = useParams<{ sourceId: string }>();
   const location = useLocation();
 
-    const userId = getAuthUserId();
-    if (!userId) {
+  const userId = getAuthUserId();
+  if (!userId) {
     return null;
   }
 
@@ -76,57 +76,54 @@ export default function SourcePage() {
   const { blocklist } = useBlocklist();
 
   const fetchSourceItems = useCallback(
-  async (showLoading = true) => {
-    if (!sourceId) return;
+    async (showLoading = true) => {
+      if (!sourceId) return;
 
-    if (showLoading) {
-      setLoading(true);
-    }
-
-    try {
-      const data = await getSourceItems(
-        userId,
-        Number(sourceId),
-        selectedTime,
-      );
-
-      const normalized: SourceItem[] = data.map((i: any) => ({
-        ...i,
-        is_save: Boolean(i.is_save),
-      }));
-
-      setItems(normalized);
-
-      if (
-        normalized[0]?.feed_type === "rss" ||
-        normalized[0]?.feed_type === "podcast"
-      ) {
-        sessionStorage.setItem(
-          "activeFeedType",
-          normalized[0].feed_type,
-        );
-        setFeedType(normalized[0].feed_type);
+      if (showLoading) {
+        setLoading(true);
       }
 
-      const allCats = normalized.flatMap(
-        (i) => i.categories?.map((c) => c.name) ?? [],
-      );
+      try {
+        const data = await getSourceItems(
+          userId,
+          Number(sourceId),
+          selectedTime,
+        );
 
-      setUniqueCategories(Array.from(new Set(allCats)));
+        const normalized: SourceItem[] = data.map((i: any) => ({
+          ...i,
+          is_save: Boolean(i.is_save),
+        }));
 
-      return normalized;
-    } catch (err) {
-      console.error("Failed to load source items:", err);
-    } finally {
-      setLoading(false);
-    }
-  },
-  [userId, sourceId, selectedTime],
-);
+        setItems(normalized);
+
+        if (
+          normalized[0]?.feed_type === "rss" ||
+          normalized[0]?.feed_type === "podcast"
+        ) {
+          sessionStorage.setItem("activeFeedType", normalized[0].feed_type);
+          setFeedType(normalized[0].feed_type);
+        }
+
+        const allCats = normalized.flatMap(
+          (i) => i.categories?.map((c) => c.name) ?? [],
+        );
+
+        setUniqueCategories(Array.from(new Set(allCats)));
+
+        return normalized;
+      } catch (err) {
+        console.error("Failed to load source items:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId, sourceId, selectedTime],
+  );
 
   useEffect(() => {
-  fetchSourceItems();
-}, [fetchSourceItems]);
+    fetchSourceItems();
+  }, [fetchSourceItems]);
 
   const hasPendingCategories = useMemo(
     () => items.some((item) => item.is_categorized === false),
@@ -134,23 +131,19 @@ export default function SourcePage() {
   );
 
   usePolling(
-  () => {
-    fetchSourceItems(false);
-  },
-  !!userId && !!sourceId,
-  300000,
-);
+    () => {
+      fetchSourceItems(false);
+    },
+    !!userId && !!sourceId,
+    300000,
+  );
 
-useCategorizationPolling(
-  fetchSourceItems,
-  hasPendingCategories,
-);
+  useCategorizationPolling(fetchSourceItems, hasPendingCategories);
 
   useEffect(() => {
     setSelectedCategory("All");
   }, [feedType]);
 
-  /* ---------- helpers ---------- */
   const filterWithBlocklist = (items: SourceItem[], blocklist: string[]) =>
     items.filter((item) => {
       const t = (item.title || "").toLowerCase();
@@ -158,7 +151,6 @@ useCategorizationPolling(
       return !blocklist.some((w) => t.includes(w) || d.includes(w));
     });
 
-  /* ---------- actions ---------- */
   const handleMarkAsRead = async (itemId: number) => {
     await markItemRead(userId, itemId);
     setItems((prev) => prev.filter((i) => i.item_id !== itemId));
@@ -230,8 +222,8 @@ useCategorizationPolling(
                 <div className="flex flex-col divide-y divide-gray-300">
                   {filteredItems.length === 0 ? (
                     <div className="w-full text-center py-10 text-gray-400">
-  No {feedType === "rss" ? "articles" : "podcasts"} found.
-</div>
+                      No {feedType === "rss" ? "articles" : "podcasts"} found.
+                    </div>
                   ) : (
                     filteredItems.map((item) => (
                       <div
@@ -242,10 +234,7 @@ useCategorizationPolling(
                           {item.categories && item.categories.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-2">
                               {item.categories.map((cat) => {
-                                const p = getCategoryPresentation(
-                                  cat.color,
-                                  cat.name,
-                                );
+                                const p = getCategoryPresentation(cat.name);
                                 return (
                                   <span
                                     key={cat.name}
@@ -293,7 +282,7 @@ useCategorizationPolling(
 
                         <Button
                           variant="ghost"
-  className="ml-4 shrink-0 h-12 w-12 p-0"
+                          className="ml-4 shrink-0 h-12 w-12 p-0"
                           onClick={() => handleSave(item.item_id)}
                         >
                           <Bookmark

@@ -53,73 +53,71 @@ export default function FolderPage() {
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [allCategories, setAllCategories] = useState<string[]>([]);
 
-    const userId = getAuthUserId();
-    if (!userId) {
+  const userId = getAuthUserId();
+  if (!userId) {
     return null;
   }
 
   const { blocklist } = useBlocklist();
 
   const fetchFolderItems = useCallback(
-  async (showLoading = true) => {
-    if (showLoading) {
-  setLoading(true);
-}
-    try {
-      const data = await getFolderItems(userId, Number(folderId), selectedTime);
-      const normalized = data.map((i: any) => ({
-        ...i,
-        is_save: Boolean(i.is_save),
-      }));
+    async (showLoading = true) => {
+      if (showLoading) {
+        setLoading(true);
+      }
+      try {
+        const data = await getFolderItems(
+          userId,
+          Number(folderId),
+          selectedTime,
+        );
+        const normalized = data.map((i: any) => ({
+          ...i,
+          is_save: Boolean(i.is_save),
+        }));
 
-      setFolderItems(normalized);
+        setFolderItems(normalized);
 
-      const allCats: string[] = normalized.flatMap(
-        (i: FolderItems) => i.categories?.map((cat) => cat.name) ?? [],
-      );
+        const allCats: string[] = normalized.flatMap(
+          (i: FolderItems) => i.categories?.map((cat) => cat.name) ?? [],
+        );
 
-      const unique = Array.from(new Set(allCats));
-      setAllCategories(unique);
-      return normalized; 
-    } catch (err) {
-      console.error("Failed to load folder items:", err);
-    } finally {
-      setLoading(false);
-    }
-  },
-[userId, folderId, selectedTime]
-);
+        const unique = Array.from(new Set(allCats));
+        setAllCategories(unique);
+        return normalized;
+      } catch (err) {
+        console.error("Failed to load folder items:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId, folderId, selectedTime],
+  );
 
   const hasPendingCategories = useMemo(
-  () => folderItems.some((item) => item.is_categorized === false),
-  [folderItems],
-);
+    () => folderItems.some((item) => item.is_categorized === false),
+    [folderItems],
+  );
 
-usePolling(
-  () => {
-    fetchFolderItems(false);
-  },
-  !!userId && !!folderId,
-  300000,
-);
+  usePolling(
+    () => {
+      fetchFolderItems(false);
+    },
+    !!userId && !!folderId,
+    300000,
+  );
 
-useCategorizationPolling(
-  fetchFolderItems,
-  hasPendingCategories,
-);
+  useCategorizationPolling(fetchFolderItems, hasPendingCategories);
 
   useEffect(() => {
-  fetchFolderItems();
-}, [fetchFolderItems]);
+    fetchFolderItems();
+  }, [fetchFolderItems]);
 
   useEffect(() => {
     setSelectedCategory("All");
   }, [feedType]);
 
   if (loading) return <p>Loading...</p>;
-
-
-
 
   const filterWithBlocklist = (items: FolderItems[], blocklist: string[]) => {
     return items.filter((item) => {
@@ -177,133 +175,130 @@ useCategorizationPolling(
   };
 
   const filteredFolderItems = filterWithBlocklist(folderItems, blocklist)
-  .filter((item) => item.feed_type === feedType)
-  .filter(
-    (item) =>
-      selectedCategory === "All" ||
-      item.categories?.some((c) => c.name === selectedCategory),
-  )
-  .sort(
-    (a, b) =>
-      new Date(b.pub_date).getTime() -
-      new Date(a.pub_date).getTime(),
-  );
+    .filter((item) => item.feed_type === feedType)
+    .filter(
+      (item) =>
+        selectedCategory === "All" ||
+        item.categories?.some((c) => c.name === selectedCategory),
+    )
+    .sort(
+      (a, b) => new Date(b.pub_date).getTime() - new Date(a.pub_date).getTime(),
+    );
 
   return (
-  <section className="flex min-h-screen w-full">
-    <div className="flex-1 w-full">
-      <AppHeader
-        feedType={feedType}
-        setFeedType={setFeedType}
-        selectedCategory={selectedCategory}
-        onCategorySelect={handleCategorySelect}
-        categories={allCategories}
-        selectedTime={selectedTime}
-        setSelectedTime={setSelectedTime}
-        onMarkAllRead={handleMarkAsReadFolder}
-      />
+    <section className="flex min-h-screen w-full">
+      <div className="flex-1 w-full">
+        <AppHeader
+          feedType={feedType}
+          setFeedType={setFeedType}
+          selectedCategory={selectedCategory}
+          onCategorySelect={handleCategorySelect}
+          categories={allCategories}
+          selectedTime={selectedTime}
+          setSelectedTime={setSelectedTime}
+          onMarkAllRead={handleMarkAsReadFolder}
+        />
 
-      <div className="px-6">
-        <section className="max-w-[1100px] mx-auto">
-          {folderItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-[80vh] w-full text-center">
-              <img
-                src="/folderImage.png"
-                alt="No content in this folder"
-                className="w-56 mb-6 opacity-90"
-              />
-              <p className="text-lg font-semibold text-[var(--text)]">
-                This folder is empty
-              </p>
-              <p className="mt-2 text-sm text-[var(--text-light)] max-w-sm">
-                Add sources to this folder to start curating your reading feed.
-              </p>
-            </div>
-          ) : filteredFolderItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-[80vh] w-full">
-              <img
-                src="/feedImage.png"
-                alt="Empty Feed"
-                className="w-85 h-auto mb-6"
-              />
-              <p className="text-[var(--text)] text-center">
-                No {feedType === "rss" ? "articles" : "podcasts"} items found.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col divide-y divide-gray-300">
-              {filteredFolderItems.map((item) => (
-                <div
-                  key={item.item_id}
-                  className="py-6 flex justify-between items-center hover:bg-[var(--hover)] transition"
-                >
-                  <div className="flex-1 pr-4">
-                    {item.categories && item.categories.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {item.categories.map((cat) => {
-                          const {
-                            className: backendClasses,
-                            style: backendStyle,
-                          } = getCategoryPresentation(cat.color, cat.name);
-
-                          return (
-                            <span
-                              key={cat.name}
-                              className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
-                              style={backendStyle}
-                            >
-                              {cat.name}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => handleMarkAsRead(item.item_id)}
-                      className="text-[var(--accent)] hover:underline font-semibold"
-                    >
-                      {item.title}
-                    </a>
-
-                    {item.description && (
-                      <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
-                        {item.description}
-                      </p>
-                    )}
-
-                    {item.pub_date && (
-                      <p className="text-xs text-gray-500 mt-4">
-                        {item.source_name} •{" "}
-                        {new Date(item.pub_date).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    className="ml-4 shrink-0 h-14 w-14 p-0"
-                    onClick={() => handleSave(item.item_id)}
+        <div className="px-6">
+          <section className="max-w-[1100px] mx-auto">
+            {folderItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[80vh] w-full text-center">
+                <img
+                  src="/folderImage.png"
+                  alt="No content in this folder"
+                  className="w-56 mb-6 opacity-90"
+                />
+                <p className="text-lg font-semibold text-[var(--text)]">
+                  This folder is empty
+                </p>
+                <p className="mt-2 text-sm text-[var(--text-light)] max-w-sm">
+                  Add sources to this folder to start curating your reading
+                  feed.
+                </p>
+              </div>
+            ) : filteredFolderItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[80vh] w-full">
+                <img
+                  src="/feedImage.png"
+                  alt="Empty Feed"
+                  className="w-85 h-auto mb-6"
+                />
+                <p className="text-[var(--text)] text-center">
+                  No {feedType === "rss" ? "articles" : "podcasts"} items found.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col divide-y divide-gray-300">
+                {filteredFolderItems.map((item) => (
+                  <div
+                    key={item.item_id}
+                    className="py-6 flex justify-between items-center hover:bg-[var(--hover)] transition"
                   >
-                    <Bookmark
-                      size={20}
-                      className={
-                        item.is_save
-                          ? "text-[var(--accent)] fill-[var(--accent)]"
-                          : "text-gray-400"
-                      }
-                    />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                    <div className="flex-1 pr-4">
+                      {item.categories && item.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {item.categories.map((cat) => {
+                            const { className, style } =
+                              getCategoryPresentation(cat.name);
+
+                            return (
+                              <span
+                                key={cat.name}
+                                className={`text-[12px] px-2 py-0.5 rounded-full ${className}`}
+                                style={style}
+                              >
+                                {cat.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => handleMarkAsRead(item.item_id)}
+                        className="text-[var(--accent)] hover:underline font-semibold"
+                      >
+                        {item.title}
+                      </a>
+
+                      {item.description && (
+                        <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
+                          {item.description}
+                        </p>
+                      )}
+
+                      {item.pub_date && (
+                        <p className="text-xs text-gray-500 mt-4">
+                          {item.source_name} •{" "}
+                          {new Date(item.pub_date).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      className="ml-4 shrink-0 h-14 w-14 p-0"
+                      onClick={() => handleSave(item.item_id)}
+                    >
+                      <Bookmark
+                        size={20}
+                        className={
+                          item.is_save
+                            ? "text-[var(--accent)] fill-[var(--accent)]"
+                            : "text-gray-400"
+                        }
+                      />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
 }

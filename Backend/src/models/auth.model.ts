@@ -1,7 +1,11 @@
 import { query } from '../config/db';
 import { AuthUser, UserRefreshToken, UserId } from './types';
 
-export async function createUser(name: string, email: string, passwordHash: string): Promise<UserId> {
+export async function createUser(
+  name: string,
+  email: string,
+  passwordHash: string
+): Promise<UserId> {
   const result = await query(
     `
     INSERT INTO users (name, email, password_hash)

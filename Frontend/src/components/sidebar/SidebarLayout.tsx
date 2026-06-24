@@ -132,8 +132,8 @@ export default function SidebarLayout({
   const navigate = useNavigate();
   const userId = getAuthUserId();
   if (!userId) {
-  return null;
-}
+    return null;
+  }
   const sidebarWidth = 260;
 
   const refetchSidebarData = async () => {
@@ -250,12 +250,12 @@ export default function SidebarLayout({
         renameUserFolder,
       );
       setUserFolders((prev) =>
-  prev.map((f) =>
-    f.folder_id === selectedFolderId
-      ? { ...f, name: updatedFolder.name }
-      : f,
-  ),
-);
+        prev.map((f) =>
+          f.folder_id === selectedFolderId
+            ? { ...f, name: updatedFolder.name }
+            : f,
+        ),
+      );
       setRenameModalOpen(false);
       setRenameError(null);
       setRenameUserFolder("");
@@ -744,9 +744,7 @@ export default function SidebarLayout({
         }}
         className="h-full overflow-y-auto overflow-x-hidden bg-[var(--background)]"
       >
-        {/* <div className="max-w-6xl mx-auto w-full px-4 py-6"> */}
         {children}
-        {/* </div> */}
       </main>
     </div>
   );

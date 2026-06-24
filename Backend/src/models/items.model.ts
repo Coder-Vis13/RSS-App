@@ -154,7 +154,6 @@ export const getItemsByCategory = async (
   const params = [userId, categoryName];
   const result: QueryResult<FeedItems> = await query(baseQuery, params);
 
-
   return result.rows;
 };
 
@@ -201,7 +200,6 @@ export const getSavedItemsByCategory = async (
 
   const params = [userId, categoryName];
   const result: QueryResult<FeedItems> = await query(baseQuery, params);
-
 
   return result.rows;
 };
@@ -402,7 +400,6 @@ export const allSavedItems = async (
   const params = [userId];
   const result: QueryResult<Item> = await query(baseQuery, params);
 
-
   logAction(`Saved items: User=${userId} itemCount=${result.rows.length}`);
   return result.rows;
 };
@@ -452,7 +449,6 @@ export const readItems = async (
 
   const params = [userId];
   const result: QueryResult<AllReadItems> = await query(baseQuery, params);
-
 
   logAction(`Read items: User=${userId} itemCount=${result.rows.length}`);
   return result.rows;

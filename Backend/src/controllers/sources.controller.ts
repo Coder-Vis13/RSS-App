@@ -27,7 +27,6 @@ interface UserSource {
   sourceId: string;
 }
 
-
 export class ApiError extends Error {
   statusCode: number;
 

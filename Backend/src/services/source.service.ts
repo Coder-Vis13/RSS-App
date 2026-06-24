@@ -15,15 +15,12 @@ import { inferFeedType } from './feed-ingestion/infer-feed-type.service';
 import { getInitialImportLimit } from '../config/ingestion-limits';
 import { enqueueCategorization } from '../utils/categorizer';
 
-
 export const processSource = async (userId: number, sourceURL: string) => {
   const feedDedupe = createDuplicateChecker();
 
-  console.log(`[ingestion] classify: ${sourceURL}`);
+  console.log(`[ingestion] start user=${userId} url=${sourceURL}`);
   const classification = classifySourceUrl(sourceURL);
-  console.log(`[ingestion] classified as: ${classification}`);
 
-  console.log(`[ingestion] resolve feed URL`);
   const resolved = await resolveFeedUrl(sourceURL, classification);
 
   if (!resolved) {
@@ -35,7 +32,7 @@ export const processSource = async (userId: number, sourceURL: string) => {
 
   return preventDoubleFetch(canonicalFeedUrl, async () => {
     if (isDuplicate) {
-      console.log(`[ingestion] dedupe: duplicate resolved feed URL (${canonicalFeedUrl})`);
+      console.log(`[ingestion] dedupe duplicate_feed_url`);
     }
 
     console.log(`[ingestion] resolved: ${canonicalFeedUrl} (${feedType})`);
@@ -53,14 +50,11 @@ export const processSource = async (userId: number, sourceURL: string) => {
       throw err;
     }
 
-    console.log(`[ingestion] check DB for existing source`);
     const existingSource = getFirstRow<{ source_id: number; source_name: string }>(
       await query(`SELECT source_id, source_name FROM source WHERE url = $1`, [canonicalFeedUrl])
     );
 
     if (existingSource) {
-      console.log(`[ingestion] short-circuit: source already exists (${existingSource.source_id})`);
-
       // Parse once so direct podcast RSS URLs get correct feed_type even on re-subscribe.
       const parsed = await parseFeed(canonicalFeedUrl);
       const feedTypeResolved = inferFeedType(parsed, feedType);
@@ -81,7 +75,6 @@ export const processSource = async (userId: number, sourceURL: string) => {
       };
     }
 
-    console.log(`[ingestion] parse feed`);
     const parsed = await parseFeed(canonicalFeedUrl);
     const feedTypeResolved = inferFeedType(parsed, feedType);
 
@@ -95,11 +88,11 @@ export const processSource = async (userId: number, sourceURL: string) => {
 
     const items = normalizeItems(parsed.entries ?? [], feedTypeResolved);
 
-const insertResult = await addItem(source.source_id, items);
-await addUserItemMetadata(userId, insertResult.insertedIds);
-if (insertResult.insertedIds.length > 0) {
-  enqueueCategorization(insertResult.insertedIds);
-}
+    const insertResult = await addItem(source.source_id, items);
+    await addUserItemMetadata(userId, insertResult.insertedIds);
+    if (insertResult.insertedIds.length > 0) {
+      enqueueCategorization(insertResult.insertedIds);
+    }
 
     console.log(`[ingestion] done: ${insertResult.insertCount} items added`);
 

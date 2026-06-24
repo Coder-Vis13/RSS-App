@@ -20,7 +20,6 @@ interface AddSource extends Source {
   created: boolean;
 }
 
-
 type AllUserSources = Omit<UserSource, 'user_id'>;
 
 interface UserSources {
@@ -28,7 +27,6 @@ interface UserSources {
   source_name: string;
   url: string;
 }
-
 
 interface MarkReadRow {
   user_id: number;
@@ -134,9 +132,7 @@ export const addUserSource = async (
   );
   const newUserSource = getFirstRow(insertResult);
 
-  logAction(
-    `Added a new Source=${sourceId} for User=${userId} feed_type=${feedType}`
-  );
+  logAction(`Added a new Source=${sourceId} for User=${userId} feed_type=${feedType}`);
 
   return markAsCreated(newUserSource);
 };
@@ -147,15 +143,15 @@ export const removeUserSource = async (
   sourceId: number
 ): Promise<AllUserSources[]> => {
   const userRow = getFirstRow(
-  await query(
-    `SELECT feed_type
+    await query(
+      `SELECT feed_type
      FROM user_source
      WHERE user_id = $1 AND source_id = $2`,
-    [userId, sourceId]
-  )
-);
+      [userId, sourceId]
+    )
+  );
 
-const feedType = userRow?.feed_type ?? "rss";
+  const feedType = userRow?.feed_type ?? 'rss';
 
   await query(`DELETE FROM user_source WHERE user_id = $1 AND source_id = $2`, [userId, sourceId]);
 
@@ -184,11 +180,11 @@ const feedType = userRow?.feed_type ?? "rss";
   }
 
   const sourcesResult = await query<AllUserSources>(
-  `SELECT source_id
+    `SELECT source_id
    FROM user_source
    WHERE user_id = $1`,
-  [userId]
-);
+    [userId]
+  );
 
   logAction(`Removed ${feedType} source: User=${userId} Source=${sourceId}`);
   return sourcesResult.rows;
@@ -215,7 +211,6 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
 
   return sourcesWithLogos;
 };
-
 
 // mark all items of a specific source as read for a user
 export const markSourceItemsRead = async (
@@ -349,4 +344,3 @@ export const checkSourceExists = async (userId: number, sourceURL: string): Prom
 
   return exists;
 };
-

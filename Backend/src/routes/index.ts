@@ -84,5 +84,4 @@ router.post('/users/:userId/folders/:folderId/sources', addSourceIntoFolderHandl
 router.delete('/users/:userId/folders/:folderId/sources/:sourceId', deleteSourceFromFolderHandler); // remove source from folder
 router.get('/users/:userId/folders/:folderId/feed', folderItemsHandler); // get unread items for folder
 
-
 export default router;

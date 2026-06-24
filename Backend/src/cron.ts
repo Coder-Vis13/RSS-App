@@ -6,7 +6,6 @@ import { addItem, addUserItemMetadata } from './models/items.model';
 import pLimit from 'p-limit';
 import { enqueueCategorization } from './utils/categorizer';
 
-
 export interface SourceRow {
   source_id: number;
   url: string;
@@ -107,7 +106,7 @@ async function refreshSource(row: SourceRow): Promise<void> {
 
       if (userIds.length) {
         await Promise.allSettled(userIds.map((uid) => addUserItemMetadata(uid, insertedIds)));
-  enqueueCategorization(insertedIds);
+        enqueueCategorization(insertedIds);
       }
     }
 
@@ -155,7 +154,4 @@ export async function runFeedRefresh(): Promise<void> {
 }
 
 // default: every 30 minutes
-// schedule('*/15 * * * *', runFeedRefresh);
-
-// Dev: run once at startup
-// runFeedRefresh();
+schedule('*/15 * * * *', runFeedRefresh);

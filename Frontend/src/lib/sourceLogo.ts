@@ -10,7 +10,6 @@ export function buildClearbitLogoUrl(domain: string): string {
   return `https://logo.clearbit.com/${domain}`;
 }
 
-/** favicon fallback */
 export function buildGoogleFaviconUrl(domain: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }

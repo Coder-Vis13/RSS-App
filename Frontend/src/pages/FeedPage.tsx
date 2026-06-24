@@ -58,18 +58,18 @@ export default function FeedPage() {
     return "all";
   });
 
-    const userId = getAuthUserId();
-    if (!userId) {
+  const userId = getAuthUserId();
+  if (!userId) {
     return null;
   }
 
   const { blocklist } = useBlocklist();
 
   const fetchFeed = useCallback(
-  async (showLoading = true) => {
+    async (showLoading = true) => {
       if (showLoading) {
-    setLoading(true);
-}
+        setLoading(true);
+      }
       try {
         let data;
 
@@ -105,13 +105,13 @@ export default function FeedPage() {
         setLoading(false);
       }
     },
-[userId, selectedCategory, selectedTime]
-);
+    [userId, selectedCategory, selectedTime],
+  );
 
   //Fetch feed
   useEffect(() => {
-  fetchFeed();
-}, [fetchFeed]);
+    fetchFeed();
+  }, [fetchFeed]);
 
   const hasPendingCategories = useMemo(
     () => feedItems.some((item) => item.is_categorized === false),
@@ -121,11 +121,7 @@ export default function FeedPage() {
   usePolling(fetchFeed, !!userId, 300000, false);
 
   // Poll while background categorization runs so pills appear without manual refresh.
-  useCategorizationPolling(
-  fetchFeed,
-  hasPendingCategories,
-);
-
+  useCategorizationPolling(fetchFeed, hasPendingCategories);
 
   useEffect(() => {
     setSelectedCategory("All");
@@ -141,8 +137,8 @@ export default function FeedPage() {
   };
 
   const handleMarkAsReadFeed = async () => {
-    try {if (feedItems.length === 0)
-      await markUserFeedItemsRead(userId);
+    try {
+      if (feedItems.length === 0) await markUserFeedItemsRead(userId);
       let updatedFeed;
 
       if (selectedCategory === "All") {
@@ -193,129 +189,124 @@ export default function FeedPage() {
   };
 
   const filteredFeedItems = useMemo(() => {
-  return filterWithBlocklist(
-    feedItems.filter((i) => i.feed_type === feedType),
-    blocklist,
-  ).sort((a, b) => b.pub_date.localeCompare(a.pub_date));
-}, [feedItems, feedType, blocklist]);
+    return filterWithBlocklist(
+      feedItems.filter((i) => i.feed_type === feedType),
+      blocklist,
+    ).sort((a, b) => b.pub_date.localeCompare(a.pub_date));
+  }, [feedItems, feedType, blocklist]);
 
+  return (
+    <div className="flex min-h-screen w-full">
+      <main className="flex-1 w-full">
+        <AppHeader
+          feedType={feedType}
+          setFeedType={setFeedType}
+          selectedCategory={selectedCategory}
+          onCategorySelect={handleCategorySelect}
+          categories={allCategories}
+          selectedTime={selectedTime}
+          setSelectedTime={setSelectedTime}
+          onMarkAllRead={handleMarkAsReadFeed}
+        />
 
-return (
-  <div className="flex min-h-screen w-full">
-    <main className="flex-1 w-full">
-      <AppHeader
-        feedType={feedType}
-        setFeedType={setFeedType}
-        selectedCategory={selectedCategory}
-        onCategorySelect={handleCategorySelect}
-        categories={allCategories}
-        selectedTime={selectedTime}
-        setSelectedTime={setSelectedTime}
-        onMarkAllRead={handleMarkAsReadFeed}
-      />
+        {/* Feed */}
+        <div className="px-6">
+          <section className="max-w-[1100px] mx-auto">
+            {loading ? (
+              <p className="text-gray-500">Loading feed...</p>
+            ) : filteredFeedItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[80vh] w-full">
+                <img
+                  src="/feedImage.png"
+                  alt="Empty Feed"
+                  className="w-85 h-auto mb-6"
+                />
+                <p className="text-[var(--text)] text-center">
+                  No {feedType === "rss" ? "articles" : "podcasts"} items found.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col divide-y divide-gray-300">
+                {filteredFeedItems.map((item) => (
+                  <div
+                    key={item.item_id}
+                    className="py-6 flex items-center hover:bg-[var(--hover)] transition"
+                  >
+                    <div className="flex-1 pr-4">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {item.categories?.map((cat) => {
+                          const { className, style } = getCategoryPresentation(
+                            cat.name,
+                          );
 
-      {/* Feed */}
-      <div className="px-6">
-        <section className="max-w-[1100px] mx-auto">
-          {loading ? (
-            <p className="text-gray-500">Loading feed...</p>
-          ) : filteredFeedItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-[80vh] w-full">
-              <img
-                src="/feedImage.png"
-                alt="Empty Feed"
-                className="w-85 h-auto mb-6"
-              />
-              <p className="text-[var(--text)] text-center">
-                No {feedType === "rss" ? "articles" : "podcasts"} items found.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col divide-y divide-gray-300">
-              {filteredFeedItems.map((item) => (
-                <div
-                  key={item.item_id}
-                  className="py-6 flex items-center hover:bg-[var(--hover)] transition"
-                >
-                  <div className="flex-1 pr-4">
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {item.categories?.map((cat) => {
-                        const {
-                          className: backendClasses,
-                          style: backendStyle,
-                        } = getCategoryPresentation(
-                          cat.color,
-                          cat.name,
-                        );
+                          return (
+                            <span
+                              key={cat.name}
+                              className={`text-[12px] px-2 py-0.5 rounded-full ${className}`}
+                              style={style}
+                            >
+                              {cat.name}
+                            </span>
+                          );
+                        })}
+                      </div>
 
-                        return (
-                          <span
-                            key={cat.name}
-                            className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
-                            style={backendStyle}
-                          >
-                            {cat.name}
-                          </span>
-                        );
-                      })}
+                      {item.tags && item.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1 mb-4">
+                          {item.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => handleMarkAsRead(item.item_id)}
+                        className="text-[var(--accent)] hover:underline font-semibold"
+                      >
+                        {item.title}
+                      </a>
+
+                      {item.description && (
+                        <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
+                          {item.description}
+                        </p>
+                      )}
+
+                      <p className="text-xs text-gray-500 mt-4">
+                        {item.source_name} •{" "}
+                        {new Date(item.pub_date).toLocaleDateString()}
+                      </p>
                     </div>
 
-                    {item.tags && item.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-1 mb-4">
-                        {item.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => handleMarkAsRead(item.item_id)}
-                      className="text-[var(--accent)] hover:underline font-semibold"
+                    <Button
+                      variant="ghost"
+                      className="ml-4 shrink-0 h-14 w-14 p-0"
+                      onClick={() => handleSave(item.item_id)}
                     >
-                      {item.title}
-                    </a>
-
-                    {item.description && (
-                      <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
-                        {item.description}
-                      </p>
-                    )}
-
-                    <p className="text-xs text-gray-500 mt-4">
-                      {item.source_name} •{" "}
-                      {new Date(item.pub_date).toLocaleDateString()}
-                    </p>
+                      <Bookmark
+                        size={20}
+                        className={
+                          item.is_save
+                            ? "text-[var(--accent)] fill-[var(--accent)]"
+                            : "text-gray-400"
+                        }
+                      />
+                    </Button>
                   </div>
-
-                  <Button
-                    variant="ghost"
-                    className="ml-4 shrink-0 h-14 w-14 p-0"
-                    onClick={() => handleSave(item.item_id)}
-                  >
-                    <Bookmark
-                      size={20}
-                      className={
-                        item.is_save
-                          ? "text-[var(--accent)] fill-[var(--accent)]"
-                          : "text-gray-400"
-                      }
-                    />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
-  </div>
-);
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
 }

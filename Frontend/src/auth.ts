@@ -37,13 +37,20 @@ export function getAuthUserId(): number | null {
 }
 
 export async function signUp(name: string, email: string, password: string) {
-  const { data } = await authApi.post<AuthResponse>("/register", { name, email, password });
+  const { data } = await authApi.post<AuthResponse>("/register", {
+    name,
+    email,
+    password,
+  });
   setAccessToken(data.accessToken);
   return data;
 }
 
 export async function signIn(email: string, password: string) {
-  const { data } = await authApi.post<AuthResponse>("/login", { email, password });
+  const { data } = await authApi.post<AuthResponse>("/login", {
+    email,
+    password,
+  });
   setAccessToken(data.accessToken);
   return data;
 }

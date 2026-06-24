@@ -35,9 +35,7 @@ export const userFeedItemsHandler = async (
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
 
-    // feedType is removed; userFeedItems now returns both RSS and podcast items
     const unreadItems = await userFeedItems(userId, timeFilter);
-
 
     res.json(unreadItems);
   } catch (error) {

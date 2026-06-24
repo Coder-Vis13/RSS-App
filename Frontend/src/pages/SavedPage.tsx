@@ -42,8 +42,8 @@ export default function SavedPage() {
     return "all";
   });
 
-    const userId = getAuthUserId();
-    if (!userId) {
+  const userId = getAuthUserId();
+  if (!userId) {
     return null;
   }
 
@@ -93,12 +93,12 @@ export default function SavedPage() {
   }, [feedType]);
 
   const handleMarkAsReadSaved = async (itemId: number) => {
-  try {
-    await markItemRead(userId, itemId);
-  } catch (err) {
-    console.error("Failed to mark as read:", err);
-  }
-};
+    try {
+      await markItemRead(userId, itemId);
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
+    }
+  };
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -109,14 +109,14 @@ export default function SavedPage() {
   }, [savedItems, feedType]);
 
   const handleMarkAllReadSaved = async () => {
-  try {
-    for (const item of filteredSavedItems) {
-      await markItemRead(userId, item.item_id);
+    try {
+      for (const item of filteredSavedItems) {
+        await markItemRead(userId, item.item_id);
+      }
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
     }
-  } catch (err) {
-    console.error("Failed to mark all as read:", err);
-  }
-};
+  };
 
   const noSavedItems = !loading && savedItems.length === 0;
 
@@ -152,16 +152,16 @@ export default function SavedPage() {
             <section className="max-w-[1100px] mx-auto">
               {/* Saved items */}
               {loading ? (
-  <p className="text-[var(--text-light)]">
-    Loading saved items...
-  </p>
-) : filteredSavedItems.length === 0 ? (
-  <div className="w-full text-center py-10 text-gray-400">
-    No {feedType === "rss" ? "articles" : "podcasts"} items found.
-  </div>
-) : (
-  <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-    {filteredSavedItems.map((item) => (
+                <p className="text-[var(--text-light)]">
+                  Loading saved items...
+                </p>
+              ) : filteredSavedItems.length === 0 ? (
+                <div className="w-full text-center py-10 text-gray-400">
+                  No {feedType === "rss" ? "articles" : "podcasts"} items found.
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
+                  {filteredSavedItems.map((item) => (
                     <div
                       key={item.item_id}
                       className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
@@ -169,15 +169,13 @@ export default function SavedPage() {
                       <div className="flex-1 pr-4">
                         <div className="flex flex-wrap gap-2 mb-2">
                           {item.categories?.map((cat) => {
-                            const {
-                              className: backendClasses,
-                              style: backendStyle,
-                            } = getCategoryPresentation(cat.color, cat.name);
+                            const { className, style } =
+                              getCategoryPresentation(cat.name);
                             return (
                               <span
                                 key={cat.name}
-                                className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
-                                style={backendStyle}
+                                className={`text-[12px] px-2 py-0.5 rounded-full ${className}`}
+                                style={style}
                               >
                                 {cat.name}
                               </span>

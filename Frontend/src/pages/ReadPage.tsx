@@ -41,8 +41,8 @@ export default function ReadPage() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
 
   const location = useLocation();
-    const userId = getAuthUserId();
-    if (!userId) {
+  const userId = getAuthUserId();
+  if (!userId) {
     return null;
   }
 
@@ -143,8 +143,9 @@ export default function ReadPage() {
               {showFilteredEmptyState ? (
                 <div className="flex flex-col items-center justify-center w-full h-[70vh]">
                   <p className="text-[var(--text)] text-center">
-  No {feedType === "rss" ? "articles" : "podcasts"} match your current filters.
-</p>
+                    No {feedType === "rss" ? "articles" : "podcasts"} match your
+                    current filters.
+                  </p>
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
@@ -158,16 +159,14 @@ export default function ReadPage() {
                         {item.categories && item.categories.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-2">
                             {item.categories.map((cat) => {
-                              const {
-                                className: backendClasses,
-                                style: backendStyle,
-                              } = getCategoryPresentation(cat.color, cat.name);
+                              const { className, style } =
+                                getCategoryPresentation(cat.name);
 
                               return (
                                 <span
                                   key={cat.name}
-                                  className={`text-[12px] px-2 py-0.5 rounded-full ${backendClasses}`}
-                                  style={backendStyle}
+                                  className={`text-[12px] px-2 py-0.5 rounded-full ${className}`}
+                                  style={style}
                                 >
                                   {cat.name}
                                 </span>

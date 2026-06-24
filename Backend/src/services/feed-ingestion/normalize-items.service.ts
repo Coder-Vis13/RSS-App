@@ -1,5 +1,3 @@
-// normalise items
-
 import { getInitialImportLimit, takeLatestByPubDate } from '../../config/ingestion-limits';
 import { FeedEntry as FeedContent } from '@extractus/feed-extractor';
 import { FeedType } from './resolve-feed-url.service';

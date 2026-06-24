@@ -171,20 +171,19 @@ async function resolveYoutubeHandle(url: URL): Promise<ResolvedFeedUrl | null> {
   const html = await response.text();
 
   console.log(url.toString());
-console.log(html.substring(0, 1000));
-console.log(html.includes("channelId"));
-
+  console.log(html.substring(0, 1000));
+  console.log(html.includes('channelId'));
 
   const patterns = [
     /"channelId":"(UC[\w-]+)"/,
     /"externalId":"(UC[\w-]+)"/,
     /"browseId":"(UC[\w-]+)"/,
-  ]
+  ];
 
-  let channelId: string | null = null
+  let channelId: string | null = null;
 
-  for (const pattern of patterns){
-    const match = html.match(pattern)
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
 
     if (match?.[1]) {
       channelId = match[1];
@@ -196,12 +195,10 @@ console.log(html.includes("channelId"));
     return null;
   }
 
-
   return {
-    feedUrl:
-      `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
-    feedType: "rss",
-};
+    feedUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+    feedType: 'rss',
+  };
 }
 
 async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | null> {
@@ -227,15 +224,15 @@ async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | nu
     };
   }
 
-  const path = url.pathname 
-  .replace(/\/videos$/, '')
-  .replace(/\/featured$/, '')
-  .replace(/\/streams$/, '')
-  .replace(/\/shorts$/, '')
-  .replace(/\/playlists$/, '')
-  .replace(/\/$/, '');
+  const path = url.pathname
+    .replace(/\/videos$/, '')
+    .replace(/\/featured$/, '')
+    .replace(/\/streams$/, '')
+    .replace(/\/shorts$/, '')
+    .replace(/\/playlists$/, '')
+    .replace(/\/$/, '');
 
-  url.pathname = path
+  url.pathname = path;
 
   if (path.startsWith('/@')) {
     return resolveYoutubeHandle(url);

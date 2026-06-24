@@ -1,9 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 
-/**
- * Ensures downstream handlers use authenticated user id,
- * not any client-supplied userId in params/body.
- */
 export function attachAuthenticatedUser(req: Request, res: Response, next: NextFunction): void {
   const authenticatedUserId = req.user?.userId;
 
