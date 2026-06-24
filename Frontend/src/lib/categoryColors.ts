@@ -148,18 +148,7 @@ export const CATEGORY_COLOR_MAP: Record<string, CategoryColorEntry> = {
 const normalizeKey = (name: string | undefined) =>
   (name || "").toString().trim().toLowerCase().replace(/\s+/g, "");
 
-/**
- * Given a backend-provided category object or a simple name,
- * return an object with:
- *  - className: string of tailwind classes to put on className (may be empty)
- *  - style: inline style fallback (bgColor/textColor) — React.CSSProperties
- *
- * Priority:
- * 1. If backendClasses is provided (from backend), use it in className and also
- *    try to derive inline hex using our map (if possible).
- * 2. Else use map entry for category name.
- * 3. Else use default fallback.
- */
+
 export const getCategoryPresentation = (
   backendColorStr: string | null | undefined,
   categoryName: string | null | undefined,
@@ -170,7 +159,6 @@ export const getCategoryPresentation = (
     color: "#374151",
   };
 
-  // parse backend classes (e.g. "bg-blue-100 text-blue-700")
   let backendClasses = "";
   let inlineStyle: React.CSSProperties = {};
 
@@ -180,13 +168,11 @@ export const getCategoryPresentation = (
     backendColorStr.trim()
   ) {
     backendClasses = backendColorStr.trim();
-    // try to find matching hexs from our map using tokens (bg-... / text-...)
     const tokens = backendClasses.split(/\s+/);
     const bgToken = tokens.find((t) => t.startsWith("bg-"));
     const textToken = tokens.find((t) => t.startsWith("text-"));
 
     if (bgToken) {
-      // find map entry that contains this bgToken in classes (fast heuristic)
       const found = Object.values(CATEGORY_COLOR_MAP).find(
         (e) => e.classes && e.classes.includes(bgToken),
       );
@@ -200,7 +186,6 @@ export const getCategoryPresentation = (
     }
   }
 
-  // if we didn't get inline style from backend classes, try map lookup by name
   if ((!inlineStyle.backgroundColor || !inlineStyle.color) && categoryName) {
     const key = normalizeKey(categoryName);
     const mapEntry = CATEGORY_COLOR_MAP[key];
@@ -215,7 +200,6 @@ export const getCategoryPresentation = (
     }
   }
 
-  // final fallbacks
   const className = backendClasses || defaultCls;
   const style = Object.keys(inlineStyle).length ? inlineStyle : defaultStyle;
 

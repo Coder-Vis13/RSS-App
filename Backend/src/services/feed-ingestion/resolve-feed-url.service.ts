@@ -23,6 +23,7 @@ const FETCH_TIMEOUT_MS = 5_000;
 const COMMON_FEED_PATHS = [
   '/feed',
   '/feeds',
+  '/feed/rss',
   '/rss',
   '/feed.xml',
   '/feed.rss',
@@ -55,11 +56,11 @@ const DOMAIN_FEED_FALLBACKS: Record<string, string> = {
   'hindustantimes.com': 'https://www.hindustantimes.com/rss/india/rssfeed.xml',
   'news18.com': 'https://www.news18.com/rss/india.xml',
   'economictimes.indiatimes.com': 'https://b2b.economictimes.indiatimes.com/rss/topstories',
-  'cnn.com': 'http://rss.cnn.com/rss/cnn_topstories.rss',
-  'espn.com': 'https://www.espn.com/espn/rss/news',
+  'edition.cnn.com': 'http://rss.cnn.com/rss/cnn_topstories.rss',
+  'espn.in': 'https://www.espn.com/espn/rss/news',
   'buzzfeed.com': 'https://www.buzzfeed.com/feed.xml',
   'npr.org': 'https://feeds.npr.org/1001/rss.xml',
-  'bbc.co.uk': 'https://feeds.bbci.co.uk/news/rss.xml',
+  'bbc.com': 'https://feeds.bbci.co.uk/news/rss.xml',
   'aljazeera.com': 'https://www.aljazeera.com/xml/rss/all.xml',
 };
 
@@ -169,16 +170,38 @@ async function resolveYoutubeHandle(url: URL): Promise<ResolvedFeedUrl | null> {
 
   const html = await response.text();
 
-  const match = html.match(/"channelId":"(UC[\w-]+)"/);
+  console.log(url.toString());
+console.log(html.substring(0, 1000));
+console.log(html.includes("channelId"));
 
-  if (!match?.[1]) {
+
+  const patterns = [
+    /"channelId":"(UC[\w-]+)"/,
+    /"externalId":"(UC[\w-]+)"/,
+    /"browseId":"(UC[\w-]+)"/,
+  ]
+
+  let channelId: string | null = null
+
+  for (const pattern of patterns){
+    const match = html.match(pattern)
+
+    if (match?.[1]) {
+      channelId = match[1];
+      break;
+    }
+  }
+
+  if (!channelId) {
     return null;
   }
 
+
   return {
-    feedUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${match[1]}`,
-    feedType: 'rss',
-  };
+    feedUrl:
+      `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+    feedType: "rss",
+};
 }
 
 async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | null> {
@@ -203,7 +226,18 @@ async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | nu
       feedType: 'rss',
     };
   }
-  if (url.pathname.startsWith('/@')) {
+
+  const path = url.pathname 
+  .replace(/\/videos$/, '')
+  .replace(/\/featured$/, '')
+  .replace(/\/streams$/, '')
+  .replace(/\/shorts$/, '')
+  .replace(/\/playlists$/, '')
+  .replace(/\/$/, '');
+
+  url.pathname = path
+
+  if (path.startsWith('/@')) {
     return resolveYoutubeHandle(url);
   }
   return null;

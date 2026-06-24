@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { readItems } from "../../services/user.service";
+import { readItems } from "../services/user.service";
 import { useLocation } from "react-router-dom";
-import { getCategoryPresentation } from "../../lib/categoryColors";
+import { getCategoryPresentation } from "../lib/categoryColors";
 import AppHeader from "@/components/layout/AppHeader";
 import { useMemo } from "react";
 import { getAuthUserId } from "@/auth";
@@ -143,8 +143,8 @@ export default function ReadPage() {
               {showFilteredEmptyState ? (
                 <div className="flex flex-col items-center justify-center w-full h-[70vh]">
                   <p className="text-[var(--text)] text-center">
-                    No items match your current filters.
-                  </p>
+  No {feedType === "rss" ? "articles" : "podcasts"} match your current filters.
+</p>
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
@@ -192,7 +192,7 @@ export default function ReadPage() {
                           href={item.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline font-medium"
+                          className="text-[var(--accent)] hover:underline font-semibold"
                         >
                           {item.title}
                         </a>

@@ -46,7 +46,6 @@ export const createFolderHandler = async (
 
     const userId = parseNumericId(req.params.userId, 'userId');
     const folder = await createFolder({ user_id: userId, name: folderName });
-    console.info(`INFO: Folder '${folderName}' created for user ${userId}`);
 
     res.json(folder);
   } catch (error) {
@@ -71,8 +70,7 @@ export const renameFolderHandler = async (
     }
     res.json(updatedFolder);
   } catch (err: any) {
-    if (err.code === '23505') {
-      // 23505 = unique_violation in PostgreSQL
+    if (err.code === '23505') { // unique_violation in PostgreSQL
       res
         .status(400)
         .json({ error: 'A folder with that name already exists. Please choose a different name' });
@@ -92,7 +90,6 @@ export const getUserFoldersHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
 
     const folders = await getUserFolders(userId);
-    console.info(`INFO: Fetched folders for user ${userId} `);
     res.json(folders);
   } catch (error) {
     handleError(res, error, 500, "Error in getting user's folders");
@@ -113,7 +110,6 @@ export const deleteFolderHandler = async (
       res.status(404).json({ error: 'Folder not found' });
       return;
     }
-    console.info(`INFO: Deleted folder ${folderId} for user ${userId}.`);
     res.json(deletedFolder);
     return;
   } catch (error) {
@@ -131,7 +127,6 @@ export const addSourceIntoFolderHandler = async (
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const sourceId = parseNumericId(String(req.body.sourceId), 'sourceId');
     const result = await addSourceIntoFolder(userId, folderId, sourceId);
-    console.info(`INFO: Source ${sourceId} added to folder ${folderId} for user ${userId}`);
     res.json(result);
   } catch (error) {
     handleError(res, error, 500, 'Could not add source into folder');
@@ -148,7 +143,6 @@ export const deleteSourceFromFolderHandler = async (
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
     const delSource = await delSourceFromFolder(userId, folderId, sourceId);
-    console.info(`INFO: Source ${sourceId} removed from folder ${folderId} for user ${userId}`);
     res.json(delSource);
   } catch (error) {
     handleError(res, error, 500, 'Error in removing source from folder');
@@ -166,7 +160,6 @@ export const folderItemsHandler = async (
     const { timeFilter } = req.query;
 
     const unreadItems = await folderItems(userId, folderId, timeFilter);
-    console.info(`INFO: Fetched unread items for folder ${folderId}, user ${userId}.`);
     res.json(unreadItems);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching unread items in folder');
@@ -182,7 +175,6 @@ export const markFolderItemsReadHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const readItems = await markFolderItemsRead(userId, folderId);
-    console.info(`INFO: Marked folder ${folderId} items as read for user ${userId}`);
     res.json(readItems);
   } catch (error) {
     handleError(res, error, 500, 'Error marking all items as read');

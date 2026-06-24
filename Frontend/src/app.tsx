@@ -1,12 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import SidebarLayout from "./components/sidebar/SidebarLayout";
-import FeedPage from "./app/feed/page";
-import SavedPage from "./app/saved/page";
-import ReadPage from "./app/read/page";
-import FolderPage from "./app/folders/folder";
+import FeedPage from "./pages/FeedPage";
+import SavedPage from "./pages/SavedPage";
+import ReadPage from "./pages/ReadPage";
+import FolderPage from "./pages/FolderPage";
 import { Toaster } from "./components/ui/sonner";
 import Landing from "./LandingPage";
-import SourcePage from "./app/source/page";
+import SourcePage from "./pages/SourcePage";
 import { getAuthUserId } from "./auth";
 
 
@@ -55,7 +55,7 @@ export default function Dashboard() {
                 <Route path="recently-read" element={<ReadPage />} />
                 <Route path="folders/:folderId" element={<FolderPage />} />
                 <Route path="/sources/:sourceId" element={<SourcePage />} />
-                <Route path="/" element={<Navigate to="/landing" replace />} />
+                <Route path="/" element={<Navigate to="/feed" replace />} />
               </Routes>
             </SidebarLayout>
             </RequireAuth>

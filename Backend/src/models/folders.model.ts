@@ -163,7 +163,7 @@ export const folderItems = async (
       s.feed_type,
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
+      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name)) 
            FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories,
       COALESCE(
       json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
@@ -188,29 +188,11 @@ export const folderItems = async (
     WHERE 1=1
           ${timeClause}
       AND (uim.read_time IS NULL)
-    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
-    ORDER BY us.priority, i.pub_date DESC`;
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
+    ORDER BY i.pub_date DESC`;
 
   const params = [userId, folderId];
   const result: QueryResult<FolderItems> = await query(baseQuery, params);
-  // Categorize items that aren’t categorized yet
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-  if (uncategorized.length) {
-    await Promise.all(
-      uncategorized.map((item) =>
-        limit(async () => {
-          await categorizeItem(item.item_id, item.title, item.description);
-        })
-      )
-    );
-    const refreshed = await query(baseQuery, params);
-    logAction(
-      `Folder items: User=${userId} Folder=${folderId} itemCount=${refreshed.rows.length} (refreshed after categorization)`
-    );
-    return refreshed.rows;
-  }
-
-  logAction(`Folder items: User=${userId} Folder=${folderId} itemCount=${result.rows.length}`);
   return result.rows;
 };
 

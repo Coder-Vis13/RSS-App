@@ -4,6 +4,8 @@ import { query } from './config/db';
 import { parseFeed, FeedParseError } from './services/feed-ingestion/parse-feed.service';
 import { addItem, addUserItemMetadata } from './models/items.model';
 import pLimit from 'p-limit';
+import { enqueueCategorization } from './utils/categorizer';
+
 
 export interface SourceRow {
   source_id: number;
@@ -105,6 +107,7 @@ async function refreshSource(row: SourceRow): Promise<void> {
 
       if (userIds.length) {
         await Promise.allSettled(userIds.map((uid) => addUserItemMetadata(uid, insertedIds)));
+  enqueueCategorization(insertedIds);
       }
     }
 

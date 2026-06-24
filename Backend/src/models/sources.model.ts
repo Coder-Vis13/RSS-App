@@ -1,6 +1,4 @@
 import { query } from '../config/db';
-import { SourcePriorityUpdate } from '../controllers/types';
-import { categorizeItem } from '../utils/categorizer';
 import { getLogo } from '../utils/get-logo';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 import { Source } from './types';
@@ -11,7 +9,6 @@ const limit = pLimit(5);
 interface UserSource {
   user_id: number;
   source_id: number;
-  priority: number;
   feed_type: 'rss' | 'podcast';
 }
 
@@ -23,9 +20,6 @@ interface AddSource extends Source {
   created: boolean;
 }
 
-interface UserSourcePriority {
-  priority: number;
-}
 
 type AllUserSources = Omit<UserSource, 'user_id'>;
 
@@ -35,9 +29,6 @@ interface UserSources {
   url: string;
 }
 
-interface SourceWithPriority extends Source {
-  priority: number;
-}
 
 interface MarkReadRow {
   user_id: number;
@@ -83,7 +74,6 @@ export const getUnfolderedSources = async (
     [userId]
   );
 
-  console.info(`INFO: Number of unfoldered sources for User=${userId}: ${result.rows.length}`);
   return result.rows;
 };
 
@@ -123,7 +113,7 @@ export const addUserSource = async (
 ): Promise<AddUserSourceResult> => {
   // check if the user already has this source
   const selectResult: QueryResult<UserSource> = await query(
-    `SELECT user_id, source_id, priority
+    `SELECT user_id, source_id
      FROM user_source
      WHERE user_id = $1 AND source_id = $2`,
     [userId, sourceId]
@@ -135,117 +125,21 @@ export const addUserSource = async (
     return { ...existingUserSource, created: false };
   }
 
-  // calculate new priority
-  const priorityResult: QueryResult<{ new_priority: number }> = await query(
-    `SELECT COALESCE(MAX(priority), 0) + 1 AS new_priority
-     FROM user_source
-     WHERE user_id = $1`,
-    [userId]
-  );
-  const { new_priority } = getFirstRow(priorityResult) || { new_priority: 1 };
-  const newPriority = new_priority || 1;
-
   // insert into user_source
   const insertResult: QueryResult<UserSource> = await query(
-    `INSERT INTO user_source(user_id, source_id, priority, feed_type)
-     VALUES ($1, $2, $3, $4)
-     RETURNING user_id, source_id, priority, feed_type`,
-    [userId, sourceId, newPriority, feedType]
+    `INSERT INTO user_source (user_id, source_id, feed_type)
+     VALUES ($1, $2, $3)
+     RETURNING user_id, source_id, feed_type`,
+    [userId, sourceId, feedType]
   );
   const newUserSource = getFirstRow(insertResult);
 
   logAction(
-    `Added a new Source=${sourceId} for User=${userId} with Priority=${newUserSource?.priority} feed_type=${feedType}`
+    `Added a new Source=${sourceId} for User=${userId} feed_type=${feedType}`
   );
 
   return markAsCreated(newUserSource);
 };
-
-// // add a source for a user
-// export const addUserRSS = async (
-//   userId: number,
-//   sourceId: number
-// ): Promise<AddUserSourceResult> => {
-//   const selectResult: QueryResult<UserSource> = await query(
-//     `SELECT user_id, source_id, priority
-//      FROM user_source
-//      WHERE user_id = $1 AND source_id = $2`,
-//     [userId, sourceId]
-//   );
-//   const existingUserSource = getFirstRow(selectResult);
-
-//   if (existingUserSource) {
-//     logAction(`Source=${sourceId} for User=${userId} already exists`);
-//     return { ...existingUserSource, created: false };
-//   }
-
-//   const priorityResult: QueryResult<{ new_priority: number }> = await query(
-//     `SELECT COALESCE(MAX(priority), 0) + 1 AS new_priority
-//      FROM user_source
-//      WHERE user_id = $1`,
-//     [userId]
-//   );
-//   const { new_priority } = getFirstRow(priorityResult) || { new_priority: 1 };
-//   const newPriority = new_priority || 1;
-
-//   const insertResult: QueryResult<UserSource> = await query(
-//     `INSERT INTO user_source(user_id, source_id, priority)
-//      VALUES ($1, $2, $3)
-//      RETURNING user_id, source_id, priority`,
-//     [userId, sourceId, newPriority]
-//   );
-//   const newUserSource = getFirstRow(insertResult);
-
-//   logAction(
-//     `Added a new Source=${sourceId} for User=${userId} with default Priority=${newUserSource?.priority}`
-//   );
-//   return markAsCreated(newUserSource);
-// };
-
-// //adding a podcast source for a user
-// export const addUserPodcast = async (
-//   userId: number,
-//   sourceId: number
-// ): Promise<AddUserSourceResult> => {
-//   const selectResult: QueryResult<UserSource> = await query(
-//     `SELECT user_id, podcast_id AS source_id, priority
-//      FROM user_podcast
-//      WHERE user_id = $1 AND podcast_id = $2`,
-//     [userId, sourceId]
-//   );
-//   const existingUserPodcast = getFirstRow(selectResult);
-
-//   if (existingUserPodcast) {
-//     logAction(`Podcast Source=${sourceId} for User=${userId} already exists`);
-//     return { ...existingUserPodcast, created: false };
-//   }
-
-//   const priorityResult: QueryResult<{ new_priority: number }> = await query(
-//     `SELECT COALESCE(MAX(priority), 0) + 1 AS new_priority
-//      FROM user_podcast up
-//      JOIN source s ON up.podcast_id = s.source_id
-//      WHERE up.user_id = $1 AND s.feed_type = 'podcast'`,
-//     [userId]
-//   );
-
-//   const { new_priority } = getFirstRow(priorityResult) || { new_priority: 1 };
-//   const newPriority = new_priority || 1;
-
-//   const insertResult: QueryResult<UserSource> = await query(
-//     `INSERT INTO user_podcast (user_id, podcast_id, priority)
-//      VALUES ($1, $2, $3)
-//      RETURNING user_id, podcast_id AS source_id, priority`,
-//     [userId, sourceId, newPriority]
-//   );
-
-//   const newUserPodcast = getFirstRow(insertResult);
-
-//   logAction(
-//     `Added new Podcast Source=${sourceId} for User=${userId} with Priority=${newUserPodcast?.priority}`
-//   );
-
-//   return markAsCreated(newUserPodcast);
-// };
 
 // remove a source for a user
 export const removeUserSource = async (
@@ -253,13 +147,15 @@ export const removeUserSource = async (
   sourceId: number
 ): Promise<AllUserSources[]> => {
   const userRow = getFirstRow(
-    await query(
-      `SELECT priority, feed_type FROM user_source WHERE user_id = $1 AND source_id = $2`,
-      [userId, sourceId]
-    )
-  );
-  const removedPriority = userRow?.priority ?? null;
-  const feedType = userRow?.feed_type ?? 'rss';
+  await query(
+    `SELECT feed_type
+     FROM user_source
+     WHERE user_id = $1 AND source_id = $2`,
+    [userId, sourceId]
+  )
+);
+
+const feedType = userRow?.feed_type ?? "rss";
 
   await query(`DELETE FROM user_source WHERE user_id = $1 AND source_id = $2`, [userId, sourceId]);
 
@@ -271,15 +167,6 @@ export const removeUserSource = async (
        AND is_save IS FALSE`,
     [userId, sourceId]
   );
-
-  if (removedPriority !== null) {
-    await query(
-      `UPDATE user_source
-       SET priority = priority - 1
-       WHERE user_id = $1 AND priority > $2`,
-      [userId, removedPriority]
-    );
-  }
 
   const stillUsed = await query(`SELECT 1 FROM user_source WHERE source_id = $1 LIMIT 1`, [
     sourceId,
@@ -297,9 +184,11 @@ export const removeUserSource = async (
   }
 
   const sourcesResult = await query<AllUserSources>(
-    `SELECT source_id, priority FROM user_source WHERE user_id = $1 ORDER BY priority ASC`,
-    [userId]
-  );
+  `SELECT source_id
+   FROM user_source
+   WHERE user_id = $1`,
+  [userId]
+);
 
   logAction(`Removed ${feedType} source: User=${userId} Source=${sourceId}`);
   return sourcesResult.rows;
@@ -311,8 +200,7 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
     `SELECT s.source_id, s.source_name, s.url, s.feed_type
      FROM user_source us
      JOIN source s ON s.source_id = us.source_id
-     WHERE us.user_id = $1
-     ORDER BY us.priority ASC`,
+     WHERE us.user_id = $1`,
     [userId]
   );
 
@@ -328,45 +216,6 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
   return sourcesWithLogos;
 };
 
-// //get all the blog sources for a user
-// export const allUserRSSSources = async (userId: number): Promise<UserRSSSources[]> => {
-//   const result: QueryResult<UserRSSSources> = await query(
-//     `SELECT s.source_id, s.source_name, s.url FROM user_source us
-//         JOIN source s ON s.source_id = us.source_id
-//         WHERE us.user_id = $1
-//         ORDER BY us.priority ASC`,
-//     [userId]
-//   );
-//   logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
-//   const sourcesWithLogos = await Promise.all(
-//     result.rows.map(async (source) => {
-//       const logo = await getLogo(source.url);
-//       return { ...source, logo_url: logo };
-//     })
-//   );
-
-//   return sourcesWithLogos;
-// };
-
-// //get all the podcast sources for a user
-// export const allUserPodcastSources = async (userId: number): Promise<UserPodcastSources[]> => {
-//   const result: QueryResult<UserPodcastSources> = await query(
-//     `SELECT s.source_id, s.source_name, s.url FROM user_podcast up
-//         JOIN source s ON s.source_id = up.podcast_id
-//         WHERE up.user_id = $1
-//         ORDER BY up.priority ASC`,
-//     [userId]
-//   );
-//   logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
-//   const sourcesWithLogos = await Promise.all(
-//     result.rows.map(async (source) => {
-//       const logo = await getLogo(source.url);
-//       return { ...source, logo_url: logo };
-//     })
-//   );
-
-//   return sourcesWithLogos;
-// };
 
 // mark all items of a specific source as read for a user
 export const markSourceItemsRead = async (
@@ -434,7 +283,7 @@ export const getSourceItems = async (
       i.is_categorized,
       COALESCE(
         json_agg(
-          DISTINCT jsonb_build_object('name', c.name, 'color', c.color)
+          DISTINCT jsonb_build_object('name', c.name)
         ) FILTER (WHERE c.name IS NOT NULL),
         '[]'::json
       ) AS categories,
@@ -454,28 +303,12 @@ export const getSourceItems = async (
       AND i.source_id = $2
       AND uim.read_time IS NULL
       ${timeClause}
-    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, us.priority, uim.is_save, i.is_categorized
-    ORDER BY us.priority, i.pub_date DESC
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
+    ORDER BY i.pub_date DESC
   `;
 
   const params = [userId, sourceId];
   const result = await query(baseQuery, params);
-
-  // Auto-categorize uncategorized items
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-
-  await Promise.all(
-    uncategorized.map((item) =>
-      limit(async () => {
-        await categorizeItem(item.item_id, item.title, item.description);
-      })
-    )
-  );
-
-  if (uncategorized.length > 0) {
-    const refreshed = await query(baseQuery, params);
-    return refreshed.rows;
-  }
 
   return result.rows;
 };
@@ -517,65 +350,3 @@ export const checkSourceExists = async (userId: number, sourceURL: string): Prom
   return exists;
 };
 
-//get all sources for a user ordered by priority
-export const sourcePriority = async (
-  userId: number,
-  feedType?: string
-): Promise<SourceWithPriority[]> => {
-  // Decide which table to use based on feed type
-  const table = feedType === 'podcast' ? 'user_podcast' : 'user_source';
-
-  const result: QueryResult<SourceWithPriority> = await query(
-    `
-    SELECT us.${feedType === 'podcast' ? 'podcast_id' : 'source_id'} AS source_id,
-           us.priority,
-           s.source_name
-    FROM ${table} us
-    JOIN source s ON us.${feedType === 'podcast' ? 'podcast_id' : 'source_id'} = s.source_id
-    WHERE us.user_id = $1
-    ORDER BY us.priority ASC
-    `,
-    [userId]
-  );
-
-  logAction(`Source priorities (${feedType || 'all'}): User=${userId} count=${result.rows.length}`);
-
-  return result.rows;
-};
-
-//update source priorities for a user
-export const updateSourcePriorities = async (
-  userId: number,
-  sources: SourcePriorityUpdate[],
-  feedType: 'podcast' | 'rss' = 'rss'
-): Promise<void> => {
-  if (!sources.length) return;
-
-  const table = feedType === 'podcast' ? 'user_podcast' : 'user_source';
-  const idColumn = feedType === 'podcast' ? 'podcast_id' : 'source_id';
-
-  const client = await (await import('../config/db')).default.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
-
-    //re-insert in new priority order
-    for (const s of sources) {
-      await client.query(
-        `INSERT INTO ${table}(user_id, ${idColumn}, priority) VALUES ($1, $2, $3)`,
-        [userId, s.source_id, s.priority]
-      );
-    }
-
-    await client.query('COMMIT');
-    console.info(
-      `INFO: Updated ${feedType} priorities for user ${userId} (count=${sources.length}).`
-    );
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error(`Failed to update ${feedType} priorities:`, err);
-    throw err;
-  } finally {
-    client.release();
-  }
-};

@@ -4,8 +4,8 @@ import {
   allSavedItems,
   markItemRead,
   getSavedItemsByCategory,
-} from "../../services/user.service";
-import { getCategoryPresentation } from "../../lib/categoryColors";
+} from "../services/user.service";
+import { getCategoryPresentation } from "../lib/categoryColors";
 import AppHeader from "@/components/layout/AppHeader";
 import { getAuthUserId } from "@/auth";
 
@@ -93,31 +93,12 @@ export default function SavedPage() {
   }, [feedType]);
 
   const handleMarkAsReadSaved = async (itemId: number) => {
-    try {
-      await markItemRead(userId, itemId);
-      setSavedItems((prev) => prev.filter((item) => item.item_id !== itemId));
-    } catch (err) {
-      console.error("Failed to mark as read:", err);
-    }
-  };
-
-  // const handleCategorySelect = async (category: string) => {
-  //   setSelectedCategory(category);
-  //   setLoading(true);
-  //   try {
-  //     if (category === "All") {
-  //       const allItems = await allSavedItems(userId);
-  //       setSavedItems(allItems);
-  //     } else {
-  //       const filtered = await getSavedItemsByCategory(userId, category);
-  //       setSavedItems(filtered);
-  //     }
-  //   } catch (err) {
-  //     console.error("Failed to fetch saved items by category:", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  try {
+    await markItemRead(userId, itemId);
+  } catch (err) {
+    console.error("Failed to mark as read:", err);
+  }
+};
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -128,18 +109,14 @@ export default function SavedPage() {
   }, [savedItems, feedType]);
 
   const handleMarkAllReadSaved = async () => {
-    try {
-      for (const item of filteredSavedItems) {
-        await markItemRead(userId, item.item_id);
-      }
-      const markedIds = new Set(filteredSavedItems.map((item) => item.item_id));
-      setSavedItems((prev) =>
-        prev.filter((item) => !markedIds.has(item.item_id)),
-      );
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
+  try {
+    for (const item of filteredSavedItems) {
+      await markItemRead(userId, item.item_id);
     }
-  };
+  } catch (err) {
+    console.error("Failed to mark all as read:", err);
+  }
+};
 
   const noSavedItems = !loading && savedItems.length === 0;
 
@@ -175,12 +152,16 @@ export default function SavedPage() {
             <section className="max-w-[1100px] mx-auto">
               {/* Saved items */}
               {loading ? (
-                <p className="text-[var(--text-light)]">
-                  Loading saved items...
-                </p>
-              ) : (
-                <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
-                  {filteredSavedItems.map((item) => (
+  <p className="text-[var(--text-light)]">
+    Loading saved items...
+  </p>
+) : filteredSavedItems.length === 0 ? (
+  <div className="w-full text-center py-10 text-gray-400">
+    No {feedType === "rss" ? "articles" : "podcasts"} items found.
+  </div>
+) : (
+  <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
+    {filteredSavedItems.map((item) => (
                     <div
                       key={item.item_id}
                       className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
@@ -220,7 +201,7 @@ export default function SavedPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => handleMarkAsReadSaved(item.item_id)}
-                          className="text-[var(--accent)] hover:underline font-medium"
+                          className="text-[var(--accent)] hover:underline font-semibold"
                         >
                           {item.title}
                         </a>

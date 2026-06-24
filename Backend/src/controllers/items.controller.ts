@@ -38,7 +38,6 @@ export const userFeedItemsHandler = async (
     // feedType is removed; userFeedItems now returns both RSS and podcast items
     const unreadItems = await userFeedItems(userId, timeFilter);
 
-    console.info(`INFO: Fetched unread items for user ${userId}`);
 
     res.json(unreadItems);
   } catch (error) {
@@ -98,7 +97,6 @@ export const markItemReadHandler = async (
     const itemId = parseNumericId(req.params.itemId, 'itemId');
     const readItem = await markItemRead(userId, itemId);
 
-    console.info(`INFO: Marked item ${itemId} as read for user ${userId}`);
     res.json(readItem);
   } catch (error) {
     handleError(res, error, 500, 'Error marking item as read');
@@ -114,9 +112,6 @@ export const markUserFeedItemsReadHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
     const readItems = await markUserFeedItemsRead(userId);
 
-    console.info(
-      `INFO: Marked all feed items as read for user ${userId}, count=${readItems.readCount}`
-    );
     res.json(readItems);
   } catch (error) {
     handleError(res, error, 500, 'Error marking items as read');
@@ -139,9 +134,6 @@ export const saveItemHandler = async (
     const parsedItemId = parseNumericId(String(itemId), 'itemId');
     const result = await saveItem(parsedUserId, parsedItemId, save);
 
-    console.info(
-      `INFO: Save status for item ${parsedItemId} (user ${parsedUserId}): ${result.is_save}`
-    );
     res.json({ userId: result.user_id, itemId: result.item_id, is_save: result.is_save });
   } catch (error) {
     handleError(res, error, 500, 'Could not save the item for the user');
@@ -158,7 +150,6 @@ export const allSavedItemsHandler = async (
     const { timeFilter = 'all' } = req.query;
     const savedItems = await allSavedItems(userId, timeFilter);
 
-    console.info(`INFO: Fetched saved items for user ${userId} (${savedItems.length} items)`);
     res.json(savedItems);
   } catch (error) {
     handleError(res, error, 500, 'Could not get saved items');
@@ -176,7 +167,6 @@ export const readItemsHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
     const allReadItems = await readItems(userId, timeFilter);
 
-    console.info(`INFO: Fetched read items for user ${userId} (${allReadItems.length} items)`);
     res.json(allReadItems);
   } catch (error) {
     handleError(res, error, 500, 'Could not get read items');

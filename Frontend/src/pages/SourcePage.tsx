@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { Bookmark } from "lucide-react";
 
@@ -6,11 +6,14 @@ import {
   markItemRead,
   saveItem,
   markSourceItemsRead,
-} from "../../services/user.service";
-import { getSourceItems } from "../../services/user.service";
+} from "../services/user.service";
+import { getSourceItems } from "../services/user.service";
+
+import { usePolling } from "@/hooks/usePolling";
+import { useCategorizationPolling } from "@/hooks/useCategorizationPolling";
 
 import { Button } from "@/components/ui/button";
-import { getCategoryPresentation } from "../../lib/categoryColors";
+import { getCategoryPresentation } from "../lib/categoryColors";
 
 import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
@@ -28,6 +31,7 @@ interface SourceItem {
   categories?: { name: string; color: string }[];
   tags?: string[];
   feed_type: "rss" | "podcast";
+  is_categorized?: boolean;
 }
 
 export default function SourcePage() {
@@ -71,12 +75,20 @@ export default function SourcePage() {
 
   const { blocklist } = useBlocklist();
 
-  /* ---------- fetch source items ---------- */
-  const fetchSourceItems = async () => {
+  const fetchSourceItems = useCallback(
+  async (showLoading = true) => {
     if (!sourceId) return;
 
+    if (showLoading) {
+      setLoading(true);
+    }
+
     try {
-      const data = await getSourceItems(userId, Number(sourceId), selectedTime);
+      const data = await getSourceItems(
+        userId,
+        Number(sourceId),
+        selectedTime,
+      );
 
       const normalized: SourceItem[] = data.map((i: any) => ({
         ...i,
@@ -89,7 +101,10 @@ export default function SourcePage() {
         normalized[0]?.feed_type === "rss" ||
         normalized[0]?.feed_type === "podcast"
       ) {
-        sessionStorage.setItem("activeFeedType", normalized[0].feed_type);
+        sessionStorage.setItem(
+          "activeFeedType",
+          normalized[0].feed_type,
+        );
         setFeedType(normalized[0].feed_type);
       }
 
@@ -98,16 +113,38 @@ export default function SourcePage() {
       );
 
       setUniqueCategories(Array.from(new Set(allCats)));
+
+      return normalized;
     } catch (err) {
       console.error("Failed to load source items:", err);
     } finally {
       setLoading(false);
     }
-  };
+  },
+  [userId, sourceId, selectedTime],
+);
 
   useEffect(() => {
-    fetchSourceItems();
-  }, [sourceId, selectedTime]);
+  fetchSourceItems();
+}, [fetchSourceItems]);
+
+  const hasPendingCategories = useMemo(
+    () => items.some((item) => item.is_categorized === false),
+    [items],
+  );
+
+  usePolling(
+  () => {
+    fetchSourceItems(false);
+  },
+  !!userId && !!sourceId,
+  300000,
+);
+
+useCategorizationPolling(
+  fetchSourceItems,
+  hasPendingCategories,
+);
 
   useEffect(() => {
     setSelectedCategory("All");
@@ -193,13 +230,13 @@ export default function SourcePage() {
                 <div className="flex flex-col divide-y divide-gray-300">
                   {filteredItems.length === 0 ? (
                     <div className="w-full text-center py-10 text-gray-400">
-                      No items yet.
-                    </div>
+  No {feedType === "rss" ? "articles" : "podcasts"} found.
+</div>
                   ) : (
                     filteredItems.map((item) => (
                       <div
                         key={item.item_id}
-                        className="py-6 flex justify-between items-start hover:bg-[var(--hover)]"
+                        className="py-6 flex justify-between items-center hover:bg-[var(--hover)]"
                       >
                         <div className="flex-1 pr-4">
                           {item.categories && item.categories.length > 0 && (
@@ -256,11 +293,11 @@ export default function SourcePage() {
 
                         <Button
                           variant="ghost"
-                          size="icon"
+  className="ml-4 shrink-0 h-12 w-12 p-0"
                           onClick={() => handleSave(item.item_id)}
                         >
                           <Bookmark
-                            size={24}
+                            size={20}
                             className={
                               item.is_save
                                 ? "text-[var(--accent)] fill-[var(--accent)]"

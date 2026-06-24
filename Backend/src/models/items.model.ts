@@ -1,7 +1,6 @@
 import { query } from '../config/db';
 import { getFirstRow, logAction, markAsCreated } from '../utils/helpers';
 import { QueryResult } from '../utils/helpers';
-import { categorizeItem } from '../utils/categorizer';
 import pLimit from 'p-limit';
 
 const limit = pLimit(5);
@@ -87,7 +86,7 @@ export const userFeedItems = async (
       s.feed_type,
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color)) 
+      COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name))
            FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories, 
       COALESCE(
       json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
@@ -103,29 +102,10 @@ export const userFeedItems = async (
   WHERE us.user_id = $1
     ${timeClause}
     AND (uim.read_time IS NULL)
-  GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized, us.priority
-  ORDER BY us.priority, i.pub_date DESC`;
+  GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
+  ORDER BY i.pub_date DESC`;
 
   const result: QueryResult<FeedItems> = await query(baseQuery, [userId]);
-
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-
-  if (uncategorized.length > 0) {
-    await Promise.all(
-      uncategorized.map((item) =>
-        limit(async () => {
-          try {
-            await categorizeItem(item.item_id, item.title, item.description);
-          } catch (err) {
-            console.error(`Categorization failed for ${item.item_id}`, err);
-          }
-        })
-      )
-    );
-
-    const refreshed: QueryResult<FeedItems> = await query(baseQuery, [userId]);
-    return refreshed.rows;
-  }
 
   return result.rows;
 };
@@ -154,7 +134,7 @@ export const getItemsByCategory = async (
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
       COALESCE(
-        json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color))
+        json_agg(DISTINCT jsonb_build_object('name', c.name))
         FILTER (WHERE c.name IS NOT NULL), '[]'::json
       ) AS categories
     FROM item i
@@ -167,18 +147,13 @@ export const getItemsByCategory = async (
       AND c.name = $2
       ${timeClause}
     AND (uim.read_time IS NULL)
-    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, us.priority
-    ORDER BY us.priority, i.pub_date DESC
+    GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save
+    ORDER BY i.pub_date DESC
   `;
 
   const params = [userId, categoryName];
   const result: QueryResult<FeedItems> = await query(baseQuery, params);
 
-  await Promise.all(
-    result.rows
-      .filter((i) => !i.is_categorized)
-      .map((i) => limit(() => categorizeItem(i.item_id, i.title, i.description)))
-  );
 
   return result.rows;
 };
@@ -207,7 +182,7 @@ export const getSavedItemsByCategory = async (
       i.pub_date,
       i.is_categorized,
       COALESCE(
-        json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color))
+        json_agg(DISTINCT jsonb_build_object('name', c.name))
         FILTER (WHERE c.name IS NOT NULL), '[]'::json
       ) AS categories
     FROM user_item_metadata uim
@@ -227,15 +202,6 @@ export const getSavedItemsByCategory = async (
   const params = [userId, categoryName];
   const result: QueryResult<FeedItems> = await query(baseQuery, params);
 
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-
-  await Promise.all(
-    uncategorized.map((item) =>
-      limit(async () => {
-        await categorizeItem(item.item_id, item.title, item.description);
-      })
-    )
-  );
 
   return result.rows;
 };
@@ -412,7 +378,7 @@ export const allSavedItems = async (
       i.pub_date,
       i.is_categorized,
       COALESCE(
-        json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color))
+        json_agg(DISTINCT jsonb_build_object('name', c.name))
         FILTER (WHERE c.name IS NOT NULL),
         '[]'::json
       ) AS categories,
@@ -436,21 +402,6 @@ export const allSavedItems = async (
   const params = [userId];
   const result: QueryResult<Item> = await query(baseQuery, params);
 
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-  if (uncategorized.length > 0) {
-    await Promise.all(
-      uncategorized.map((item) =>
-        limit(async () => {
-          await categorizeItem(item.item_id, item.title, item.description);
-        })
-      )
-    );
-    const refreshed = await query(baseQuery, params);
-    logAction(
-      `Saved items: User=${userId} itemCount=${refreshed.rows.length} (refreshed after categorization)`
-    );
-    return refreshed.rows;
-  }
 
   logAction(`Saved items: User=${userId} itemCount=${result.rows.length}`);
   return result.rows;
@@ -478,7 +429,7 @@ export const readItems = async (
       i.is_categorized,
       uim.read_time,
       COALESCE(
-        json_agg(DISTINCT jsonb_build_object('name', c.name, 'color', c.color))
+        json_agg(DISTINCT jsonb_build_object('name', c.name))
         FILTER (WHERE c.name IS NOT NULL),
         '[]'::json
       ) AS categories,
@@ -502,21 +453,6 @@ export const readItems = async (
   const params = [userId];
   const result: QueryResult<AllReadItems> = await query(baseQuery, params);
 
-  const uncategorized = result.rows.filter((item) => !item.is_categorized);
-  if (uncategorized.length) {
-    await Promise.all(
-      uncategorized.map((item) =>
-        limit(async () => {
-          await categorizeItem(item.item_id, item.title, item.description);
-        })
-      )
-    );
-    const refreshed = await query(baseQuery, params);
-    logAction(
-      `Read items: User=${userId} itemCount=${refreshed.rows.length} (refreshed after categorization)`
-    );
-    return refreshed.rows;
-  }
 
   logAction(`Read items: User=${userId} itemCount=${result.rows.length}`);
   return result.rows;

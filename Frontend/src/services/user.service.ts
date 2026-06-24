@@ -77,19 +77,6 @@ const getSourceItems = (
   timeFilter?: "all" | "today" | "week" | "month",
 ) => get(`users/${userId}/source/${sourceId}/items`, { timeFilter });
 
-const sourcePriority = (userId: number, feedType: "rss" | "podcast") =>
-  get(`/users/${userId}/sources/priority`, { feedType });
-
-interface SourcePriorityUpdate {
-  source_id: number;
-  priority: number;
-}
-
-const updateSourcePriorities = async (
-  userId: number,
-  sources: SourcePriorityUpdate[],
-  feedType: "rss" | "podcast",
-) => post(`/users/${userId}/sources/priority`, { sources, feedType });
 
 const readItems = (
   userId: number,
@@ -133,8 +120,6 @@ export {
   markUserFolderItemsRead,
   saveItem,
   allSavedItems,
-  sourcePriority,
-  updateSourcePriorities,
   readItems,
   presetSources,
   getItemsByCategory,

@@ -13,6 +13,8 @@ import {
 } from './feed-ingestion/feed-url-dedupe.service';
 import { inferFeedType } from './feed-ingestion/infer-feed-type.service';
 import { getInitialImportLimit } from '../config/ingestion-limits';
+import { enqueueCategorization } from '../utils/categorizer';
+
 
 export const processSource = async (userId: number, sourceURL: string) => {
   const feedDedupe = createDuplicateChecker();
@@ -93,9 +95,11 @@ export const processSource = async (userId: number, sourceURL: string) => {
 
     const items = normalizeItems(parsed.entries ?? [], feedTypeResolved);
 
-    const insertResult = await addItem(source.source_id, items);
-
-    await addUserItemMetadata(userId, insertResult.insertedIds);
+const insertResult = await addItem(source.source_id, items);
+await addUserItemMetadata(userId, insertResult.insertedIds);
+if (insertResult.insertedIds.length > 0) {
+  enqueueCategorization(insertResult.insertedIds);
+}
 
     console.log(`[ingestion] done: ${insertResult.insertCount} items added`);
 

@@ -7,8 +7,6 @@ import {
   getUnfolderedSourcesHandler,
   removeUserSourceHandler,
   markSourceItemsReadHandler,
-  sourcePriorityHandler,
-  updateSourcePrioritiesHandler,
   getSourceItemsHandler,
   addSourceHandler,
 } from '../controllers';
@@ -54,7 +52,6 @@ router.post('/register', registerHandler);
 router.post('/refresh', refreshHandler);
 router.post('/logout', logoutHandler);
 
-// Protected app routes: derive userId from JWT, ignore client-provided userId.
 router.use('/users/:userId', verifyJWT, attachAuthenticatedUser);
 
 // Sources
@@ -87,8 +84,5 @@ router.post('/users/:userId/folders/:folderId/sources', addSourceIntoFolderHandl
 router.delete('/users/:userId/folders/:folderId/sources/:sourceId', deleteSourceFromFolderHandler); // remove source from folder
 router.get('/users/:userId/folders/:folderId/feed', folderItemsHandler); // get unread items for folder
 
-// Source Priority
-router.get('/users/:userId/sources/priority', sourcePriorityHandler); // get sources with priority
-router.post('/users/:userId/sources/priority', updateSourcePrioritiesHandler); //update priorities
 
 export default router;
