@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { SiteShowcase } from "./components/Sites";
+import { SiteShowcase } from "./components/sites";
 import { Button } from "./components/ui/button";
 import { useEffect, useState } from "react";
 import { signIn, signUp, signOut, getAuthUserId } from "./auth";
