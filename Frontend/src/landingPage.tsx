@@ -244,7 +244,7 @@ export default function App() {
       <footer className="mt-24 border-t border-black/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-12">
           <h3 className="text-lg font-semibold text-[var(--navyblue)]">
-            Designed & developed by Vis
+            Designed & developed by Vismaya Gowda
           </h3>
 
           <div className="flex items-center gap-8">
