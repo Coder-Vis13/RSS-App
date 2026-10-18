@@ -54,10 +54,11 @@ export default function SavedPage() {
     const fetchSavedItems = async () => {
       setLoading(true);
       try {
+        const allData = await allSavedItems(userId, selectedTime);
         let data;
 
         if (selectedCategory === "All") {
-          data = await allSavedItems(userId, selectedTime);
+          data = allData;
         } else {
           data = await getSavedItemsByCategory(
             userId,
@@ -70,11 +71,13 @@ export default function SavedPage() {
 
         const uniqueCategories: string[] = Array.from(
           new Set(
-            data.flatMap((i: any) =>
-              (i.categories || []).map((c: any) =>
-                c && c.name ? c.name : "Uncategorized",
+            allData
+              .filter((i: any) => i.feed_type === feedType)
+              .flatMap((i: any) =>
+                (i.categories || []).map((c: any) =>
+                  c && c.name ? c.name : "Uncategorized",
+                ),
               ),
-            ),
           ),
         );
         setAllCategories(uniqueCategories);
@@ -86,7 +89,7 @@ export default function SavedPage() {
     };
 
     fetchSavedItems();
-  }, [userId, selectedCategory, selectedTime]);
+  }, [userId, selectedCategory, selectedTime, feedType]);
 
   useEffect(() => {
     setSelectedCategory("All");

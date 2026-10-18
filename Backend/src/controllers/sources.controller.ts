@@ -10,6 +10,7 @@ import { handleError } from '../utils/helpers';
 import { Request, Response } from 'express';
 import { parseNumericId } from '../utils/request-parser';
 import { processSource } from '../services/source.service';
+import { consumeDemoSourceAddition } from '../middleware/demo-session';
 
 interface URL {
   sourceURL: string;
@@ -33,6 +34,21 @@ export class ApiError extends Error {
   constructor(statusCode: number, message: string) {
     super(message);
     this.statusCode = statusCode;
+  }
+}
+
+function isHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+
+  const hasProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed);
+  const candidate = hasProtocol ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
   }
 }
 
@@ -63,6 +79,11 @@ export const addSourceHandler = async (
       return;
     }
 
+    if (req.demoMode && (typeof sourceURL !== 'string' || !isHttpUrl(sourceURL))) {
+      res.status(400).json({ message: 'sourceURL must be an HTTP or HTTPS URL' });
+      return;
+    }
+
     const userId = parseNumericId(req.params.userId, 'userId');
 
     const exists = await checkSourceExists(userId, sourceURL);
@@ -71,7 +92,14 @@ export const addSourceHandler = async (
       return;
     }
 
-    let result = await processSource(userId, sourceURL);
+    if (!consumeDemoSourceAddition(req)) {
+      res.status(429).json({ message: 'Demo source limit reached for this session.' });
+      return;
+    }
+
+    const result = await processSource(userId, sourceURL, {
+      demoMode: req.demoMode === true,
+    });
 
     res.status(200).json(result);
   } catch (error) {
@@ -148,7 +176,7 @@ export const getSourceItemsHandler = async (
     const userId = parseNumericId(req.params.userId, 'userId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
 
-    const items = await getSourceItems(userId, sourceId, timeFilter);
+    const items = await getSourceItems(userId, sourceId, timeFilter, req.demoMode === true);
 
     res.status(200).json(items);
   } catch (error) {

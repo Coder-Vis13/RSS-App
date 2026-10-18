@@ -5,10 +5,7 @@ import pLimit from 'p-limit';
 
 const limit = pLimit(5);
 
-import dotenv from 'dotenv';
 import { AddItemResult, InsertedItem, Item, ReadItemResult, Source } from './types';
-dotenv.config();
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
 
 interface FeedItems extends Item {
   is_save: boolean;
@@ -68,12 +65,14 @@ export const addUserItemMetadata = async (
 //the full unread feed for a user
 export const userFeedItems = async (
   userId: number,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<FeedItems[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const baseQuery = `SELECT 
       i.item_id,
@@ -101,6 +100,7 @@ export const userFeedItems = async (
   LEFT JOIN item_tag t ON i.item_id = t.item_id
   WHERE us.user_id = $1
     ${timeClause}
+    ${demoClause}
     AND (uim.read_time IS NULL)
   GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
   ORDER BY i.pub_date DESC`;
@@ -114,12 +114,14 @@ export const userFeedItems = async (
 export const getItemsByCategory = async (
   userId: number,
   categoryName: string,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<FeedItems[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const baseQuery = `
     SELECT 
@@ -146,6 +148,7 @@ export const getItemsByCategory = async (
     WHERE us.user_id = $1
       AND c.name = $2
       ${timeClause}
+      ${demoClause}
     AND (uim.read_time IS NULL)
     GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save
     ORDER BY i.pub_date DESC
@@ -161,12 +164,14 @@ export const getItemsByCategory = async (
 export const getSavedItemsByCategory = async (
   userId: number,
   categoryName: string,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<FeedItems[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const baseQuery = `
     SELECT 
@@ -194,6 +199,7 @@ export const getSavedItemsByCategory = async (
       AND uim.is_save = TRUE
       AND c.name = $2
       ${timeClause}
+      ${demoClause}
     GROUP BY i.item_id, i.source_id, s.source_name, s.feed_type, i.is_categorized, uim.is_save
     ORDER BY i.pub_date DESC
   `;
@@ -265,7 +271,7 @@ export const addItem = async (
   const insertQuery = `
     INSERT INTO item(source_id, link, title, description, pub_date)
     VALUES ${valueStrings.join(', ')}
-    ON CONFLICT (source_id, link) DO NOTHING
+    ON CONFLICT DO NOTHING
     RETURNING item_id, link
   `;
   const result: QueryResult<{ item_id: number; link: string }> = await query(insertQuery, values);
@@ -343,13 +349,20 @@ export const saveItem = async (
 };
 
 //get all items published recently
-export const getLatestItemIds = async (sourceId: number, limit: number): Promise<number[]> => {
+export const getLatestItemIds = async (
+  sourceId: number,
+  limit: number,
+  publishedAfter?: Date
+): Promise<number[]> => {
+  const publishedAfterClause = publishedAfter ? 'AND pub_date >= $3' : '';
+  const params = publishedAfter ? [sourceId, limit, publishedAfter] : [sourceId, limit];
   const result: QueryResult<Pick<Item, 'item_id'>> = await query(
     `SELECT item_id FROM item 
-     WHERE source_id = $1 
+     WHERE source_id = $1
+       ${publishedAfterClause}
      ORDER BY pub_date DESC
      LIMIT $2`,
-    [sourceId, limit]
+    params
   );
   logAction(`Recent item IDs: Source=${sourceId} itemCount=${result.rows.length}`);
   return result.rows.map((r) => r.item_id);
@@ -358,12 +371,14 @@ export const getLatestItemIds = async (sourceId: number, limit: number): Promise
 //get all saved items for a user
 export const allSavedItems = async (
   userId: number,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<Item[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const baseQuery = `
     SELECT 
@@ -393,6 +408,7 @@ export const allSavedItems = async (
     WHERE uim.is_save = TRUE
       AND uim.user_id = $1
       ${timeClause}
+      ${demoClause}
     GROUP BY i.item_id, s.source_name, s.feed_type, i.is_categorized
     ORDER BY i.pub_date DESC
   `;
@@ -407,12 +423,14 @@ export const allSavedItems = async (
 //get all read items of a user
 export const readItems = async (
   userId: number,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<AllReadItems[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND uim.read_time >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND uim.read_time >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND uim.read_time >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const baseQuery = `
     SELECT 
@@ -443,6 +461,7 @@ export const readItems = async (
     WHERE uim.user_id = $1
     AND (uim.read_time IS NOT NULL)
       ${timeClause}
+      ${demoClause}
     GROUP BY i.item_id, s.source_name, s.feed_type, uim.read_time, i.is_categorized
     ORDER BY i.pub_date DESC
   `;

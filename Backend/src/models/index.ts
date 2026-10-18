@@ -3,3 +3,4 @@ export * from './items.model';
 export * from './sources.model';
 export * from './users.model';
 export * from './category.model';
+export * from './demo-session.model';

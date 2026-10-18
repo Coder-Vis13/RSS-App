@@ -7,9 +7,44 @@ import FolderPage from "./pages/FolderPage";
 import { Toaster } from "./components/ui/sonner";
 import Landing from "./landingPage";
 import SourcePage from "./pages/SourcePage";
-import { getAuthUserId } from "./auth";
+import {
+  clearDemoSessionState,
+  clearAccessToken,
+  getAuthUserId,
+  isDemoMode,
+  validateDemoSession,
+} from "./auth";
+import { useEffect, useState } from "react";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
+  const demoMode = isDemoMode();
+  const [demoStatus, setDemoStatus] = useState<"ready" | "checking" | "invalid">(
+    demoMode ? "checking" : "ready",
+  );
+
+  useEffect(() => {
+    if (!demoMode) {
+      setDemoStatus("ready");
+      return;
+    }
+
+    validateDemoSession()
+      .then(() => setDemoStatus("ready"))
+      .catch(() => {
+        clearDemoSessionState();
+        clearAccessToken();
+        setDemoStatus("invalid");
+      });
+  }, [demoMode]);
+
+  if (demoMode && demoStatus === "checking") {
+    return <main className="p-6">Loading demo...</main>;
+  }
+
+  if (demoMode && demoStatus === "invalid") {
+    return <Navigate to="/landing" replace />;
+  }
+
   return getAuthUserId() ? <>{children}</> : <Navigate to="/landing" replace />;
 }
 

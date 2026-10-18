@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import 'dotenv/config';
 import router from './routes';
-import './cron';
+import { startDemoCleanupSchedule, startFeedRefreshSchedule } from './cron';
 import { loggingHandler } from './middleware/logging';
 import { corsHandler } from './middleware/cors';
 import { routeNotFound } from './middleware/route-not-found';
@@ -37,3 +37,6 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
 });
 
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
+
+startFeedRefreshSchedule();
+startDemoCleanupSchedule();

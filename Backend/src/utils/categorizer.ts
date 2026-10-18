@@ -34,7 +34,7 @@ export const ALLOWED_CATEGORIES = [
   'Politics',
 ] as const;
 
-const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY === 'false';
+const USE_AI_CATEGORY = process.env.USE_AI_CATEGORY?.trim().toLowerCase() === 'true';
 
 function getCategoryPrompt(title: string, description?: string): string {
   const context =
@@ -148,13 +148,16 @@ export async function categorizeItem(
 }
 
 const categorizeLimit = pLimit(5);
-const categorizeQueue = new Set<number>();
+const categorizeQueue = new Map<number, Promise<void>>();
 
-export function enqueueCategorization(itemIds: number[]) {
-  for (const itemId of itemIds) {
-    if (categorizeQueue.has(itemId)) continue;
-    categorizeQueue.add(itemId);
-    categorizeLimit(async () => {
+export function enqueueCategorization(itemIds: number[]): Promise<void> {
+  const tasks = itemIds.map((itemId) => {
+    const existingTask = categorizeQueue.get(itemId);
+    if (existingTask) {
+      return existingTask;
+    }
+
+    const task = categorizeLimit(async () => {
       try {
         const row = await query(
           `SELECT item_id, title, description FROM item WHERE item_id = $1 AND is_categorized = false`,
@@ -163,11 +166,18 @@ export function enqueueCategorization(itemIds: number[]) {
         const item = row.rows[0];
         if (!item) return;
         await categorizeItem(item.item_id, item.title, item.description);
+      } catch (error) {
+        console.error(`Categorization failed for item ${itemId}:`, error);
       } finally {
         categorizeQueue.delete(itemId);
       }
     });
-  }
+
+    categorizeQueue.set(itemId, task);
+    return task;
+  });
+
+  return Promise.all(tasks).then(() => undefined);
 }
 
 function mapToAllowedCategory(raw: string): string | null {

@@ -35,7 +35,7 @@ export const userFeedItemsHandler = async (
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
 
-    const unreadItems = await userFeedItems(userId, timeFilter);
+    const unreadItems = await userFeedItems(userId, timeFilter, req.demoMode === true);
 
     res.json(unreadItems);
   } catch (error) {
@@ -57,7 +57,7 @@ export const getItemsByCategoryHandler = async (
   const { categoryName } = req.params;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const items = await getItemsByCategory(userId, categoryName, timeFilter);
+    const items = await getItemsByCategory(userId, categoryName, timeFilter, req.demoMode === true);
     res.json(items);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching items by category');
@@ -78,7 +78,12 @@ export const getSavedItemsByCategoryHandler = async (
   const { timeFilter = 'all' } = req.query;
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const items = await getSavedItemsByCategory(userId, categoryName, timeFilter);
+    const items = await getSavedItemsByCategory(
+      userId,
+      categoryName,
+      timeFilter,
+      req.demoMode === true
+    );
     res.json(items);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching saved items by category');
@@ -146,7 +151,7 @@ export const allSavedItemsHandler = async (
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
     const { timeFilter = 'all' } = req.query;
-    const savedItems = await allSavedItems(userId, timeFilter);
+    const savedItems = await allSavedItems(userId, timeFilter, req.demoMode === true);
 
     res.json(savedItems);
   } catch (error) {
@@ -163,7 +168,7 @@ export const readItemsHandler = async (
 
   try {
     const userId = parseNumericId(req.params.userId, 'userId');
-    const allReadItems = await readItems(userId, timeFilter);
+    const allReadItems = await readItems(userId, timeFilter, req.demoMode === true);
 
     res.json(allReadItems);
   } catch (error) {

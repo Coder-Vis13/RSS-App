@@ -115,7 +115,18 @@ CREATE TABLE IF NOT EXISTS user_source (
           ON DELETE CASCADE,
         PRIMARY KEY (item_id, category_id)
       );
+
+      CREATE TABLE IF NOT EXISTS demo_session (
+  session_id UUID PRIMARY KEY,
+  user_id INT NOT NULL UNIQUE
+    REFERENCES users(user_id)
+    ON DELETE CASCADE,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
     `);
+    
 
     console.log('All tables created!');
   } catch (error) {

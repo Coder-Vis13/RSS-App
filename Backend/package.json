@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc",
     "db:init": "ts-node scripts/initDb.ts",
+    "db:migrate-demo": "ts-node scripts/migrate-demo.ts",
+    "db:seed-demo": "ts-node scripts/seed-demo.ts",
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts"
   },

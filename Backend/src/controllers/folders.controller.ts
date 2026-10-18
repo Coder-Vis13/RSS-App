@@ -160,7 +160,7 @@ export const folderItemsHandler = async (
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const { timeFilter } = req.query;
 
-    const unreadItems = await folderItems(userId, folderId, timeFilter);
+    const unreadItems = await folderItems(userId, folderId, timeFilter, req.demoMode === true);
     res.json(unreadItems);
   } catch (error) {
     handleError(res, error, 500, 'Error fetching unread items in folder');

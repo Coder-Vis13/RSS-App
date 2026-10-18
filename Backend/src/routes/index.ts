@@ -37,8 +37,12 @@ import { loginHandler } from '../controllers/auth/login.controller';
 import { registerHandler } from '../controllers/auth/register.controller';
 import { refreshHandler } from '../controllers/auth/refresh.controller';
 import { logoutHandler } from '../controllers/auth/logout.controller';
-import { verifyJWT } from '../middleware/verifyJWT';
+import {
+  limitDemoSessionCreation,
+  verifyDemoSessionOrJWT,
+} from '../middleware/demo-session';
 import { attachAuthenticatedUser } from '../middleware/authenticatedUserContext';
+import { createDemoSessionHandler } from '../controllers/demo-session.controller';
 
 const router = express.Router();
 
@@ -52,7 +56,9 @@ router.post('/register', registerHandler);
 router.post('/refresh', refreshHandler);
 router.post('/logout', logoutHandler);
 
-router.use('/users/:userId', verifyJWT, attachAuthenticatedUser);
+router.post('/demo/session', limitDemoSessionCreation, createDemoSessionHandler);
+
+router.use('/users/:userId', verifyDemoSessionOrJWT, attachAuthenticatedUser);
 
 // Sources
 router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources for a user

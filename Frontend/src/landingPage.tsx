@@ -2,7 +2,13 @@ import { motion } from "framer-motion";
 import { SiteShowcase } from "./components/sites";
 import { Button } from "./components/ui/button";
 import { useEffect, useState } from "react";
-import { signIn, signUp, signOut, getAuthUserId } from "./auth";
+import {
+  signIn,
+  signUp,
+  signOut,
+  getAuthUserId,
+  startDemoSession,
+} from "./auth";
 import { Github, Linkedin, ArrowRight } from "lucide-react";
 
 export default function App() {
@@ -34,6 +40,15 @@ export default function App() {
     await signOut();
     setUser(null);
     window.location.href = "/landing";
+  }
+
+  async function handleDemo() {
+    try {
+      await startDemoSession();
+      window.location.href = "/feed";
+    } catch {
+      alert("The demo is temporarily unavailable. Please try again.");
+    }
   }
 
   useEffect(() => {
@@ -151,6 +166,13 @@ export default function App() {
                 className="h-11 rounded-2xl px-6 text-sm font-medium border-black/10 text-[var(--navyblue)] hover:bg-black/5 shadow-sm"
               >
                 Sign In
+              </Button>
+              <Button
+                onClick={handleDemo}
+                variant="outline"
+                className="h-11 rounded-2xl px-6 text-sm font-medium border-black/10 text-[var(--navyblue)] hover:bg-black/5 shadow-sm"
+              >
+                Try Demo
               </Button>
             </motion.div>
           </div>

@@ -145,12 +145,14 @@ export const getUserFolders = async (userId: number): Promise<UserFolder[]> => {
 export const folderItems = async (
   userId: number,
   folderId: number,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<FolderItems[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const baseQuery = `SELECT 
       i.item_id,
@@ -187,6 +189,7 @@ export const folderItems = async (
     LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE 1=1
           ${timeClause}
+      ${demoClause}
       AND (uim.read_time IS NULL)
     GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
     ORDER BY i.pub_date DESC`;

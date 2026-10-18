@@ -5,6 +5,7 @@ import { parseFeed, FeedParseError } from './services/feed-ingestion/parse-feed.
 import { addItem, addUserItemMetadata } from './models/items.model';
 import pLimit from 'p-limit';
 import { enqueueCategorization } from './utils/categorizer';
+import { cleanupExpiredDemoSessions } from './services/demo-cleanup.service';
 
 export interface SourceRow {
   source_id: number;
@@ -16,6 +17,13 @@ export interface SourceRow {
 const REFRESH_SCAN_LIMIT = 50;
 const TIMEOUT_MS = 12_000;
 const CONCURRENCY = 8;
+const DEMO_CONTENT_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+export interface FeedRefreshOptions {
+  sourceIds?: number[];
+  enqueueCategorization?: boolean;
+  recentOnly?: boolean;
+}
 
 interface RefreshItem {
   link: string;
@@ -83,7 +91,7 @@ function normalizeEntriesForRefresh(entries: FeedEntry[], scanLimit: number): Re
   return items.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime()).slice(0, scanLimit);
 }
 
-async function refreshSource(row: SourceRow): Promise<void> {
+async function refreshSource(row: SourceRow, options: FeedRefreshOptions): Promise<void> {
   const { source_id: sourceId, url, feed_type, user_ids: userIds } = row;
   const feedStart = Date.now();
 
@@ -96,7 +104,12 @@ async function refreshSource(row: SourceRow): Promise<void> {
       return;
     }
 
-    const items = normalizeEntriesForRefresh(entries, REFRESH_SCAN_LIMIT);
+    const normalizedItems = normalizeEntriesForRefresh(entries, REFRESH_SCAN_LIMIT);
+    const items = options.recentOnly
+      ? normalizedItems.filter(
+          (item) => item.pubDate >= new Date(Date.now() - DEMO_CONTENT_WINDOW_MS)
+        )
+      : normalizedItems;
 
     const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, items);
 
@@ -106,7 +119,9 @@ async function refreshSource(row: SourceRow): Promise<void> {
 
       if (userIds.length) {
         await Promise.allSettled(userIds.map((uid) => addUserItemMetadata(uid, insertedIds)));
-        enqueueCategorization(insertedIds);
+        if (options.enqueueCategorization !== false) {
+          void enqueueCategorization(insertedIds);
+        }
       }
     }
 
@@ -121,11 +136,12 @@ async function refreshSource(row: SourceRow): Promise<void> {
   }
 }
 
-export async function runFeedRefresh(): Promise<void> {
+export async function runFeedRefresh(options: FeedRefreshOptions = {}): Promise<void> {
   const startTime = new Date();
   console.log(`CRON -> Starting feed refresh at ${startTime.toISOString()}`);
 
   try {
+    const sourceIds = options.sourceIds?.length ? options.sourceIds : null;
     const sourcesRes = await query<SourceRow>(`
       SELECT
         s.source_id,
@@ -137,15 +153,16 @@ export async function runFeedRefresh(): Promise<void> {
         ) AS user_ids
       FROM source s
       INNER JOIN user_source us ON us.source_id = s.source_id
+      WHERE ($1::int[] IS NULL OR s.source_id = ANY($1))
       GROUP BY s.source_id, s.url, s.feed_type
-    `);
+    `, [sourceIds]);
 
     const sources = sourcesRes.rows;
     const limit = pLimit(CONCURRENCY);
 
     console.log(`CRON -> Refreshing ${sources.length} subscribed source(s)`);
 
-    await Promise.allSettled(sources.map((row) => limit(() => refreshSource(row))));
+    await Promise.allSettled(sources.map((row) => limit(() => refreshSource(row, options))));
 
     console.log(`CRON -> Finished at ${new Date().toISOString()}`);
   } catch (err: unknown) {
@@ -153,5 +170,14 @@ export async function runFeedRefresh(): Promise<void> {
   }
 }
 
-// default: every 30 minutes
-schedule('*/15 * * * *', runFeedRefresh);
+export function startFeedRefreshSchedule(): void {
+  schedule('*/15 * * * *', () => {
+    void runFeedRefresh();
+  });
+}
+
+export function startDemoCleanupSchedule(): void {
+  schedule('0 * * * *', () => {
+    void cleanupExpiredDemoSessions();
+  });
+}

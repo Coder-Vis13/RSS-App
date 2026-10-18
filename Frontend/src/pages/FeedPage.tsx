@@ -71,30 +71,38 @@ export default function FeedPage() {
         setLoading(true);
       }
       try {
-        let data;
+        const allData = await userFeedItems(userId, selectedTime);
+        const normalizedAll = allData.map((i: any) => ({
+          ...i,
+          is_save: Boolean(i.is_save),
+        }));
+
+        let normalized;
 
         if (selectedCategory === "All") {
-          data = await userFeedItems(userId, selectedTime);
+          normalized = normalizedAll;
         } else {
-          data = await getItemsByCategory(
+          const data = await getItemsByCategory(
             userId,
             selectedCategory,
             selectedTime,
           );
+          normalized = data.map((i: any) => ({
+            ...i,
+            is_save: Boolean(i.is_save),
+          }));
         }
-        const normalized = data.map((i: any) => ({
-          ...i,
-          is_save: Boolean(i.is_save),
-        }));
         setFeedItems(normalized);
 
         const uniqueCategories: string[] = Array.from(
           new Set(
-            normalized.flatMap((i: any) =>
-              (i.categories || []).map((c: any) =>
-                c && c.name ? c.name : "Uncategorized",
+            normalizedAll
+              .filter((i: any) => i.feed_type === feedType)
+              .flatMap((i: any) =>
+                (i.categories || []).map((c: any) =>
+                  c && c.name ? c.name : "Uncategorized",
+                ),
               ),
-            ),
           ),
         );
         setAllCategories(uniqueCategories);
@@ -105,7 +113,7 @@ export default function FeedPage() {
         setLoading(false);
       }
     },
-    [userId, selectedCategory, selectedTime],
+    [userId, selectedCategory, selectedTime, feedType],
   );
 
   //Fetch feed

@@ -250,12 +250,14 @@ export const markSourceItemsRead = async (
 export const getSourceItems = async (
   userId: number,
   sourceId: number,
-  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all'
+  timeFilter: 'all' | 'today' | 'week' | 'month' = 'all',
+  demoMode = false
 ): Promise<SourceItem[]> => {
   let timeClause = '';
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
+  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
 
   const sourceRow = await query<{ feed_type: 'rss' | 'podcast' }>(
     `SELECT feed_type FROM source WHERE source_id = $1`,
@@ -298,6 +300,7 @@ export const getSourceItems = async (
       AND i.source_id = $2
       AND uim.read_time IS NULL
       ${timeClause}
+      ${demoClause}
     GROUP BY i.item_id, s.source_name, s.feed_type, s.source_id, uim.is_save, i.is_categorized
     ORDER BY i.pub_date DESC
   `;

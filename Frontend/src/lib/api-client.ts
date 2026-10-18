@@ -1,5 +1,10 @@
 import axios from "axios";
-import { getAccessToken, refreshSession, clearAccessToken } from "../auth";
+import {
+  getAccessToken,
+  refreshSession,
+  clearAccessToken,
+  isDemoMode,
+} from "../auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -11,6 +16,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (isDemoMode()) {
+    return config;
+  }
+
   const token = getAccessToken();
   if (token) {
     config.headers = config.headers || {};
@@ -24,6 +33,10 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
     const status = error.response?.status;
+
+    if (isDemoMode()) {
+      return Promise.reject(error);
+    }
 
     if ((status === 401 || status === 403) && !original._retry) {
       original._retry = true;

@@ -5,6 +5,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { DEMO_BLOCKLIST_STORAGE_KEY, isDemoMode } from "@/auth";
 
 interface BlocklistContextType {
   blocklist: string[];
@@ -16,6 +17,20 @@ const BlocklistContext = createContext<BlocklistContextType | undefined>(
   undefined,
 );
 
+const USER_BLOCKLIST_STORAGE_KEY = "blocklist";
+
+function readBlocklist(storageKey: string): string[] {
+  const stored = localStorage.getItem(storageKey);
+  if (!stored) return [];
+
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export const useBlocklist = () => {
   const context = useContext(BlocklistContext);
   if (!context)
@@ -24,21 +39,21 @@ export const useBlocklist = () => {
 };
 
 export const BlocklistProvider = ({ children }: { children: ReactNode }) => {
+  const [storageKey] = useState(
+    () =>
+      isDemoMode()
+        ? DEMO_BLOCKLIST_STORAGE_KEY
+        : USER_BLOCKLIST_STORAGE_KEY,
+  );
+
   const [blocklist, setBlocklist] = useState<string[]>(() => {
-    const stored = localStorage.getItem("blocklist");
-    if (!stored) return [];
-    try {
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return readBlocklist(storageKey);
   });
 
   // Save to localStorage
   useEffect(() => {
-    localStorage.setItem("blocklist", JSON.stringify(blocklist));
-  }, [blocklist]);
+    localStorage.setItem(storageKey, JSON.stringify(blocklist));
+  }, [storageKey, blocklist]);
 
   const addWord = (word: string) => {
     const trimmed = word.trim().toLowerCase();

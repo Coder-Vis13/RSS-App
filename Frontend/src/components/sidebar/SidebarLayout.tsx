@@ -44,7 +44,7 @@ import {
   logoUrlFromFeedUrl,
 } from "@/lib/sourceLogo";
 
-import { getAuthUserId } from "@/auth";
+import { getAuthUserId, isDemoMode } from "@/auth";
 
 type SourceLogoProps = {
   name: string;
@@ -131,6 +131,7 @@ export default function SidebarLayout({
 
   const navigate = useNavigate();
   const userId = getAuthUserId();
+  const demoMode = isDemoMode();
   if (!userId) {
     return null;
   }
@@ -744,6 +745,14 @@ export default function SidebarLayout({
         }}
         className="h-full overflow-y-auto overflow-x-hidden bg-[var(--background)]"
       >
+        {demoMode && (
+          <div
+            role="status"
+            className="border-b border-[var(--navyblue)]/10 bg-[var(--navyblue)] px-4 py-2 text-center text-sm text-[var(--beige)]"
+          >
+            Demo mode — changes are private to this session and reset automatically.
+          </div>
+        )}
         {children}
       </main>
     </div>
