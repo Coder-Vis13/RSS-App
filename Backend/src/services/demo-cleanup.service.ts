@@ -77,10 +77,7 @@ export async function cleanupExpiredDemoSessions(): Promise<void> {
     );
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error(
-      'DEMO CLEANUP -> Failed:',
-      error instanceof Error ? error.message : error
-    );
+    throw error;
   } finally {
     client.release();
   }

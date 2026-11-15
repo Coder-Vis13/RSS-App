@@ -21,6 +21,7 @@ const PODCAST_HOSTS = new Set([
   'megaphone.fm',
   'spreaker.com',
   'libsyn.com',
+  'syntax.fm',
 ]);
 
 const DIRECT_FEED_EXTENSIONS = ['.rss', '.xml', '.atom', '.feed'];

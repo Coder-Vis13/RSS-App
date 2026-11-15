@@ -58,7 +58,7 @@ export const getUnfolderedSourcesHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const sources = await getUnfolderedSources(userId);
     res.json(sources);
   } catch (error) {
@@ -84,7 +84,7 @@ export const addSourceHandler = async (
       return;
     }
 
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
 
     const exists = await checkSourceExists(userId, sourceURL);
     if (exists) {
@@ -117,7 +117,7 @@ export const removeUserSourceHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
     const updatedSources = await removeUserSource(userId, sourceId);
 
@@ -136,7 +136,7 @@ export const allUserSourcesHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const allSources = await allUserSources(userId);
     res.json(allSources);
   } catch (error) {
@@ -150,7 +150,7 @@ export const markSourceItemsReadHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
 
     const result = await markSourceItemsRead(userId, sourceId);
@@ -173,7 +173,7 @@ export const getSourceItemsHandler = async (
   const { timeFilter = 'all' } = req.query;
 
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
 
     const items = await getSourceItems(userId, sourceId, timeFilter, req.demoMode === true);

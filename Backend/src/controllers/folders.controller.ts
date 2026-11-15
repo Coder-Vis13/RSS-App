@@ -44,7 +44,7 @@ export const createFolderHandler = async (
       throw new Error('folderName is required');
     }
 
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folder = await createFolder({ user_id: userId, name: folderName });
 
     res.json(folder);
@@ -61,7 +61,7 @@ export const renameFolderHandler = async (
   try {
     const { name } = req.body;
 
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const updatedFolder = await renameFolder(userId, folderId, name);
     if (!updatedFolder) {
@@ -88,7 +88,7 @@ export const getUserFoldersHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
 
     const folders = await getUserFolders(userId);
     res.json(folders);
@@ -103,7 +103,7 @@ export const deleteFolderHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const deletedFolder = await deleteFolder(userId, folderId);
     if (!deletedFolder) {
@@ -124,10 +124,14 @@ export const addSourceIntoFolderHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const sourceId = parseNumericId(String(req.body.sourceId), 'sourceId');
     const result = await addSourceIntoFolder(userId, folderId, sourceId);
+    if (!result) {
+      res.status(404).json({ error: 'Folder or source not found for this user' });
+      return;
+    }
     res.json(result);
   } catch (error) {
     handleError(res, error, 500, 'Could not add source into folder');
@@ -140,7 +144,7 @@ export const deleteSourceFromFolderHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const sourceId = parseNumericId(req.params.sourceId, 'sourceId');
     const delSource = await delSourceFromFolder(userId, folderId, sourceId);
@@ -156,7 +160,7 @@ export const folderItemsHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const { timeFilter } = req.query;
 
@@ -173,7 +177,7 @@ export const markFolderItemsReadHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const folderId = parseNumericId(req.params.folderId, 'folderId');
     const readItems = await markFolderItemsRead(userId, folderId);
     res.json(readItems);

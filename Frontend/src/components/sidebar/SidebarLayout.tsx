@@ -77,7 +77,7 @@ function SourceLogo({ name, logoUrl, feedUrl, isActive }: SourceLogoProps) {
 
   return (
     <span
-      className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full bg-[var(--light-grey)] ring-1 ring-black/5"
+      className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full bg-(--light-grey) ring-1 ring-black/5"
       aria-hidden="true"
     >
       {!showLetter && src ? (
@@ -94,7 +94,7 @@ function SourceLogo({ name, logoUrl, feedUrl, isActive }: SourceLogoProps) {
       ) : (
         <span
           className={`flex h-full w-full items-center justify-center text-[10px] font-semibold leading-none ${
-            isActive ? "text-[var(--beige)]" : "text-[var(--text)]"
+            isActive ? "text-(--beige)" : "text-(--text)"
           }`}
         >
           {letter}
@@ -382,10 +382,10 @@ export default function SidebarLayout({
     <div className="flex h-screen overflow-hidden">
       <aside
         style={{ width: sidebarWidth }}
-        className="fixed left-0 top-0 h-full flex flex-col p-3 bg-[var(--sidebar)] border-r border-[var(--light-grey)] z-40 transition-all"
+        className="fixed left-0 top-0 h-full flex flex-col p-3 bg-(--sidebar) border-r border-(--light-grey) z-40 transition-all"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-5 text-[var(--sidebar-foreground)]">
+        <div className="flex items-center justify-between mb-5 text-(--sidebar-foreground)">
           <h1 className="text-xl font-bold">ReadArchive</h1>
         </div>
 
@@ -400,8 +400,8 @@ export default function SidebarLayout({
                   className={`w-full text-sm flex items-center rounded-md px-3 py-2 transition-colors
     ${
       addFeedDialogOpen
-        ? "bg-[var(--navyblue)] text-[var(--beige)]"
-        : "hover:bg-[var(--light-grey)] text-[var(--text)]"
+        ? "bg-(--navyblue) text-(--beige)"
+        : "hover:bg-(--light-grey) text-(--text)"
     }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -418,8 +418,8 @@ export default function SidebarLayout({
                   `w-full text-sm flex items-center rounded-md px-3 py-2 transition-colors
            ${
              isActive
-               ? "bg-[var(--navyblue)] text-[var(--beige)]"
-               : "hover:bg-[var(--light-grey)]"
+               ? "bg-(--navyblue) text-(--beige)"
+               : "hover:bg-(--light-grey)"
            }`
                 }
               >
@@ -442,7 +442,7 @@ export default function SidebarLayout({
                   to={`/sources/${source.source_id}`}
                   onClick={() => handleSourceClick(source.source_id)}
                   className={({ isActive }) =>
-                    `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
+                    `block rounded-md transition-colors ${isActive ? "bg-(--navyblue) text-(--beige)" : "hover:bg-(--light-grey) text-(--text)"}`
                   }
                 >
                   {({ isActive }) => (
@@ -462,7 +462,7 @@ export default function SidebarLayout({
                         <DropdownMenuTrigger asChild>
                           <button className="p-1 focus-visible:outline-none opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0">
                             <Ellipsis
-                              className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
+                              className={`h-4 w-4 ${isActive ? "text-(--beige)" : "text-gray-500"}`}
                             />
                           </button>
                         </DropdownMenuTrigger>
@@ -503,14 +503,14 @@ export default function SidebarLayout({
             )}
 
             {/* Folders Header */}
-            <div className="flex items-center justify-between px-2 mb-4 font-semibold text-[var(--sidebar-foreground)]">
+            <div className="flex items-center justify-between px-2 mb-4 font-semibold text-(--sidebar-foreground)">
               <span>Folders</span>
               <button
                 onClick={() => {
                   setFolderName("");
                   setCreateFolderDialogOpen(true);
                 }}
-                className="p-1 rounded hover:bg-[var(--light-grey)]"
+                className="p-1 rounded hover:bg-(--light-grey)"
                 aria-label="Create Folder"
               >
                 <Plus className="h-4 w-4" />
@@ -525,7 +525,7 @@ export default function SidebarLayout({
                   <NavLink
                     to={`/folders/${folder.folder_id}`}
                     className={({ isActive }) =>
-                      `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
+                      `block rounded-md transition-colors ${isActive ? "bg-(--navyblue) text-(--beige)" : "hover:bg-(--light-grey) text-(--text)"}`
                     }
                   >
                     {({ isActive }) => (
@@ -543,7 +543,7 @@ export default function SidebarLayout({
                                 className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Ellipsis
-                                  className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
+                                  className={`h-4 w-4 ${isActive ? "text-(--beige)" : "text-gray-500"}`}
                                 />
                               </button>
                             </DropdownMenuTrigger>
@@ -598,7 +598,7 @@ export default function SidebarLayout({
                           to={`/sources/${source.source_id}`}
                           onClick={() => handleSourceClick(source.source_id)}
                           className={({ isActive }) =>
-                            `block rounded-md transition-colors ${isActive ? "bg-[var(--navyblue)] text-[var(--beige)]" : "hover:bg-[var(--light-grey)] text-[var(--text)]"}`
+                            `block rounded-md transition-colors ${isActive ? "bg-(--navyblue) text-(--beige)" : "hover:bg-(--light-grey) text-(--text)"}`
                           }
                         >
                           {({ isActive }) => (
@@ -618,7 +618,7 @@ export default function SidebarLayout({
                                 <DropdownMenuTrigger asChild>
                                   <button className="p-1 focus-visible:outline-none focus-visible:ring-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Ellipsis
-                                      className={`h-4 w-4 ${isActive ? "text-[var(--beige)]" : "text-gray-500"}`}
+                                      className={`h-4 w-4 ${isActive ? "text-(--beige)" : "text-gray-500"}`}
                                     />
                                   </button>
                                 </DropdownMenuTrigger>
@@ -705,10 +705,10 @@ export default function SidebarLayout({
                     setCreateFolderDialogOpen(false);
                     setAddToFolderOpen(true);
                   }}
-                  className="rounded-md p-1 hover:bg-[var(--light-grey)] focus:outline-none"
+                  className="rounded-md p-1 hover:bg-(--light-grey) focus:outline-none"
                   aria-label="Back"
                 >
-                  <ChevronLeft className="h-4 w-4 text-[var(--sidebar-foreground)]" />
+                  <ChevronLeft className="h-4 w-4 text-(--sidebar-foreground)" />
                 </button>
               )}
             </div>
@@ -743,12 +743,12 @@ export default function SidebarLayout({
           marginLeft: sidebarWidth,
           width: `calc(100vw - ${sidebarWidth}px)`,
         }}
-        className="h-full overflow-y-auto overflow-x-hidden bg-[var(--background)]"
+        className="h-full overflow-y-auto overflow-x-hidden bg-(--background)"
       >
         {demoMode && (
           <div
             role="status"
-            className="border-b border-[var(--navyblue)]/10 bg-[var(--navyblue)] px-4 py-2 text-center text-sm text-[var(--beige)]"
+            className="border-b border-(--navyblue)/10 bg-(--navyblue) px-4 py-2 text-center text-sm text-(--beige)"
           >
             Demo mode — changes are private to this session and reset automatically.
           </div>

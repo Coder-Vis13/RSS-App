@@ -204,12 +204,18 @@ export const addSourceIntoFolder = async (
   userId: number,
   folderId: number,
   sourceId: number
-): Promise<AddSourceToFolder> => {
+): Promise<AddSourceToFolder | null> => {
   const insertResult: QueryResult<AddSourceToFolder> = await query(
-    `INSERT INTO user_source_folder(user_id, folder_id, source_id)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (user_id, folder_id, source_id) DO NOTHING
-        RETURNING user_id, folder_id, source_id`,
+    `INSERT INTO user_source_folder (user_id, folder_id, source_id)
+     SELECT $1, f.folder_id, us.source_id
+     FROM folder f
+     JOIN user_source us
+       ON us.user_id = f.user_id
+      AND us.source_id = $3
+     WHERE f.user_id = $1
+       AND f.folder_id = $2
+     ON CONFLICT (user_id, folder_id, source_id) DO NOTHING
+     RETURNING user_id, folder_id, source_id`,
     [userId, folderId, sourceId]
   );
 
@@ -227,7 +233,7 @@ export const addSourceIntoFolder = async (
   const existingSource = getFirstRow(selectResult);
 
   if (!existingSource) {
-    throw new Error(`Source ${sourceId} not found in folder ${folderId} for user ${userId}`);
+    return null;
   }
 
   logAction(

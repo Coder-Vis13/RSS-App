@@ -1,42 +1,27 @@
-import express, { Request, Response, NextFunction } from 'express';
 import 'dotenv/config';
-import router from './routes';
+import { createApp } from './app';
 import { startDemoCleanupSchedule, startFeedRefreshSchedule } from './cron';
-import { loggingHandler } from './middleware/logging';
-import { corsHandler } from './middleware/cors';
-import { routeNotFound } from './middleware/route-not-found';
-import cookieParser from 'cookie-parser';
 
 const PORT = process.env.PORT || 3000;
+const isTestMode = process.env.NODE_ENV === 'test';
 
-const app = express();
+if (isTestMode) {
+  const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
-app.use(corsHandler);
+  if (!testDatabaseUrl || testDatabaseUrl.trim() === '') {
+    throw new Error('TEST_DATABASE_URL is required when starting the backend in test mode.');
+  }
 
-app.use(express.json());
+  if (process.env.DATABASE_URL && testDatabaseUrl === process.env.DATABASE_URL) {
+    throw new Error('TEST_DATABASE_URL must be different from DATABASE_URL.');
+  }
+}
 
-app.use(cookieParser());
-
-app.use(loggingHandler);
-
-app.get("/", (_req, res) => {
-  res.status(200).json({
-    status: "OK",
-    message: "RSS Backend is running",
-  });
-});
-
-app.use('/', router);
-
-app.use(routeNotFound);
-
-//Error handler
-app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  console.error(`[ERROR] ${err.message}`);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
+const app = createApp();
 
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
-startFeedRefreshSchedule();
-startDemoCleanupSchedule();
+if (!isTestMode) {
+  startFeedRefreshSchedule();
+  startDemoCleanupSchedule();
+}

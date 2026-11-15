@@ -19,7 +19,6 @@ interface MarkItemRead {
 }
 
 interface SaveItem {
-  userId: number;
   itemId: number;
   save?: boolean;
   is_save?: boolean;
@@ -33,7 +32,7 @@ export const userFeedItemsHandler = async (
   const { timeFilter = 'all' } = req.query;
 
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
 
     const unreadItems = await userFeedItems(userId, timeFilter, req.demoMode === true);
 
@@ -56,7 +55,7 @@ export const getItemsByCategoryHandler = async (
   const { timeFilter = 'all' } = req.query;
   const { categoryName } = req.params;
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const items = await getItemsByCategory(userId, categoryName, timeFilter, req.demoMode === true);
     res.json(items);
   } catch (error) {
@@ -77,7 +76,7 @@ export const getSavedItemsByCategoryHandler = async (
   const { categoryName } = req.params;
   const { timeFilter = 'all' } = req.query;
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const items = await getSavedItemsByCategory(
       userId,
       categoryName,
@@ -96,9 +95,14 @@ export const markItemReadHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const itemId = parseNumericId(req.params.itemId, 'itemId');
     const readItem = await markItemRead(userId, itemId);
+
+    if (!readItem) {
+      res.status(404).json({ error: 'Item not found for this user' });
+      return;
+    }
 
     res.json(readItem);
   } catch (error) {
@@ -112,7 +116,7 @@ export const markUserFeedItemsReadHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const readItems = await markUserFeedItemsRead(userId);
 
     res.json(readItems);
@@ -126,16 +130,21 @@ export const saveItemHandler = async (
   req: Request<{}, {}, SaveItem>,
   res: Response
 ): Promise<void> => {
-  const { userId, itemId, save } = req.body;
-  if (userId == null || itemId == null || save == null) {
-    res.status(400).json({ error: 'Missing userId, itemId, or save value' });
+  const { itemId, save } = req.body;
+  if (itemId == null || save == null) {
+    res.status(400).json({ error: 'Missing itemId or save value' });
     return;
   }
 
   try {
-    const parsedUserId = parseNumericId(String(userId), 'userId');
+    const userId = req.user!.userId;
     const parsedItemId = parseNumericId(String(itemId), 'itemId');
-    const result = await saveItem(parsedUserId, parsedItemId, save);
+    const result = await saveItem(userId, parsedItemId, save);
+
+    if (!result) {
+      res.status(404).json({ error: 'Item not found for this user' });
+      return;
+    }
 
     res.json({ userId: result.user_id, itemId: result.item_id, is_save: result.is_save });
   } catch (error) {
@@ -149,7 +158,7 @@ export const allSavedItemsHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const { timeFilter = 'all' } = req.query;
     const savedItems = await allSavedItems(userId, timeFilter, req.demoMode === true);
 
@@ -167,7 +176,7 @@ export const readItemsHandler = async (
   const { timeFilter = 'all' } = req.query;
 
   try {
-    const userId = parseNumericId(req.params.userId, 'userId');
+    const userId = req.user!.userId;
     const allReadItems = await readItems(userId, timeFilter, req.demoMode === true);
 
     res.json(allReadItems);

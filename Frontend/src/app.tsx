@@ -83,7 +83,6 @@ export default function Dashboard() {
             <RequireAuth>
               <SidebarLayout>
                 <Routes>
-                  <Route path="discover" element={<Discover />} />
                   <Route path="feed" element={<FeedPage />} />
                   <Route path="saved" element={<SavedPage />} />
                   <Route path="recently-read" element={<ReadPage />} />

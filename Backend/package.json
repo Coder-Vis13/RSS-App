@@ -7,15 +7,23 @@
     "build": "tsc",
     "db:init": "ts-node scripts/initDb.ts",
     "db:migrate-demo": "ts-node scripts/migrate-demo.ts",
+    "db:migrate-folder-ownership": "ts-node scripts/migrate-folder-ownership.ts",
+    "db:migrate-user-source-cascade": "ts-node scripts/migrate-user-source-cascade.ts",
     "db:seed-demo": "ts-node scripts/seed-demo.ts",
     "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts"
+    "dev": "nodemon src/server.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "e2e:fixtures": "ts-node test/e2e/demo-fixtures.ts",
+    "test:live-ingestion": "vitest run --config vitest.live.config.ts"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "@extractus/feed-extractor": "^7.2.1",
+    "@googleapis/youtube": "^40.1.0",
     "@supabase/supabase-js": "^2.90.1",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
@@ -28,7 +36,7 @@
     "express": "^5.1.0",
     "feedfinder-ts": "^1.0.3",
     "feedrat": "^0.4.12",
-    "feedscout": "^1.8.1",
+    "feedscout": "^1.5.0",
     "find-feed": "^1.4.3",
     "he": "^1.2.0",
     "htmlparser2": "^10.0.0",
@@ -57,8 +65,11 @@
     "@types/node": "^24.8.1",
     "@types/pg": "^8.15.5",
     "@types/sanitize-html": "^2.16.0",
+    "@types/supertest": "^6.0.3",
     "nodemon": "^3.1.10",
+    "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^5.1.0"
   }
 }

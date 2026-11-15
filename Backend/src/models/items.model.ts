@@ -214,10 +214,14 @@ export const getSavedItemsByCategory = async (
 export const markItemRead = async (
   userId: number,
   itemId: number
-): Promise<MarkRead & { feed_type: 'rss' | 'podcast' }> => {
+): Promise<(MarkRead & { feed_type: 'rss' | 'podcast' }) | null> => {
   const insertResult: QueryResult<MarkReadRow> = await query(
     `INSERT INTO user_item_metadata (user_id, item_id, read_time)
-    VALUES ($1, $2, NOW())
+    SELECT us.user_id, i.item_id, NOW()
+    FROM user_source us
+    JOIN item i ON i.source_id = us.source_id
+    WHERE us.user_id = $1
+      AND i.item_id = $2
     ON CONFLICT (user_id, item_id) DO UPDATE
       SET read_time = EXCLUDED.read_time
     RETURNING user_id, item_id, read_time`,
@@ -225,6 +229,7 @@ export const markItemRead = async (
   );
 
   const markedItem = getFirstRow(insertResult);
+  if (!markedItem) return null;
 
   // Use feed_type from item + user_source join
   const feedTypeRow: QueryResult<{ feed_type: 'rss' | 'podcast' }> = await query(
@@ -238,8 +243,6 @@ export const markItemRead = async (
   const feed_type = feedTypeRow.rows[0]?.feed_type;
 
   logAction(`Marked ${feed_type} item as read: User=${userId} Item=${itemId}`);
-
-  if (!markedItem) return { user_id: userId, item_id: itemId, read: false, feed_type };
 
   return { ...markedItem, read: true, feed_type };
 };
@@ -331,10 +334,14 @@ export const saveItem = async (
   itemId: number,
   save: boolean,
   feedType: 'rss' | 'podcast' = 'rss'
-): Promise<Save & { feed_type: 'rss' | 'podcast' }> => {
+): Promise<(Save & { feed_type: 'rss' | 'podcast' }) | null> => {
   const insertResult: QueryResult<Save> = await query(
     `INSERT INTO user_item_metadata (user_id, item_id, is_save)
-     VALUES ($1, $2, $3)
+     SELECT us.user_id, i.item_id, $3
+     FROM user_source us
+     JOIN item i ON i.source_id = us.source_id
+     WHERE us.user_id = $1
+       AND i.item_id = $2
      ON CONFLICT (user_id, item_id) DO UPDATE
        SET is_save = EXCLUDED.is_save
      RETURNING user_id, item_id, is_save`,
@@ -342,9 +349,9 @@ export const saveItem = async (
   );
 
   const savedItem = getFirstRow(insertResult);
-  logAction(`Saved/unsaved ${feedType} item: User=${userId} Item=${itemId} Save=${!!save}`);
-  if (!savedItem) return { user_id: userId, item_id: itemId, is_save: save, feed_type: feedType };
+  if (!savedItem) return null;
 
+  logAction(`Saved/unsaved ${feedType} item: User=${userId} Item=${itemId} Save=${!!save}`);
   return { ...savedItem, feed_type: feedType };
 };
 

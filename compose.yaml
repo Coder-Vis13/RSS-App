@@ -1,0 +1,9 @@
+services:
+  youtube-rss-server:
+    image: ghcr.io/telnet23/youtube-rss-server
+    restart: unless-stopped
+    environment:
+      API_KEY: ${YOUTUBE_DATA_API_KEY:?Set YOUTUBE_DATA_API_KEY in Backend/.env}
+      MAX_RESULTS: "50"
+    ports:
+      - "127.0.0.1:8080:8080"

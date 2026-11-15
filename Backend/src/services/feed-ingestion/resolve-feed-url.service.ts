@@ -1,6 +1,7 @@
 // find feed url
 
 import { FeedResolutionError } from '../../utils/types';
+import { YOUTUBE_RSS_BASE_URL } from '../../config/youtube-rss';
 import { IngestionUrlType } from './url-classifier.service';
 // @ts-ignore
 const { discoverFeeds } = require('feedscout');
@@ -8,7 +9,10 @@ const { discoverFeeds } = require('feedscout');
 export type FeedType = 'rss' | 'podcast';
 
 export interface ResolvedFeedUrl {
+  // Stable feed identity stored and deduplicated by the application.
   feedUrl: string;
+  // Optional transport URL used to fetch this feed.
+  requestUrl?: string;
   feedType: FeedType;
 }
 
@@ -161,42 +165,73 @@ function resolveRedditFeed(userUrl: string): ResolvedFeedUrl {
   return { feedUrl: url.toString(), feedType: 'rss' };
 }
 
-async function resolveYoutubeHandle(url: URL): Promise<ResolvedFeedUrl | null> {
-  const response = await fetch(url.toString());
 
-  if (!response.ok) {
-    return null;
-  }
+async function resolveYoutubeHandleToChannelId(url: URL): Promise<string | null> {
+  try {
+    const response = await fetchWithTimeout(url.toString(), 'GET');
 
-  const html = await response.text();
-
-  console.log(url.toString());
-  console.log(html.substring(0, 1000));
-  console.log(html.includes('channelId'));
-
-  const patterns = [
-    /"channelId":"(UC[\w-]+)"/,
-    /"externalId":"(UC[\w-]+)"/,
-    /"browseId":"(UC[\w-]+)"/,
-  ];
-
-  let channelId: string | null = null;
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-
-    if (match?.[1]) {
-      channelId = match[1];
-      break;
+    if (!response.ok) {
+      return null;
     }
-  }
 
-  if (!channelId) {
+    const html = await response.text();
+
+    // First, look for YouTube's own RSS feed link.
+    // This link belongs to the channel page being requested.
+    const linkTags = html.match(/<link\b[^>]*>/gi) ?? [];
+
+    const rssLinkTag = linkTags.find(
+      (tag) =>
+        /rel=["']alternate["']/i.test(tag) &&
+        /type=["']application\/rss\+xml["']/i.test(tag)
+    );
+
+    const rssHref = rssLinkTag?.match(/\bhref=["']([^"']+)["']/i)?.[1];
+
+    if (rssHref) {
+      const rssUrl = new URL(rssHref, url);
+      const channelId = rssUrl.searchParams.get('channel_id');
+
+      if (
+        rssUrl.pathname.endsWith('/feeds/videos.xml') &&
+        channelId?.startsWith('UC')
+      ) {
+        return channelId;
+      }
+    }
+
+    // Fallback: extract the channel ID from channel-specific metadata.
+    const metaTag = html.match(
+      /<meta\b[^>]*\bitemprop=["']channelId["'][^>]*>/i
+    )?.[0];
+
+    const channelId = metaTag?.match(
+      /\bcontent=["'](UC[\w-]+)["']/i
+    )?.[1];
+
+    if (!channelId) {
+      return null;
+    }
+
+    return channelId;
+  } catch {
     return null;
   }
+}
+
+function youtubeFeedUrls(
+  parameter: 'channel_id' | 'playlist_id' | 'user',
+  value: string
+): ResolvedFeedUrl {
+  const canonicalUrl = new URL('/feeds/videos.xml', 'https://www.youtube.com');
+  canonicalUrl.searchParams.set(parameter, value);
+
+  const requestUrl = new URL('/feeds/videos.xml', YOUTUBE_RSS_BASE_URL);
+  requestUrl.searchParams.set(parameter, value);
 
   return {
-    feedUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+    feedUrl: canonicalUrl.toString(),
+    requestUrl: requestUrl.toString(),
     feedType: 'rss',
   };
 }
@@ -204,24 +239,24 @@ async function resolveYoutubeHandle(url: URL): Promise<ResolvedFeedUrl | null> {
 async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | null> {
   const url = parseUserUrl(userUrl);
 
+  const playlistId = url.searchParams.get('playlist_id') || url.searchParams.get('list');
+  if (playlistId) {
+    return youtubeFeedUrls('playlist_id', playlistId);
+  }
+
   if (url.pathname.includes('/feeds/videos.xml')) {
-    return { feedUrl: url.toString(), feedType: 'rss' };
+    const channelId = url.searchParams.get('channel_id');
+    if (channelId) {
+      return youtubeFeedUrls('channel_id', channelId);
+    }
+
+    const username = url.searchParams.get('user');
+    return username ? youtubeFeedUrls('user', username) : null;
   }
 
   const channelMatch = url.pathname.match(/\/channel\/(UC[\w-]+)/i);
   if (channelMatch?.[1]) {
-    return {
-      feedUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelMatch[1]}`,
-      feedType: 'rss',
-    };
-  }
-
-  const playlistId = url.searchParams.get('list');
-  if (playlistId) {
-    return {
-      feedUrl: `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`,
-      feedType: 'rss',
-    };
+    return youtubeFeedUrls('channel_id', channelMatch[1]);
   }
 
   const path = url.pathname
@@ -235,10 +270,62 @@ async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | nu
   url.pathname = path;
 
   if (path.startsWith('/@')) {
-    return resolveYoutubeHandle(url);
+    const channelId = await resolveYoutubeHandleToChannelId(url);
+    return channelId ? youtubeFeedUrls('channel_id', channelId) : null;
   }
   return null;
 }
+
+/*
+ * LEGACY: This was the previous YouTube RSS approach. It worked before
+ * youtube.com/feeds/videos.xml became unreliable due to Youtube's change in rules and policies.
+ *
+ * async function resolveYoutubeHandle(url: URL): Promise<ResolvedFeedUrl | null> {
+ *   try {
+ *     const response = await fetchWithTimeout(url.toString(), 'GET');
+ *     if (!response.ok) return null;
+ *     const html = await response.text();
+ *     const linkTags = html.match(/<link\b[^>]*>/gi) ?? [];
+ *     const rssLinkTag = linkTags.find(
+ *       (tag) => /rel=["']alternate["']/i.test(tag) &&
+ *         /type=["']application\/rss\+xml["']/i.test(tag)
+ *     );
+ *     const rssHref = rssLinkTag?.match(/\bhref=["']([^"']+)["']/i)?.[1];
+ *     if (rssHref) {
+ *       const rssUrl = new URL(rssHref, url);
+ *       const channelId = rssUrl.searchParams.get('channel_id');
+ *       if (rssUrl.pathname.endsWith('/feeds/videos.xml') && channelId?.startsWith('UC')) {
+ *         return { feedUrl: rssUrl.toString(), feedType: 'rss' };
+ *       }
+ *     }
+ *     const metaTag = html.match(/<meta\b[^>]*\bitemprop=["']channelId["'][^>]*>/i)?.[0];
+ *     const channelId = metaTag?.match(/\bcontent=["'](UC[\w-]+)["']/i)?.[1];
+ *     if (!channelId) return null;
+ *     const feedUrl = new URL('https://www.youtube.com/feeds/videos.xml');
+ *     feedUrl.searchParams.set('channel_id', channelId);
+ *     return { feedUrl: feedUrl.toString(), feedType: 'rss' };
+ *   } catch {
+ *     return null;
+ *   }
+ * }
+ *
+ * async function resolveYoutubeFeed(userUrl: string): Promise<ResolvedFeedUrl | null> {
+ *   const url = parseUserUrl(userUrl);
+ *   if (url.pathname.includes('/feeds/videos.xml') || url.searchParams.get('list')) {
+ *     return { feedUrl: url.toString(), feedType: 'rss' };
+ *   }
+ *   const channelMatch = url.pathname.match(/\/channel\/(UC[\w-]+)/i);
+ *   if (channelMatch?.[1]) {
+ *     return {
+ *       feedUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelMatch[1]}`,
+ *       feedType: 'rss',
+ *     };
+ *   }
+ *   const path = url.pathname.replace(/\/(videos|featured|streams|shorts|playlists)$/, '').replace(/\/$/, '');
+ *   url.pathname = path;
+ *   return path.startsWith('/@') ? resolveYoutubeHandle(url) : null;
+ * }
+ */
 
 // run a promise, but fail if it takes too long.
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -275,21 +362,107 @@ async function discoverWithFeedScout(userUrl: string): Promise<string | null> {
   }
 }
 
+
+async function discoverFeedFromPageLinks(
+  userUrl: string
+): Promise<string | null> {
+  try {
+    const response = await fetchWithTimeout(userUrl, 'GET');
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const html = await response.text();
+
+    // Find ordinary anchor elements in the website HTML.
+    const anchors = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) ?? [];
+
+    for (const anchor of anchors) {
+      const hrefMatch = anchor.match(
+        /\bhref\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i
+      );
+
+      const href = (
+        hrefMatch?.[1] ??
+        hrefMatch?.[2] ??
+        hrefMatch?.[3] ??
+        ''
+      )
+        .replace(/&amp;/gi, '&')
+        .trim();
+
+      if (!href) continue;
+
+      let candidateUrl: URL;
+
+      try {
+        candidateUrl = new URL(href, userUrl);
+      } catch {
+        continue;
+      }
+
+      if (!['http:', 'https:'].includes(candidateUrl.protocol)) {
+        continue;
+      }
+
+      // Look for links whose text or URL suggests an RSS/Atom feed.
+      const linkText = anchor
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+
+      const looksLikeFeed =
+        /\b(rss|atom|feed)\b/i.test(linkText) ||
+        /(?:^|\/)(?:rss|feed|feeds|atom)(?:\/|$)/i.test(
+          candidateUrl.pathname
+        ) ||
+        /\.(rss|xml|atom)$/i.test(candidateUrl.pathname);
+
+      if (!looksLikeFeed) continue;
+
+      // Confirm that the discovered URL actually returns a feed.
+      if (await isFeedUrl(candidateUrl.toString())) {
+        return candidateUrl.toString();
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+
 async function resolveWebsiteFeed(userUrl: string): Promise<string | null> {
   const url = parseUserUrl(userUrl);
+
+  // 1. Check common feed paths.
   const probed = await checkCommonFeedPaths(probeBase(url));
+
   if (probed) {
     return probed;
   }
 
+  // 2. Check ordinary HTML links such as an "RSS Feed" link.
+  const linked = await discoverFeedFromPageLinks(userUrl);
+
+  if (linked) {
+    return linked;
+  }
+
+  // 3. Try FeedScout as another discovery method.
   const discovered = await discoverWithFeedScout(userUrl);
+
   if (discovered) {
     return discovered;
   }
 
-  // Keep this as the last step to preserve the existing discovery priority.
+  // 4. Last-resort domain-specific fallback.
   return DOMAIN_FEED_FALLBACKS[normalizeHostnameForLookup(url)] ?? null;
 }
+
 
 interface AppleLookupResult {
   resultCount: number;

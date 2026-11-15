@@ -41,7 +41,6 @@ import {
   limitDemoSessionCreation,
   verifyDemoSessionOrJWT,
 } from '../middleware/demo-session';
-import { attachAuthenticatedUser } from '../middleware/authenticatedUserContext';
 import { createDemoSessionHandler } from '../controllers/demo-session.controller';
 
 const router = express.Router();
@@ -58,7 +57,7 @@ router.post('/logout', logoutHandler);
 
 router.post('/demo/session', limitDemoSessionCreation, createDemoSessionHandler);
 
-router.use('/users/:userId', verifyDemoSessionOrJWT, attachAuthenticatedUser);
+router.use('/users/:userId', verifyDemoSessionOrJWT);
 
 // Sources
 router.get('/users/:userId/sources', allUserSourcesHandler); // get all sources for a user

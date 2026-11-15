@@ -6,6 +6,8 @@ import { addItem, addUserItemMetadata } from './models/items.model';
 import pLimit from 'p-limit';
 import { enqueueCategorization } from './utils/categorizer';
 import { cleanupExpiredDemoSessions } from './services/demo-cleanup.service';
+import { classifySourceUrl } from './services/feed-ingestion/url-classifier.service';
+import { resolveFeedUrl } from './services/feed-ingestion/resolve-feed-url.service';
 
 export interface SourceRow {
   source_id: number;
@@ -96,7 +98,10 @@ async function refreshSource(row: SourceRow, options: FeedRefreshOptions): Promi
   const feedStart = Date.now();
 
   try {
-    const parsed = await withTimeout(parseFeed(url), TIMEOUT_MS, url);
+    const classification = classifySourceUrl(url);
+    const resolved = classification === 'youtube' ? await resolveFeedUrl(url, classification) : null;
+    const requestUrl = resolved?.requestUrl ?? url;
+    const parsed = await withTimeout(parseFeed(requestUrl), TIMEOUT_MS, requestUrl);
     const entries = parsed.entries ?? [];
 
     if (!entries.length) {
@@ -178,6 +183,11 @@ export function startFeedRefreshSchedule(): void {
 
 export function startDemoCleanupSchedule(): void {
   schedule('0 * * * *', () => {
-    void cleanupExpiredDemoSessions();
+    void cleanupExpiredDemoSessions().catch((error: unknown) => {
+      console.error(
+        'DEMO CLEANUP -> Scheduled run failed:',
+        error instanceof Error ? error.message : error
+      );
+    });
   });
 }

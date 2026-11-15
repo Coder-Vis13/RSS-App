@@ -2,11 +2,18 @@ import 'dotenv/config';
 import { Pool } from 'pg';
 import type { QueryResult } from 'pg';
 
+const connectionString =
+  process.env.NODE_ENV === 'test' ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl: {
     rejectUnauthorized: false
   }
+});
+
+pool.on('error', (err: Error) => {
+  console.error('Unexpected error on idle PostgreSQL client:', err.message);
 });
 
 export const query = async <T extends object = any>(

@@ -42,6 +42,7 @@ export const processSource = async (
   }
 
   const { feedUrl, feedType } = resolved;
+  const requestUrl = resolved.requestUrl ?? feedUrl;
   const { safeUrl: canonicalFeedUrl, isDuplicate } = feedDedupe.markAsSeen(feedUrl);
 
   return preventDoubleFetch(canonicalFeedUrl, async () => {
@@ -70,7 +71,7 @@ export const processSource = async (
 
     if (existingSource) {
       // Parse once so direct podcast RSS URLs get correct feed_type even on re-subscribe.
-      const parsed = await parseFeed(canonicalFeedUrl);
+      const parsed = await parseFeed(requestUrl);
       const feedTypeResolved = inferFeedType(parsed, feedType);
 
       await addUserSource(userId, existingSource.source_id, feedTypeResolved);
@@ -108,7 +109,7 @@ export const processSource = async (
       };
     }
 
-    const parsed = await parseFeed(canonicalFeedUrl);
+    const parsed = await parseFeed(requestUrl);
     const feedTypeResolved = inferFeedType(parsed, feedType);
 
     const source = await addSource(
