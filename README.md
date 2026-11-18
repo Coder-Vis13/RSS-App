@@ -2,11 +2,13 @@
 
 **Follow the websites, blogs, podcasts, and YouTube channels you care about—all in one reading feed.**
 
+**Live app:** [Open ReadArchive](https://rss-app-delta.vercel.app/)
+
 ---
 
 ## Preview
 
-![ReadArchive application preview](public/app_img.png)
+![ReadArchive application preview](Frontend/public/app_img.png)
 
 ---
 

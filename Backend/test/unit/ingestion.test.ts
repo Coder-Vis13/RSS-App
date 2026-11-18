@@ -6,6 +6,7 @@ import {
 import { createDuplicateChecker, normalizeFeedUrl } from '../../src/services/feed-ingestion/feed-url-dedupe.service';
 import { normalizeItems } from '../../src/services/feed-ingestion/normalize-items.service';
 import { classifySourceUrl } from '../../src/services/feed-ingestion/url-classifier.service';
+import { resolveFeedUrl } from '../../src/services/feed-ingestion/resolve-feed-url.service';
 import type { FeedEntry } from '@extractus/feed-extractor';
 
 function entry(overrides: Record<string, unknown> = {}): FeedEntry {
@@ -22,7 +23,24 @@ afterEach(() => {
 });
 
 describe('classifySourceUrl', () => {
-  it('classifies the supplied websites and direct feed URLs', () => {
+  it('classifies the demo websites, podcast, and Reddit source with other feed URLs', async () => {
+    expect(classifySourceUrl('https://yourstory.com/')).toBe('website');
+    expect(classifySourceUrl('https://timesofindia.indiatimes.com/')).toBe('website');
+    expect(
+      classifySourceUrl(
+        'https://podcasts.apple.com/in/podcast/the-daily-brief/id1754694834'
+      )
+    ).toBe('podcast-page');
+    expect(classifySourceUrl('https://www.reddit.com/r/programming/.rss')).toBe('reddit');
+
+    const redditFeed = await resolveFeedUrl(
+      'https://www.reddit.com/r/Bangalorestartups/',
+      'reddit'
+    );
+    expect(redditFeed?.feedUrl).toBe(
+      'https://www.reddit.com/r/Bangalorestartups.rss'
+    );
+
     expect(classifySourceUrl('https://www.nasa.gov/')).toBe('website');
     expect(classifySourceUrl('https://www.nasa.gov/feed/')).toBe('direct-feed');
     expect(classifySourceUrl('https://www.nasa.gov/blogs/')).toBe('website');
@@ -34,7 +52,7 @@ describe('classifySourceUrl', () => {
         'https://www.youtube.com/feeds/videos.xml?channel_id=UCLA_DiR1FfKNvjuUpBHmylQ'
       )
     ).toBe('youtube');
-    expect(classifySourceUrl('https://www.reddit.com/r/programming/.rss')).toBe('reddit');
+    expect(classifySourceUrl('https://www.reddit.com/r/Bangalorestartups/')).toBe('reddit');
     expect(classifySourceUrl('https://example.com/')).toBe('website');
   });
 

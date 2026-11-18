@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { readItems } from "../services/user.service";
 import { useLocation } from "react-router-dom";
 import { getCategoryPresentation } from "../lib/categoryColors";
+import { getEmptyItemsMessage } from "../lib/emptyStateMessages";
 import AppHeader from "@/components/layout/AppHeader";
 import { useMemo } from "react";
 import { getAuthUserId } from "@/auth";
@@ -102,6 +103,9 @@ export default function ReadPage() {
   };
 
   const hasAnyData = allReadItems.length > 0;
+  const hasItemsForFeedType = allReadItems.some(
+    (item) => item.feed_type === feedType,
+  );
   const hasVisibleItems = filteredReadItems.length > 0;
 
   const showBackendEmptyState = !loading && !hasAnyData;
@@ -109,7 +113,18 @@ export default function ReadPage() {
 
   return (
     <div>
-      {/*Empty State Banner*/}
+      <AppHeader
+        feedType={feedType}
+        setFeedType={setFeedType}
+        selectedCategory={selectedCategory}
+        onCategorySelect={handleCategorySelect}
+        categories={allCategories}
+        selectedTime={selectedTime}
+        setSelectedTime={setSelectedTime}
+        showMarkAllRead={false}
+        filtersDisabled={!hasItemsForFeedType}
+        timeFilterDisabled={loading}
+      />
       {loading ? (
         <p className="text-[var(--text-light)]">Loading read items...</p>
       ) : showBackendEmptyState ? (
@@ -120,31 +135,20 @@ export default function ReadPage() {
             className="w-80 h-auto mb-6"
           />
           <p className="text-[var(--text)] text-center">
-            You haven’t read anything yet. Start exploring and your history will
-            appear here.
+            {getEmptyItemsMessage(feedType)}
+            <br />
+            Read items will appear here after you open articles or podcast
+            episodes.
           </p>
         </div>
       ) : (
         <>
-          {/*Header*/}
-          <AppHeader
-            feedType={feedType}
-            setFeedType={setFeedType}
-            selectedCategory={selectedCategory}
-            onCategorySelect={handleCategorySelect}
-            categories={allCategories}
-            selectedTime={selectedTime}
-            setSelectedTime={setSelectedTime}
-            onMarkAllRead={undefined}
-            showMarkAllRead={false}
-          />
           <div className="px-6">
             <section className="w-full max-w-[1100px] mx-auto">
               {showFilteredEmptyState ? (
                 <div className="flex flex-col items-center justify-center w-full h-[70vh]">
                   <p className="text-[var(--text)] text-center">
-                    No {feedType === "rss" ? "articles" : "podcasts"} match your
-                    current filters.
+                    {getEmptyItemsMessage(feedType)}
                   </p>
                 </div>
               ) : (

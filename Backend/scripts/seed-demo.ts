@@ -2,7 +2,11 @@ import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import pool, { query } from '../src/config/db';
-import { DEMO_BASELINE_FOLDER_NAME, DEMO_SOURCES } from '../src/config/demo-sources';
+import {
+  DEMO_BASELINE_FOLDER_NAME,
+  DEMO_ITEMS_PER_SOURCE,
+  DEMO_SOURCES,
+} from '../src/config/demo-sources';
 import { runFeedRefresh } from '../src/cron';
 import { processSource } from '../src/services/source.service';
 import { enqueueCategorization } from '../src/utils/categorizer';
@@ -73,17 +77,27 @@ async function createBaselineFolder(userId: number, sourceIds: number[]): Promis
   );
 }
 
-async function categorizeRecentItems(sourceIds: number[]): Promise<void> {
-  const recentItems = await query<ItemRow>(
-    `SELECT item_id
-     FROM item
-     WHERE source_id = ANY($1::int[])
-       AND pub_date >= NOW() - INTERVAL '48 hours'
+async function categorizeLatestItems(sourceIds: number[]): Promise<void> {
+  const latestItems = await query<ItemRow>(
+    `WITH ranked_items AS (
+       SELECT
+         item_id,
+         is_categorized,
+         ROW_NUMBER() OVER (
+           PARTITION BY source_id
+           ORDER BY pub_date DESC, item_id DESC
+         ) AS source_rank
+       FROM item
+       WHERE source_id = ANY($1::int[])
+     )
+     SELECT item_id
+     FROM ranked_items
+     WHERE source_rank <= $2
        AND is_categorized = false`,
-    [sourceIds]
+    [sourceIds, DEMO_ITEMS_PER_SOURCE]
   );
 
-  await enqueueCategorization(recentItems.rows.map((item) => item.item_id));
+  await enqueueCategorization(latestItems.rows.map((item) => item.item_id));
 }
 
 async function seedDemo(): Promise<void> {
@@ -100,9 +114,9 @@ async function seedDemo(): Promise<void> {
     sourceIds.push(result.source_id);
   }
 
-  await runFeedRefresh({ sourceIds, enqueueCategorization: false, recentOnly: true });
+  await runFeedRefresh({ sourceIds, enqueueCategorization: false });
   await createBaselineFolder(baselineUserId, sourceIds);
-  await categorizeRecentItems(sourceIds);
+  await categorizeLatestItems(sourceIds);
 
   console.log(`[demo seed] baseline ready with ${sourceIds.length} source(s)`);
 }

@@ -9,7 +9,16 @@ import {
   getAuthUserId,
   startDemoSession,
 } from "./auth";
-import { Github, Linkedin, ArrowRight } from "lucide-react";
+import { Github, Linkedin } from "lucide-react";
+
+import {
+  SiTypescript,
+  SiReact,
+  SiNodedotjs,
+  SiExpress,
+  SiPostgresql,
+  SiSupabase,
+} from "react-icons/si";
 
 export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -58,9 +67,9 @@ export default function App() {
   return (
     <div className="bg-base min-h-screen text-primary relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-[var(--navyblue)]/10 blur-3xl" />
-        <div className="absolute -top-56 right-[-12rem] h-[620px] w-[620px] rounded-full bg-[var(--skyblue)]/55 blur-3xl" />
-        <div className="absolute top-[28rem] left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[var(--navyblue)]/5 blur-3xl" />
+        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-(navyblue)/10 blur-3xl" />
+        <div className="absolute -top-56 -right-48 h-[620px] w-[620px] rounded-full bg-(skyblue)/55 blur-3xl" />
+        <div className="absolute top-112 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-(navyblue)/5 blur-3xl" />
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -71,15 +80,15 @@ export default function App() {
         />
       </div>
       {/* Navbar */}
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+      <header className="sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur supports-backdrop-filter:bg-white/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-          <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-[var(--navyblue)]">
+          <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-(navyblue)">
             ReadArchive
           </h1>
           <nav className="flex items-center gap-5 sm:gap-6">
             <a
               href="#workflow"
-              className="text-sm font-medium text-gray-600 hover:text-[var(--navyblue)] transition-colors"
+              className="text-sm font-medium text-gray-600 hover:text-(navyblue) transition-colors"
             >
               Features
             </a>
@@ -91,7 +100,7 @@ export default function App() {
                     setMode("signup");
                     setShowAuthModal(true);
                   }}
-                  className="rounded-xl bg-[var(--navyblue)] px-4 py-2 text-sm font-medium text-[var(--beige)] shadow-sm"
+                  className="rounded-xl bg-(navyblue) px-4 py-2 text-sm font-medium text-(beige) shadow-sm"
                 >
                   Create Account
                 </button>
@@ -101,7 +110,7 @@ export default function App() {
                     setMode("login");
                     setShowAuthModal(true);
                   }}
-                  className="rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[var(--navyblue)] shadow-sm"
+                  className="rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-(navyblue) shadow-sm"
                 >
                   Sign In
                 </button>
@@ -126,7 +135,7 @@ export default function App() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="max-w-4xl mx-auto text-3xl sm:text-5xl lg:text-6xl whitespace-nowrap font-semibold tracking-tight text-[var(--navyblue)]"
+              className="mx-auto max-w-4xl text-balance text-3xl font-semibold tracking-tight text-(navyblue) sm:text-5xl lg:text-6xl"
             >
               Follow the internet without the noise
             </motion.h2>
@@ -135,11 +144,10 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
-              className="mx-auto mt-5 max-w-2xl text-[15px] sm:text-base leading-relaxed text-gray-600 whitespace-nowrap"
+              className="mx-auto mt-5 max-w-2xl text-[15px] sm:text-base leading-relaxed text-gray-600"
             >
-              Follow any website, blog, podcast, or YouTube channel—all in one
-              personalized, AI-powered feed.
-              <span className="hidden sm:inline"> </span>
+              A full-stack feed reader that discovers sources, normalizes
+              articles, and keeps reading state organized.
             </motion.p>
 
             <motion.div
@@ -149,30 +157,10 @@ export default function App() {
               className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4"
             >
               <Button
-                onClick={() => {
-                  setMode("signup");
-                  setShowAuthModal(true);
-                }}
-                className="h-11 rounded-2xl px-6 text-sm font-medium shadow-sm"
-              >
-                Create Account
-              </Button>
-              <Button
-                onClick={() => {
-                  setMode("login");
-                  setShowAuthModal(true);
-                }}
-                variant="outline"
-                className="h-11 rounded-2xl px-6 text-sm font-medium border-black/10 text-[var(--navyblue)] hover:bg-black/5 shadow-sm"
-              >
-                Sign In
-              </Button>
-              <Button
                 onClick={handleDemo}
-                variant="outline"
-                className="h-11 rounded-2xl px-6 text-sm font-medium border-black/10 text-[var(--navyblue)] hover:bg-black/5 shadow-sm"
+                className="h-12 rounded-2xl px-7 text-sm font-medium shadow-sm"
               >
-                Try Demo
+                Launch Demo
               </Button>
             </motion.div>
           </div>
@@ -193,25 +181,26 @@ export default function App() {
           alt="ReadArchive interface"
           className="w-full rounded-2xl"
         />
+        <div className="mt-8 text-center">
+          <p className="text-xs font-semibold tracking-[0.2em] text-gray-400">
+            Built with
+          </p>
+          <div
+            className="mt-4 flex flex-wrap items-center justify-center gap-7 text-(navyblue)"
+            aria-label="Built with TypeScript, React, Node.js, Express, PostgreSQL, and Supabase"
+          >
+            <SiTypescript aria-label="TypeScript" title="TypeScript" className="h-8 w-8" />
+            <SiReact aria-label="React" title="React" className="h-8 w-8" />
+            <SiNodedotjs aria-label="Node.js" title="Node.js" className="h-8 w-8" />
+            <SiExpress aria-label="Express" title="Express" className="h-8 w-8" />
+            <SiPostgresql aria-label="PostgreSQL" title="PostgreSQL" className="h-8 w-8" />
+            <SiSupabase aria-label="Supabase" title="Supabase" className="h-8 w-8" />
+          </div>
+        </div>
       </section>
 
-      {/* How It Works */}
+      {/* Workflow and architectural highlights */}
       <section id="workflow" className="mx-auto mt-24 max-w-6xl px-6">
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-            HOW IT WORKS
-          </p>
-
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--navyblue)]">
-            Build your perfect feed
-          </h2>
-
-          <p className="mx-auto mt-4 max-w-xl text-gray-600">
-            Add your favourite sources once. <br /> ReadArchive keeps everything
-            updated, organised and easy to browse.
-          </p>
-        </div>
-
         <div className="mt-16 grid gap-6 md:grid-cols-3 ">
           <Step
             number="01"
@@ -231,11 +220,37 @@ export default function App() {
             desc="New content is fetched automatically so your feed is always up to date."
           />
         </div>
+
+        <div className="mx-auto mt-20 max-w-3xl">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+            SYSTEM DESIGN
+          </p>
+          <h2 className="mt-3 text-center text-3xl font-semibold tracking-tight text-(navyblue)">
+            Key Architectural Highlights
+          </h2>
+          <ul className="mt-8 space-y-4 text-gray-600">
+            <li className="rounded-2xl border border-black/5 bg-white px-6 py-4 shadow-sm">
+              <span className="font-semibold text-(navyblue)">Feed ingestion:</span>{" "}
+              Resolve source URLs, parse RSS and Atom feeds, and normalize entries into a
+              consistent article format.
+            </li>
+            <li className="rounded-2xl border border-black/5 bg-white px-6 py-4 shadow-sm">
+              <span className="font-semibold text-(navyblue)">Scheduled refresh:</span>{" "}
+              Refresh subscribed feeds in the background with bounded concurrency and
+              duplicate-item protection.
+            </li>
+            <li className="rounded-2xl border border-black/5 bg-white px-6 py-4 shadow-sm">
+              <span className="font-semibold text-(navyblue)">User-specific reading state:</span>{" "}
+              Keep shared source and article records separate from each user’s saved and read
+              metadata.
+            </li>
+          </ul>
+        </div>
       </section>
 
       {/* Final CTA */}
-      <section className="mx-auto mt-28 max-w-6xl px-6">
-        <div className="relative overflow-hidden rounded-[40px] bg-[var(--navyblue)] px-8 py-20 text-center shadow-2xl">
+      <section className="mx-auto mt-20 max-w-6xl px-6">
+        <div className="relative overflow-hidden rounded-[40px] bg-(navyblue) px-8 py-20 text-center shadow-2xl">
           <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
 
           <div className="relative">
@@ -253,19 +268,18 @@ export default function App() {
                 setMode("signup");
                 setShowAuthModal(true);
               }}
-              className="mt-10 h-12 rounded-2xl bg-white px-7 text-[var(--navyblue)] hover:bg-white/90"
+              className="mt-10 h-12 rounded-2xl bg-white px-7 text-(navyblue) hover:bg-white/90"
             >
               Create Account
-              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="mt-24 border-t border-black/10">
+      <footer className="mt-10 border-t border-black/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-12">
-          <h3 className="text-lg font-semibold text-[var(--navyblue)]">
+          <h3 className="text-lg font-semibold text-(navyblue)">
             Designed & developed by Vismaya Gowda
           </h3>
 
@@ -274,7 +288,7 @@ export default function App() {
               href="https://github.com/Coder-Vis13"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-gray-600 transition hover:text-[var(--navyblue)]"
+              className="flex items-center gap-2 text-gray-600 transition hover:text-(navyblue)"
             >
               <Github size={22} />
               <span>GitHub</span>
@@ -321,7 +335,7 @@ export default function App() {
                   </label>
                   <input
                     type="text"
-                    className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30"
+                    className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-(--navyblue)/30"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -335,7 +349,7 @@ export default function App() {
                 </label>
                 <input
                   type="email"
-                  className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
+                  className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-(--navyblue)/30 focus:border-(--navyblue)/30"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -352,7 +366,7 @@ export default function App() {
                 </label>
                 <input
                   type="password"
-                  className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--navyblue)]/30 focus:border-[var(--navyblue)]/30"
+                  className="w-full p-4 border border-black/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-(--navyblue)/30 focus:border-(--navyblue)/30"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -373,7 +387,7 @@ export default function App() {
                 <>
                   Already have an account?{" "}
                   <span
-                    className="text-[var(--navyblue)] underline underline-offset-4 cursor-pointer"
+                    className="text-(navyblue) underline underline-offset-4 cursor-pointer"
                     onClick={() => setMode("login")}
                   >
                     Sign In
@@ -383,7 +397,7 @@ export default function App() {
                 <>
                   Don’t have an account?{" "}
                   <span
-                    className="text-[var(--navyblue)] underline underline-offset-4 cursor-pointer"
+                    className="text-(navyblue) underline underline-offset-4 cursor-pointer"
                     onClick={() => setMode("signup")}
                   >
                     Create Account
@@ -424,7 +438,7 @@ function Step({
         {number}
       </p>
 
-      <h3 className="mt-6 text-xl font-semibold text-[var(--navyblue)]">
+      <h3 className="mt-6 text-xl font-semibold text-(navyblue)">
         {title}
       </h3>
 

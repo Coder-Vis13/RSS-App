@@ -58,12 +58,12 @@ const websiteDiscoveryCases = [
     url: 'https://hacks.mozilla.org/',
   },
   {
-    name: 'Google Developers Blog',
-    url: 'https://developers.googleblog.com/',
+    name: 'YourStory',
+    url: 'https://yourstory.com/',
   },
   {
-    name: 'Darknet Diaries',
-    url: 'https://darknetdiaries.com/',
+    name: 'Times of India',
+    url: 'https://timesofindia.indiatimes.com/',
   },
 ];
 
@@ -240,8 +240,12 @@ describe('live feed ingestion smoke checks', () => {
     await expectFeedContent('https://feed.syntax.fm/rss');
   }, LIVE_TEST_TIMEOUT);
 
-  it('parses the direct Darknet Diaries podcast feed', async () => {
-    await expectFeedContent('https://feeds.megaphone.fm/darknetdiaries');
+  it('resolves and parses The Daily Brief from Apple Podcasts', async () => {
+    const feedUrl = await expectFeedContent(
+      'https://podcasts.apple.com/in/podcast/the-daily-brief/id1754694834'
+    );
+
+    expect(feedUrl).toMatch(/^https?:\/\//);
   }, LIVE_TEST_TIMEOUT);
 });
 

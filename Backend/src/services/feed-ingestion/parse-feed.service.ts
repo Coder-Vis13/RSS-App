@@ -1,3 +1,4 @@
+
 // parse rss feed
 
 import { extract, FeedData } from '@extractus/feed-extractor';
@@ -5,7 +6,10 @@ import { extract, FeedData } from '@extractus/feed-extractor';
 const FETCH_TIMEOUT_MS = 10_000;
 const USER_AGENT = 'RSS-App/1.0';
 
-export type ParsedFeed = FeedData;
+// Extend the library's type to include our custom imageUrl field.
+export type ParsedFeed = FeedData & {
+  imageUrl?: string | null;
+};
 
 export class FeedParseError extends Error {
   constructor(
@@ -19,6 +23,7 @@ export class FeedParseError extends Error {
 
 export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
   const trimmed = feedUrl.trim();
+
   if (!trimmed) {
     throw new FeedParseError('Feed URL is required', feedUrl);
   }
@@ -27,21 +32,32 @@ export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const feed = await extract(
+    const feed = (await extract(
       trimmed,
       {
         normalization: true,
         useISODateFormat: true,
         descriptionMaxLen: 320,
+
+        getExtraFeedFields: (feedData: any) => ({
+          imageUrl:
+            feedData.image?.url ||
+            feedData['itunes:image']?.['@_href'] ||
+            feedData['itunes:image']?.href ||
+            null,
+        }),
       },
       {
         headers: { 'User-Agent': USER_AGENT },
         signal: controller.signal,
       }
-    );
+    )) as ParsedFeed;
 
-    if (!feed?.title && !feed?.entries?.length) {
-      throw new FeedParseError('Feed returned no title or entries', trimmed);
+    if (!feed.title && !feed.entries?.length) {
+      throw new FeedParseError(
+        'Feed returned no title or entries',
+        trimmed
+      );
     }
 
     return feed;
@@ -51,12 +67,21 @@ export async function parseFeed(feedUrl: string): Promise<ParsedFeed> {
     }
 
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new FeedParseError(`Feed fetch timed out after ${FETCH_TIMEOUT_MS}ms`, trimmed);
+      throw new FeedParseError(
+        `Feed fetch timed out after ${FETCH_TIMEOUT_MS}ms`,
+        trimmed
+      );
     }
 
-    const message = err instanceof Error ? err.message : 'Unknown feed parse error';
+    const message =
+      err instanceof Error ? err.message : 'Unknown feed parse error';
+
     throw new FeedParseError(message, trimmed);
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export function getFeedImageUrl(feed: ParsedFeed): string | null {
+  return feed.imageUrl ?? null;
 }

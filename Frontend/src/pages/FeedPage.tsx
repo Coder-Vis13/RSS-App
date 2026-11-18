@@ -19,6 +19,7 @@ import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
 
 import { getCategoryPresentation } from "../lib/categoryColors";
+import { getEmptyItemsMessage } from "../lib/emptyStateMessages";
 import { getAuthUserId } from "@/auth";
 
 interface FeedItems {
@@ -38,6 +39,7 @@ interface FeedItems {
 
 export default function FeedPage() {
   const [feedItems, setFeedItems] = useState<FeedItems[]>([]);
+  const [hasItemsForFeedType, setHasItemsForFeedType] = useState(false);
   // const [sources, setSources] = useState<UserSources[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
@@ -76,6 +78,9 @@ export default function FeedPage() {
           ...i,
           is_save: Boolean(i.is_save),
         }));
+        setHasItemsForFeedType(
+          normalizedAll.some((item: FeedItems) => item.feed_type === feedType),
+        );
 
         let normalized;
 
@@ -215,6 +220,9 @@ export default function FeedPage() {
           selectedTime={selectedTime}
           setSelectedTime={setSelectedTime}
           onMarkAllRead={handleMarkAsReadFeed}
+          filtersDisabled={loading || !hasItemsForFeedType}
+          timeFilterDisabled={loading}
+          markAllReadDisabled={loading || filteredFeedItems.length === 0}
         />
 
         {/* Feed */}
@@ -230,7 +238,7 @@ export default function FeedPage() {
                   className="w-85 h-auto mb-6"
                 />
                 <p className="text-[var(--text)] text-center">
-                  No {feedType === "rss" ? "articles" : "podcasts"} items found.
+                  {getEmptyItemsMessage(feedType)}
                 </p>
               </div>
             ) : (

@@ -1,5 +1,7 @@
 import { query } from '../config/db';
+import { DEMO_ITEMS_PER_SOURCE } from '../config/demo-sources';
 import { getLogo } from '../utils/get-logo';
+import { getPodcastArtwork } from '../services/feed-ingestion/feed-artwork.service';
 import { getFirstRow, logAction, markAsCreated, QueryResult } from '../utils/helpers';
 import { Source } from './types';
 import pLimit from 'p-limit';
@@ -26,6 +28,7 @@ interface UserSources {
   source_id: number;
   source_name: string;
   url: string;
+  feed_type: 'rss' | 'podcast';
 }
 
 interface MarkReadRow {
@@ -203,10 +206,15 @@ export const allUserSources = async (userId: number): Promise<UserSources[]> => 
   logAction(`All sources of User=${userId}: Sources=${result.rows.length}`);
 
   const sourcesWithLogos = await Promise.all(
-    result.rows.map(async (source) => {
-      const logo = await getLogo(source.url);
-      return { ...source, logo_url: logo };
-    })
+    result.rows.map((source) =>
+      limit(async () => {
+        const logo =
+          source.feed_type === 'podcast'
+            ? await getPodcastArtwork(source.url)
+            : getLogo(source.url);
+        return { ...source, logo_url: logo };
+      })
+    )
   );
 
   return sourcesWithLogos;
@@ -257,7 +265,15 @@ export const getSourceItems = async (
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
+  const demoClause = demoMode
+    ? `AND i.item_id IN (
+        SELECT latest.item_id
+        FROM item latest
+        WHERE latest.source_id = i.source_id
+        ORDER BY latest.pub_date DESC, latest.item_id DESC
+        LIMIT ${DEMO_ITEMS_PER_SOURCE}
+      )`
+    : '';
 
   const sourceRow = await query<{ feed_type: 'rss' | 'podcast' }>(
     `SELECT feed_type FROM source WHERE source_id = $1`,

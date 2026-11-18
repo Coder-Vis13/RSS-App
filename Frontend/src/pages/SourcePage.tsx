@@ -14,6 +14,7 @@ import { useCategorizationPolling } from "@/hooks/useCategorizationPolling";
 
 import { Button } from "@/components/ui/button";
 import { getCategoryPresentation } from "../lib/categoryColors";
+import { getEmptyItemsMessage } from "../lib/emptyStateMessages";
 
 import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
@@ -191,8 +192,6 @@ export default function SourcePage() {
         i.categories?.some((c) => c.name === selectedCategory),
     );
 
-  if (loading) return <p>Loading...</p>;
-
   return (
     <div className="flex min-h-screen w-full">
       <main className="flex-1 w-full">
@@ -205,13 +204,17 @@ export default function SourcePage() {
           selectedTime={selectedTime}
           setSelectedTime={setSelectedTime}
           onMarkAllRead={handleMarkSourceRead}
+          filtersDisabled={loading || !items.some((item) => item.feed_type === feedType)}
+          timeFilterDisabled={loading}
+          markAllReadDisabled={loading || filteredItems.length === 0}
         />
 
-        {items.length === 0 ? (
+        {loading ? (
+          <p className="px-6 pt-4 text-[var(--text-light)]">Loading...</p>
+        ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[80vh] text-center">
-            <p className="text-lg font-semibold">No unread items</p>
-            <p className="text-sm text-[var(--text-light)] mt-2">
-              You are all caught up for this source.
+            <p className="text-lg font-semibold">
+              {getEmptyItemsMessage(feedType)}
             </p>
           </div>
         ) : (
@@ -222,7 +225,7 @@ export default function SourcePage() {
                 <div className="flex flex-col divide-y divide-gray-300">
                   {filteredItems.length === 0 ? (
                     <div className="w-full text-center py-10 text-gray-400">
-                      No {feedType === "rss" ? "articles" : "podcasts"} found.
+                      {getEmptyItemsMessage(feedType)}
                     </div>
                   ) : (
                     filteredItems.map((item) => (

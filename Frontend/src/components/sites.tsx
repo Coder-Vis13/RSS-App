@@ -52,7 +52,7 @@ export const SiteShowcase: React.FC = () => {
         </div>
 
         <motion.div
-          className="grid grid-cols-6 gap-y-6 items-center justify-items-center"
+          className="grid grid-cols-3 items-center justify-items-center gap-y-6 sm:grid-cols-4 lg:grid-cols-6"
           variants={containerVariants}
           initial="hidden"
           animate="visible"

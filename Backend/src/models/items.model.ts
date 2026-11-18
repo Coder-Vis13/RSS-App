@@ -1,4 +1,5 @@
 import { query } from '../config/db';
+import { DEMO_ITEMS_PER_SOURCE } from '../config/demo-sources';
 import { getFirstRow, logAction, markAsCreated } from '../utils/helpers';
 import { QueryResult } from '../utils/helpers';
 import pLimit from 'p-limit';
@@ -72,7 +73,15 @@ export const userFeedItems = async (
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
+  const demoClause = demoMode
+    ? `AND i.item_id IN (
+        SELECT latest.item_id
+        FROM item latest
+        WHERE latest.source_id = i.source_id
+        ORDER BY latest.pub_date DESC, latest.item_id DESC
+        LIMIT ${DEMO_ITEMS_PER_SOURCE}
+      )`
+    : '';
 
   const baseQuery = `SELECT 
       i.item_id,
@@ -121,7 +130,15 @@ export const getItemsByCategory = async (
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
+  const demoClause = demoMode
+    ? `AND i.item_id IN (
+        SELECT latest.item_id
+        FROM item latest
+        WHERE latest.source_id = i.source_id
+        ORDER BY latest.pub_date DESC, latest.item_id DESC
+        LIMIT ${DEMO_ITEMS_PER_SOURCE}
+      )`
+    : '';
 
   const baseQuery = `
     SELECT 
@@ -171,7 +188,15 @@ export const getSavedItemsByCategory = async (
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
+  const demoClause = demoMode
+    ? `AND i.item_id IN (
+        SELECT latest.item_id
+        FROM item latest
+        WHERE latest.source_id = i.source_id
+        ORDER BY latest.pub_date DESC, latest.item_id DESC
+        LIMIT ${DEMO_ITEMS_PER_SOURCE}
+      )`
+    : '';
 
   const baseQuery = `
     SELECT 
@@ -358,18 +383,14 @@ export const saveItem = async (
 //get all items published recently
 export const getLatestItemIds = async (
   sourceId: number,
-  limit: number,
-  publishedAfter?: Date
+  limit: number
 ): Promise<number[]> => {
-  const publishedAfterClause = publishedAfter ? 'AND pub_date >= $3' : '';
-  const params = publishedAfter ? [sourceId, limit, publishedAfter] : [sourceId, limit];
   const result: QueryResult<Pick<Item, 'item_id'>> = await query(
     `SELECT item_id FROM item 
      WHERE source_id = $1
-       ${publishedAfterClause}
-     ORDER BY pub_date DESC
+     ORDER BY pub_date DESC, item_id DESC
      LIMIT $2`,
-    params
+    [sourceId, limit]
   );
   logAction(`Recent item IDs: Source=${sourceId} itemCount=${result.rows.length}`);
   return result.rows.map((r) => r.item_id);
@@ -385,7 +406,15 @@ export const allSavedItems = async (
   if (timeFilter === 'today') timeClause = `AND i.pub_date >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND i.pub_date >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND i.pub_date >= date_trunc('month', NOW())`;
-  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
+  const demoClause = demoMode
+    ? `AND i.item_id IN (
+        SELECT latest.item_id
+        FROM item latest
+        WHERE latest.source_id = i.source_id
+        ORDER BY latest.pub_date DESC, latest.item_id DESC
+        LIMIT ${DEMO_ITEMS_PER_SOURCE}
+      )`
+    : '';
 
   const baseQuery = `
     SELECT 
@@ -437,7 +466,15 @@ export const readItems = async (
   if (timeFilter === 'today') timeClause = `AND uim.read_time >= date_trunc('day', NOW())`;
   else if (timeFilter === 'week') timeClause = `AND uim.read_time >= date_trunc('week', NOW())`;
   else if (timeFilter === 'month') timeClause = `AND uim.read_time >= date_trunc('month', NOW())`;
-  const demoClause = demoMode ? `AND i.pub_date >= NOW() - INTERVAL '48 hours'` : '';
+  const demoClause = demoMode
+    ? `AND i.item_id IN (
+        SELECT latest.item_id
+        FROM item latest
+        WHERE latest.source_id = i.source_id
+        ORDER BY latest.pub_date DESC, latest.item_id DESC
+        LIMIT ${DEMO_ITEMS_PER_SOURCE}
+      )`
+    : '';
 
   const baseQuery = `
     SELECT 

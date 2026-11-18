@@ -19,12 +19,10 @@ export interface SourceRow {
 const REFRESH_SCAN_LIMIT = 50;
 const TIMEOUT_MS = 12_000;
 const CONCURRENCY = 8;
-const DEMO_CONTENT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export interface FeedRefreshOptions {
   sourceIds?: number[];
   enqueueCategorization?: boolean;
-  recentOnly?: boolean;
 }
 
 interface RefreshItem {
@@ -110,13 +108,7 @@ async function refreshSource(row: SourceRow, options: FeedRefreshOptions): Promi
     }
 
     const normalizedItems = normalizeEntriesForRefresh(entries, REFRESH_SCAN_LIMIT);
-    const items = options.recentOnly
-      ? normalizedItems.filter(
-          (item) => item.pubDate >= new Date(Date.now() - DEMO_CONTENT_WINDOW_MS)
-        )
-      : normalizedItems;
-
-    const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, items);
+    const { insertedIds = [], insertCount = 0 } = await addItem(sourceId, normalizedItems);
 
     if (insertCount > 0) {
       const label = feed_type === 'podcast' ? 'episodes' : 'items';
@@ -132,7 +124,7 @@ async function refreshSource(row: SourceRow, options: FeedRefreshOptions): Promi
 
     console.log(
       `CRON -> OK ${feed_type} ${url} (${((Date.now() - feedStart) / 1000).toFixed(1)}s, ` +
-        `scanned ${items.length}, new ${insertCount})`
+        `scanned ${normalizedItems.length}, new ${insertCount})`
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -180,6 +172,12 @@ export function startFeedRefreshSchedule(): void {
     void runFeedRefresh();
   });
 }
+
+// export function startFeedRefreshSchedule(): void {
+//   schedule('* * * * *', () => {
+//     void runFeedRefresh();
+//   });
+// }
 
 export function startDemoCleanupSchedule(): void {
   schedule('0 * * * *', () => {

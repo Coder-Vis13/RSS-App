@@ -9,6 +9,7 @@ import { Bookmark } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getCategoryPresentation } from "../lib/categoryColors";
+import { getEmptyItemsMessage } from "../lib/emptyStateMessages";
 
 import AppHeader from "@/components/layout/AppHeader";
 import { useBlocklist } from "@/context/blocklistContext";
@@ -117,8 +118,6 @@ export default function FolderPage() {
     setSelectedCategory("All");
   }, [feedType]);
 
-  if (loading) return <p>Loading...</p>;
-
   const filterWithBlocklist = (items: FolderItems[], blocklist: string[]) => {
     return items.filter((item) => {
       const title = (item.title || "").toLowerCase();
@@ -197,11 +196,16 @@ export default function FolderPage() {
           selectedTime={selectedTime}
           setSelectedTime={setSelectedTime}
           onMarkAllRead={handleMarkAsReadFolder}
+          filtersDisabled={loading || !folderItems.some((item) => item.feed_type === feedType)}
+          timeFilterDisabled={loading}
+          markAllReadDisabled={loading || filteredFolderItems.length === 0}
         />
 
         <div className="px-6">
           <section className="max-w-[1100px] mx-auto">
-            {folderItems.length === 0 ? (
+            {loading ? (
+              <p className="text-[var(--text-light)]">Loading...</p>
+            ) : folderItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[80vh] w-full text-center">
                 <img
                   src="/folderImage.png"
@@ -209,11 +213,11 @@ export default function FolderPage() {
                   className="w-56 mb-6 opacity-90"
                 />
                 <p className="text-lg font-semibold text-[var(--text)]">
-                  This folder is empty
+                  {getEmptyItemsMessage(feedType)}
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-light)] max-w-sm">
-                  Add sources to this folder to start curating your reading
-                  feed.
+                  Add sources to this folder or adjust the selected filters to
+                  see items here.
                 </p>
               </div>
             ) : filteredFolderItems.length === 0 ? (
@@ -224,7 +228,7 @@ export default function FolderPage() {
                   className="w-85 h-auto mb-6"
                 />
                 <p className="text-[var(--text)] text-center">
-                  No {feedType === "rss" ? "articles" : "podcasts"} items found.
+                  {getEmptyItemsMessage(feedType)}
                 </p>
               </div>
             ) : (

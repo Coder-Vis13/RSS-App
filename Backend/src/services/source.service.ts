@@ -14,13 +14,12 @@ import {
 import { inferFeedType } from './feed-ingestion/infer-feed-type.service';
 import { getInitialImportLimit } from '../config/ingestion-limits';
 import { enqueueCategorization } from '../utils/categorizer';
+import { rememberPodcastArtwork } from './feed-ingestion/feed-artwork.service';
 
 interface ProcessSourceOptions {
   enqueueCategorization?: boolean;
   demoMode?: boolean;
 }
-
-const DEMO_CONTENT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export const processSource = async (
   userId: number,
@@ -28,9 +27,6 @@ export const processSource = async (
   options: ProcessSourceOptions = {}
 ) => {
   const feedDedupe = createDuplicateChecker();
-  const recentDemoCutoff = options.demoMode
-    ? new Date(Date.now() - DEMO_CONTENT_WINDOW_MS)
-    : undefined;
 
   console.log(`[ingestion] start user=${userId} url=${sourceURL}`);
   const classification = classifySourceUrl(sourceURL);
@@ -73,23 +69,19 @@ export const processSource = async (
       // Parse once so direct podcast RSS URLs get correct feed_type even on re-subscribe.
       const parsed = await parseFeed(requestUrl);
       const feedTypeResolved = inferFeedType(parsed, feedType);
+      if (feedTypeResolved === 'podcast') {
+        rememberPodcastArtwork(canonicalFeedUrl, parsed.imageUrl);
+      }
 
       await addUserSource(userId, existingSource.source_id, feedTypeResolved);
 
       if (options.demoMode) {
         const normalizedItems = normalizeItems(parsed.entries ?? [], feedTypeResolved);
-        const recentItems = recentDemoCutoff
-          ? normalizedItems.filter((item) => item.pubDate >= recentDemoCutoff)
-          : normalizedItems;
-        await addItem(existingSource.source_id, recentItems);
+        await addItem(existingSource.source_id, normalizedItems);
       }
 
       const importLimit = getInitialImportLimit(feedTypeResolved);
-      const metadataIds = await getLatestItemIds(
-        existingSource.source_id,
-        importLimit,
-        recentDemoCutoff
-      );
+      const metadataIds = await getLatestItemIds(existingSource.source_id, importLimit);
       await addUserItemMetadata(userId, metadataIds);
       if (
         options.demoMode &&
@@ -111,6 +103,9 @@ export const processSource = async (
 
     const parsed = await parseFeed(requestUrl);
     const feedTypeResolved = inferFeedType(parsed, feedType);
+    if (feedTypeResolved === 'podcast') {
+      rememberPodcastArtwork(canonicalFeedUrl, parsed.imageUrl);
+    }
 
     const source = await addSource(
       parsed.title || 'Untitled Source',
@@ -120,11 +115,7 @@ export const processSource = async (
 
     await addUserSource(userId, source.source_id, feedTypeResolved);
 
-    const normalizedItems = normalizeItems(parsed.entries ?? [], feedTypeResolved);
-    const items = recentDemoCutoff
-      ? normalizedItems.filter((item) => item.pubDate >= recentDemoCutoff)
-      : normalizedItems;
-
+    const items = normalizeItems(parsed.entries ?? [], feedTypeResolved);
     const insertResult = await addItem(source.source_id, items);
     await addUserItemMetadata(userId, insertResult.insertedIds);
     if (insertResult.insertedIds.length > 0 && options.enqueueCategorization !== false) {

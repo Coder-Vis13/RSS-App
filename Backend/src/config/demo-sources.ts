@@ -4,22 +4,24 @@ export interface DemoSource {
 }
 
 /**
- * Stable feeds used to prepare the private demo baseline. These are regular
- * application sources: they are ingested and refreshed by the normal pipeline.
+ * Sources used to prepare the private demo baseline. They are ingested and
+ * refreshed through the normal application pipeline.
  */
 export const DEMO_SOURCES: readonly DemoSource[] = [
   {
-    name: 'The New York Times: World',
-    url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+    name: 'YourStory',
+    url: 'https://yourstory.com/',
   },
   {
-    name: 'The GitHub Blog',
-    url: 'https://github.blog/feed/',
+    name: 'The Daily Brief',
+    url: 'https://podcasts.apple.com/in/podcast/the-daily-brief/id1754694834',
   },
   {
-    name: 'Cleo Abram',
-    url: 'https://www.youtube.com/@cleoabram',
+    name: 'Times of India',
+    url: 'https://timesofindia.indiatimes.com/',
   },
 ];
 
 export const DEMO_BASELINE_FOLDER_NAME = 'Demo Sources';
+
+export const DEMO_ITEMS_PER_SOURCE = 15;

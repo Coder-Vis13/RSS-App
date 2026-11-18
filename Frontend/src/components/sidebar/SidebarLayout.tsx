@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, ChevronLeft, ChevronRight, Ellipsis } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Ellipsis, Podcast } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,16 +45,19 @@ import {
 } from "@/lib/sourceLogo";
 
 import { getAuthUserId, isDemoMode } from "@/auth";
+import SidebarContext from "./sidebarContext";
 
 type SourceLogoProps = {
   name: string;
+  feedType?: "rss" | "podcast";
   logoUrl?: string | null;
   feedUrl?: string | null;
   isActive?: boolean;
 };
 
-function SourceLogo({ name, logoUrl, feedUrl, isActive }: SourceLogoProps) {
-  const domain = feedUrl ? getDomainFromFeedUrl(feedUrl) : null;
+function SourceLogo({ name, feedType, logoUrl, feedUrl, isActive }: SourceLogoProps) {
+  const isPodcast = feedType === "podcast";
+  const domain = !isPodcast && feedUrl ? getDomainFromFeedUrl(feedUrl) : null;
   const googleFallback = domain ? buildGoogleFaviconUrl(domain) : null;
 
   const [src, setSrc] = useState<string | null>(logoUrl ?? googleFallback);
@@ -63,12 +66,12 @@ function SourceLogo({ name, logoUrl, feedUrl, isActive }: SourceLogoProps) {
   useEffect(() => {
     setShowLetter(false);
     setSrc(logoUrl ?? googleFallback);
-  }, [logoUrl, googleFallback, name]);
+  }, [logoUrl, googleFallback, name, isPodcast]);
 
   const letter = (name?.trim()?.[0] ?? "?").toUpperCase();
 
   const handleError = () => {
-    if (src && googleFallback && src !== googleFallback) {
+    if (!isPodcast && src && googleFallback && src !== googleFallback) {
       setSrc(googleFallback);
       return;
     }
@@ -97,7 +100,7 @@ function SourceLogo({ name, logoUrl, feedUrl, isActive }: SourceLogoProps) {
             isActive ? "text-(--beige)" : "text-(--text)"
           }`}
         >
-          {letter}
+          {isPodcast ? <Podcast className="h-3.5 w-3.5" /> : letter}
         </span>
       )}
     </span>
@@ -128,6 +131,7 @@ export default function SidebarLayout({
   const [sourceFeedUrls, setSourceFeedUrls] = useState<Record<number, string>>(
     {},
   );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigate = useNavigate();
   const userId = getAuthUserId();
@@ -171,6 +175,17 @@ export default function SidebarLayout({
     if (!userId) return;
     refetchSidebarData();
   }, [userId]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
 
   useEffect(() => {
     if (!userId) return;
@@ -320,7 +335,8 @@ export default function SidebarLayout({
       if (result?.source_id && result?.feed_url) {
         const id = result.source_id as number;
         const feedUrl = result.feed_url as string;
-        const optimisticLogo = logoUrlFromFeedUrl(feedUrl);
+        const optimisticLogo =
+          result.feed_type === "podcast" ? null : logoUrlFromFeedUrl(feedUrl);
 
         setSourceFeedUrls((prev) => ({ ...prev, [id]: feedUrl }));
         if (optimisticLogo) {
@@ -382,7 +398,8 @@ export default function SidebarLayout({
     <div className="flex h-screen overflow-hidden">
       <aside
         style={{ width: sidebarWidth }}
-        className="fixed left-0 top-0 h-full flex flex-col p-3 bg-(--sidebar) border-r border-(--light-grey) z-40 transition-all"
+        id="app-sidebar"
+        className={`fixed left-0 top-0 z-40 flex h-full flex-col border-r border-(--light-grey) bg-(--sidebar) p-3 transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5 text-(--sidebar-foreground)">
@@ -396,7 +413,10 @@ export default function SidebarLayout({
               return (
                 <button
                   key={label}
-                  onClick={() => setAddFeedDialogOpen(true)}
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    setAddFeedDialogOpen(true);
+                  }}
                   className={`w-full text-sm flex items-center rounded-md px-3 py-2 transition-colors
     ${
       addFeedDialogOpen
@@ -414,6 +434,7 @@ export default function SidebarLayout({
               <NavLink
                 key={label}
                 to={path!}
+                onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `w-full text-sm flex items-center rounded-md px-3 py-2 transition-colors
            ${
@@ -440,7 +461,10 @@ export default function SidebarLayout({
                 <NavLink
                   key={source.source_id}
                   to={`/sources/${source.source_id}`}
-                  onClick={() => handleSourceClick(source.source_id)}
+                  onClick={() => {
+                    handleSourceClick(source.source_id);
+                    setSidebarOpen(false);
+                  }}
                   className={({ isActive }) =>
                     `block rounded-md transition-colors ${isActive ? "bg-(--navyblue) text-(--beige)" : "hover:bg-(--light-grey) text-(--text)"}`
                   }
@@ -450,6 +474,7 @@ export default function SidebarLayout({
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <SourceLogo
                           name={source.source_name}
+                          feedType={sourceFeedTypes[source.source_id]}
                           logoUrl={sourceLogos[source.source_id]}
                           feedUrl={sourceFeedUrls[source.source_id]}
                           isActive={isActive}
@@ -524,6 +549,7 @@ export default function SidebarLayout({
                 <div key={folder.folder_id}>
                   <NavLink
                     to={`/folders/${folder.folder_id}`}
+                    onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
                       `block rounded-md transition-colors ${isActive ? "bg-(--navyblue) text-(--beige)" : "hover:bg-(--light-grey) text-(--text)"}`
                     }
@@ -596,7 +622,10 @@ export default function SidebarLayout({
                         <NavLink
                           key={source.source_id}
                           to={`/sources/${source.source_id}`}
-                          onClick={() => handleSourceClick(source.source_id)}
+                          onClick={() => {
+                            handleSourceClick(source.source_id);
+                            setSidebarOpen(false);
+                          }}
                           className={({ isActive }) =>
                             `block rounded-md transition-colors ${isActive ? "bg-(--navyblue) text-(--beige)" : "hover:bg-(--light-grey) text-(--text)"}`
                           }
@@ -606,6 +635,7 @@ export default function SidebarLayout({
                               <div className="flex min-w-0 flex-1 items-center gap-2">
                                 <SourceLogo
                                   name={source.source_name}
+                                  feedType={sourceFeedTypes[source.source_id]}
                                   logoUrl={sourceLogos[source.source_id]}
                                   feedUrl={sourceFeedUrls[source.source_id]}
                                   isActive={isActive}
@@ -662,6 +692,15 @@ export default function SidebarLayout({
           </nav>
         </div>
       </aside>
+
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+        />
+      )}
 
       <AddSourceToFolderDialog
         open={addToFolderOpen}
@@ -738,13 +777,7 @@ export default function SidebarLayout({
         </DialogContent>
       </Dialog>
 
-      <main
-        style={{
-          marginLeft: sidebarWidth,
-          width: `calc(100vw - ${sidebarWidth}px)`,
-        }}
-        className="h-full overflow-y-auto overflow-x-hidden bg-(--background)"
-      >
+      <main className="h-full w-full overflow-y-auto overflow-x-hidden bg-(--background) lg:ml-[260px] lg:w-[calc(100vw-260px)]">
         {demoMode && (
           <div
             role="status"
@@ -753,7 +786,9 @@ export default function SidebarLayout({
             Demo mode — changes are private to this session and reset automatically.
           </div>
         )}
-        {children}
+        <SidebarContext.Provider value={{ sidebarOpen, setSidebarOpen }}>
+          {children}
+        </SidebarContext.Provider>
       </main>
     </div>
   );

@@ -6,6 +6,7 @@ import {
   getSavedItemsByCategory,
 } from "../services/user.service";
 import { getCategoryPresentation } from "../lib/categoryColors";
+import { getEmptyItemsMessage } from "../lib/emptyStateMessages";
 import AppHeader from "@/components/layout/AppHeader";
 import { getAuthUserId } from "@/auth";
 
@@ -23,6 +24,7 @@ interface SavedItems {
 
 export default function SavedPage() {
   const [savedItems, setSavedItems] = useState<SavedItems[]>([]);
+  const [hasItemsForFeedType, setHasItemsForFeedType] = useState(false);
   const [loading, setLoading] = useState(true);
   const [feedType, setFeedType] = useState<"rss" | "podcast">("rss");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -55,6 +57,9 @@ export default function SavedPage() {
       setLoading(true);
       try {
         const allData = await allSavedItems(userId, selectedTime);
+        setHasItemsForFeedType(
+          allData.some((item: SavedItems) => item.feed_type === feedType),
+        );
         let data;
 
         if (selectedCategory === "All") {
@@ -125,6 +130,19 @@ export default function SavedPage() {
 
   return (
     <div>
+      <AppHeader
+        feedType={feedType}
+        setFeedType={setFeedType}
+        selectedCategory={selectedCategory}
+        onCategorySelect={handleCategorySelect}
+        categories={allCategories}
+        selectedTime={selectedTime}
+        setSelectedTime={setSelectedTime}
+        onMarkAllRead={handleMarkAllReadSaved}
+        filtersDisabled={!hasItemsForFeedType}
+        timeFilterDisabled={loading}
+        markAllReadDisabled={!hasItemsForFeedType || filteredSavedItems.length === 0}
+      />
       {/* Empty state banner */}
       {noSavedItems ? (
         <div className="flex flex-col items-center justify-center w-full py-24">
@@ -134,23 +152,14 @@ export default function SavedPage() {
             className="w-80 h-auto mb-6"
           />
           <p className="text-[var(--text)] text-center">
+            {getEmptyItemsMessage(feedType)}{" "}
+            <br />
             Found something worth keeping? Save it to build your personal
             library right here
           </p>
         </div>
       ) : (
         <>
-          {/* Header */}
-          <AppHeader
-            feedType={feedType}
-            setFeedType={setFeedType}
-            selectedCategory={selectedCategory}
-            onCategorySelect={handleCategorySelect}
-            categories={allCategories}
-            selectedTime={selectedTime}
-            setSelectedTime={setSelectedTime}
-            onMarkAllRead={handleMarkAllReadSaved}
-          />
           <div className="px-6">
             <section className="max-w-[1100px] mx-auto">
               {/* Saved items */}
@@ -160,7 +169,7 @@ export default function SavedPage() {
                 </p>
               ) : filteredSavedItems.length === 0 ? (
                 <div className="w-full text-center py-10 text-gray-400">
-                  No {feedType === "rss" ? "articles" : "podcasts"} items found.
+                  {getEmptyItemsMessage(feedType)}
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-gray-300 w-full max-w-full">
