@@ -7,7 +7,6 @@ export interface NormalizedItem {
   title: string;
   description: string | null;
   pubDate: Date;
-  tags?: string[];
 }
 
 type RawFeedContent = FeedContent;
@@ -47,45 +46,17 @@ function resolvePubDate(entry: RawFeedContent): Date {
   return new Date();
 }
 
-function resolveTags(entry: RawFeedContent): string[] | undefined {
-  const tags = new Set<string>();
-  const raw = entry as unknown as Record<string, unknown>;
-
-  const addTag = (value: unknown) => {
-    if (typeof value === 'string' && value.trim()) {
-      tags.add(value.trim());
-    }
-  };
-
-  if (Array.isArray(raw.tags)) {
-    raw.tags.forEach(addTag);
-  }
-
-  addTag(raw.category);
-
-  if (Array.isArray(raw.categories)) {
-    for (const category of raw.categories) {
-      addTag(category);
-    }
-  }
-
-  return tags.size ? Array.from(tags).slice(0, 3) : undefined;
-}
-
 function normalizeContent(entry: RawFeedContent): NormalizedItem | null {
   const link = resolveLink(entry);
   if (!link) {
     return null;
   }
 
-  const tags = resolveTags(entry);
-
   return {
     link,
     title: resolveTitle(entry),
     description: resolveDescription(entry),
     pubDate: resolvePubDate(entry),
-    ...(tags ? { tags } : {}),
   };
 }
 

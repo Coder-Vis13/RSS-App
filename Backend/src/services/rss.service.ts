@@ -5,7 +5,6 @@ export interface RSSItem {
   title: string;
   description: string | null;
   pubDate: string | Date | null;
-  tags: string[];
 }
 
 export interface ParsedRSS {
@@ -13,7 +12,7 @@ export interface ParsedRSS {
   sourceItems: RSSItem[];
 }
 
-const parser = new Parser<RSSItem & { categories?: any[] }>();
+const parser = new Parser<RSSItem>();
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
@@ -48,33 +47,6 @@ function cleanRSSDescription(html: string): string {
 function truncate(text: string, max = 320) {
   return text.length > max ? text.slice(0, max) + '…' : text;
 }
-function getTags(categories: any[] = []): string[] {
-  let topic: string | null = null;
-  let person: string | null = null;
-  let org: string | null = null;
-
-  for (const cat of categories) {
-    const value = cat?._;
-    const domain: string = cat?.$.domain || '';
-    if (!value) continue;
-
-    if (!person && (domain.includes('person') || domain.includes('per'))) {
-      person = value;
-      // Normalize "Last, First" → "First Last"
-      if (person?.includes(',')) {
-        const [last, first] = person.split(',').map((s) => s.trim());
-        person = `${first} ${last}`;
-      }
-    } else if (!org && domain.includes('org')) {
-      org = value;
-    } else if (!topic) {
-      topic = value;
-    }
-  }
-
-  return [topic || '', person || '', org || ''];
-}
-
 export async function RSSParser(sourceURL: string): Promise<ParsedRSS> {
   const parsedSource = await parser.parseURL(sourceURL);
 
@@ -92,7 +64,6 @@ export async function RSSParser(sourceURL: string): Promise<ParsedRSS> {
           ? truncate(cleanRSSDescription(item.content || item.description!))
           : null,
       pubDate: item.pubDate ? new Date(item.pubDate) : null,
-      tags: getTags(item.categories || []), //3 tags
     }));
 
   return { sourceName, sourceItems };

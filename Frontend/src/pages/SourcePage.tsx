@@ -30,7 +30,6 @@ interface SourceItem {
   source_id: number;
   is_save: boolean;
   categories?: { name: string; color: string }[];
-  tags?: string[];
   feed_type: "rss" | "podcast";
   is_categorized?: boolean;
 }
@@ -210,7 +209,7 @@ export default function SourcePage() {
         />
 
         {loading ? (
-          <p className="px-6 pt-4 text-[var(--text-light)]">Loading...</p>
+          <p className="px-6 pt-4 text-(--text-light)">Loading...</p>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[80vh] text-center">
             <p className="text-lg font-semibold">
@@ -231,7 +230,7 @@ export default function SourcePage() {
                     filteredItems.map((item) => (
                       <div
                         key={item.item_id}
-                        className="py-6 flex justify-between items-center hover:bg-[var(--hover)]"
+                        className="py-6 flex justify-between items-center hover:bg-(--hover)"
                       >
                         <div className="flex-1 pr-4">
                           {item.categories && item.categories.length > 0 && (
@@ -250,35 +249,23 @@ export default function SourcePage() {
                               })}
                             </div>
                           )}
-                          {item.tags && item.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-1 mb-4">
-                              {item.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                           <a
                             href={item.link}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={() => handleMarkAsRead(item.item_id)}
-                            className="text-[var(--accent)] font-medium hover:underline"
+                            className="text-(--accent) font-medium hover:underline"
                           >
                             {item.title}
                           </a>
 
                           {item.description && (
-                            <p className="text-sm mt-1 line-clamp-3 text-[var(--text)]">
+                            <p className="text-sm mt-1 line-clamp-3 text-(--text)">
                               {item.description}
                             </p>
                           )}
 
-                          <p className="text-xs mt-4 text-[var(--text-light)]">
+                          <p className="text-xs mt-4 text-(--text-light)">
                             {new Date(item.pub_date).toLocaleDateString()}
                           </p>
                         </div>
@@ -292,7 +279,7 @@ export default function SourcePage() {
                             size={20}
                             className={
                               item.is_save
-                                ? "text-[var(--accent)] fill-[var(--accent)]"
+                                ? "text-(--accent) fill-(--accent)"
                                 : "text-gray-400"
                             }
                           />

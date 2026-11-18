@@ -16,7 +16,6 @@ interface ReadItems {
   source_name: string;
   read_time: string;
   categories?: { name: string; color: string }[];
-  tags?: string[];
   feed_type: "rss" | "podcast";
 }
 
@@ -126,7 +125,7 @@ export default function ReadPage() {
         timeFilterDisabled={loading}
       />
       {loading ? (
-        <p className="text-[var(--text-light)]">Loading read items...</p>
+        <p className="text-(--text-light)">Loading read items...</p>
       ) : showBackendEmptyState ? (
         <div className="flex flex-col items-center justify-center w-full h-[90vh]">
           <img
@@ -134,7 +133,7 @@ export default function ReadPage() {
             alt="Nothing Read Yet"
             className="w-80 h-auto mb-6"
           />
-          <p className="text-[var(--text)] text-center">
+          <p className="text-(--text) text-center">
             {getEmptyItemsMessage(feedType)}
             <br />
             Read items will appear here after you open articles or podcast
@@ -147,7 +146,7 @@ export default function ReadPage() {
             <section className="w-full max-w-[1100px] mx-auto">
               {showFilteredEmptyState ? (
                 <div className="flex flex-col items-center justify-center w-full h-[70vh]">
-                  <p className="text-[var(--text)] text-center">
+                  <p className="text-(--text) text-center">
                     {getEmptyItemsMessage(feedType)}
                   </p>
                 </div>
@@ -156,7 +155,7 @@ export default function ReadPage() {
                   {filteredReadItems.map((item) => (
                     <div
                       key={item.item_id}
-                      className="py-6 flex items-start hover:bg-[var(--hover)] transition w-full max-w-full"
+                      className="py-6 flex items-start hover:bg-(--hover) transition w-full max-w-full"
                     >
                       <div className="flex-1 pr-4">
                         {/* Categories */}
@@ -178,38 +177,26 @@ export default function ReadPage() {
                             })}
                           </div>
                         )}
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-1 mb-4">
-                            {item.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                         {/* Title */}
                         <a
                           href={item.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline font-semibold"
+                          className="text-(--accent) hover:underline font-semibold"
                         >
                           {item.title}
                         </a>
 
                         {/* Description */}
                         {item.description && (
-                          <p className="text-[var(--text)] text-sm mt-1 line-clamp-3">
+                          <p className="text-(--text) text-sm mt-1 line-clamp-3">
                             {item.description}
                           </p>
                         )}
 
                         {/* Meta */}
                         {item.pub_date && (
-                          <p className="text-xs text-[var(--text-light)] mt-4">
+                          <p className="text-xs text-(--text-light) mt-4">
                             {item.source_name} •{" "}
                             {new Date(item.pub_date).toLocaleDateString()}
                           </p>

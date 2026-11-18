@@ -175,11 +175,7 @@ export const folderItems = async (
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
       COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name)) 
-           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories,
-      COALESCE(
-      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
-      '[]'::json
-    ) AS tags    
+           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories
       FROM item i
     INNER JOIN source s 
       ON i.source_id = s.source_id
@@ -195,7 +191,6 @@ export const folderItems = async (
       AND uim.item_id = i.item_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
-    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE 1=1
           ${timeClause}
       ${demoClause}

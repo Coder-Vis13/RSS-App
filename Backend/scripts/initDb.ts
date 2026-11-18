@@ -1,9 +1,3 @@
-/*
-psql -U myprojectuser -d myprojectdb -h localhost
-\pset pager off
-\dt - to see table
-npx prettier --write .
-*/
 
 import { query } from '../src/config/db';
 import { createSchema } from '../src/db/createSchema';

@@ -4,7 +4,6 @@ import { ensureUserSourceUserCascade } from '../../src/db/migrations/ensure-user
 
 const TEST_TABLES = [
   'item_category',
-  'item_tag',
   'user_item_metadata',
   'user_source_folder',
   'user_source',

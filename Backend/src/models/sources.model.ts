@@ -49,7 +49,6 @@ interface SourceItem extends Source {
   is_save: boolean;
   is_categorized: boolean;
   categories: { name: string; color: string }[];
-  tags?: string[];
 }
 
 interface SourceExistsRow {
@@ -299,11 +298,7 @@ export const getSourceItems = async (
           DISTINCT jsonb_build_object('name', c.name)
         ) FILTER (WHERE c.name IS NOT NULL),
         '[]'::json
-      ) AS categories,
-      COALESCE(
-        json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
-        '[]'::json
-      ) AS tags
+      ) AS categories
     FROM item i
     JOIN source s ON i.source_id = s.source_id
     JOIN user_source us ON us.source_id = i.source_id
@@ -311,7 +306,6 @@ export const getSourceItems = async (
       ON uim.item_id = i.item_id AND uim.user_id = us.user_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
-    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE us.user_id = $1
       AND i.source_id = $2
       AND uim.read_time IS NULL

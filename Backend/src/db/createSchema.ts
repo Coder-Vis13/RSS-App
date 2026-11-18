@@ -82,14 +82,6 @@ CREATE TABLE IF NOT EXISTS user_source (
         UNIQUE (link)
       );
 
-      CREATE TABLE IF NOT EXISTS item_tag (
-        item_id INT NOT NULL
-          REFERENCES item(item_id)
-          ON DELETE CASCADE,
-        tag TEXT NOT NULL,
-        PRIMARY KEY (item_id, tag)
-      );
-
       CREATE TABLE IF NOT EXISTS user_item_metadata (
         user_id INT NOT NULL
           REFERENCES users(user_id)

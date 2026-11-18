@@ -9,7 +9,12 @@ import {
 } from '../src/config/demo-sources';
 import { runFeedRefresh } from '../src/cron';
 import { processSource } from '../src/services/source.service';
-import { enqueueCategorization } from '../src/utils/categorizer';
+import {
+  categorizeItemsBatch,
+  DEMO_CATEGORIZATION_BATCH_SIZE,
+  isAICategorizationEnabled,
+  type CategorizationBatchItem,
+} from '../src/utils/categorizer';
 
 const BASELINE_NAME = 'ReadArchive Demo';
 const BASELINE_EMAIL = process.env.DEMO_BASELINE_EMAIL ?? 'demo-baseline@readarchive.local';
@@ -20,6 +25,8 @@ interface BaselineUserRow {
 
 interface ItemRow {
   item_id: number;
+  title: string | null;
+  description: string | null;
 }
 
 async function getOrCreateBaselineUser(): Promise<number> {
@@ -82,6 +89,8 @@ async function categorizeLatestItems(sourceIds: number[]): Promise<void> {
     `WITH ranked_items AS (
        SELECT
          item_id,
+         title,
+         description,
          is_categorized,
          ROW_NUMBER() OVER (
            PARTITION BY source_id
@@ -90,17 +99,39 @@ async function categorizeLatestItems(sourceIds: number[]): Promise<void> {
        FROM item
        WHERE source_id = ANY($1::int[])
      )
-     SELECT item_id
+     SELECT item_id, title, description
      FROM ranked_items
      WHERE source_rank <= $2
        AND is_categorized = false`,
     [sourceIds, DEMO_ITEMS_PER_SOURCE]
   );
 
-  await enqueueCategorization(latestItems.rows.map((item) => item.item_id));
+  const batches: CategorizationBatchItem[][] = [];
+  for (let index = 0; index < latestItems.rows.length; index += DEMO_CATEGORIZATION_BATCH_SIZE) {
+    batches.push(
+      latestItems.rows.slice(index, index + DEMO_CATEGORIZATION_BATCH_SIZE)
+    );
+  }
+
+  const failedItemIds: number[] = [];
+  for (let index = 0; index < batches.length; index += 1) {
+    const result = await categorizeItemsBatch(batches[index]);
+    failedItemIds.push(...result.failedItemIds);
+  }
+
+  if (failedItemIds.length > 0) {
+    throw new Error(
+      `Demo categorization failed for ${failedItemIds.length} item(s): ` +
+        [...new Set(failedItemIds)].join(', ')
+    );
+  }
 }
 
 async function seedDemo(): Promise<void> {
+  if (!isAICategorizationEnabled()) {
+    throw new Error('Set USE_AI_CATEGORY=true before seeding the demo baseline.');
+  }
+
   const baselineUserId = await getOrCreateBaselineUser();
   await resetBaselineUser(baselineUserId);
 

@@ -30,7 +30,6 @@ interface RefreshItem {
   title: string;
   description: string | null;
   pubDate: Date;
-  tags?: string[];
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, url: string): Promise<T> {

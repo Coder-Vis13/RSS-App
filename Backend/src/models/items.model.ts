@@ -12,7 +12,6 @@ interface FeedItems extends Item {
   is_save: boolean;
   source_id: number;
   feed_type: 'rss' | 'podcast';
-  tags?: string[];
 }
 
 interface MarkReadRow {
@@ -95,18 +94,13 @@ export const userFeedItems = async (
       COALESCE(uim.is_save, false) AS is_save,
       i.is_categorized,
       COALESCE(json_agg(DISTINCT jsonb_build_object('name', c.name))
-           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories, 
-      COALESCE(
-      json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
-      '[]'::json
-    ) AS tags
+           FILTER (WHERE c.name IS NOT NULL), '[]'::json) AS categories
   FROM item i
   INNER JOIN source s ON i.source_id = s.source_id
   INNER JOIN user_source us ON us.source_id = i.source_id
   LEFT JOIN user_item_metadata uim ON uim.item_id = i.item_id AND uim.user_id = us.user_id
   LEFT JOIN item_category ic ON i.item_id = ic.item_id
   LEFT JOIN category c ON ic.category_id = c.category_id
-  LEFT JOIN item_tag t ON i.item_id = t.item_id
   WHERE us.user_id = $1
     ${timeClause}
     ${demoClause}
@@ -279,7 +273,6 @@ export const addItem = async (
     title: string;
     description: string | null;
     pubDate: string | Date | null;
-    tags?: string[];
   }[]
 ): Promise<AddItemResult> => {
   if (!items.length) return { insertCount: 0, insertedIds: [] };
@@ -306,30 +299,6 @@ export const addItem = async (
 
   const insertedIds: number[] = result.rows.map((r) => r.item_id);
   const insertCount = insertedIds.length;
-
-  //Bulk insert tags
-  const tagValues: any[] = [];
-  const tagValueStrings: string[] = [];
-
-  result.rows.forEach((row, rowIdx) => {
-    const originalItem = items.find((i) => i.link === row.link);
-    if (originalItem?.tags?.length) {
-      const tagsToInsert = originalItem.tags.slice(0, 3);
-      tagsToInsert.forEach((tag, tagIdx) => {
-        tagValues.push(row.item_id, tag);
-        tagValueStrings.push(`($${tagValues.length - 1}, $${tagValues.length})`);
-      });
-    }
-  });
-
-  if (tagValues.length) {
-    const tagQuery = `
-      INSERT INTO item_tag(item_id, tag)
-      VALUES ${tagValueStrings.join(', ')}
-      ON CONFLICT (item_id, tag) DO NOTHING
-    `;
-    await query(tagQuery, tagValues);
-  }
 
   logAction(`Inserted items of Source=${sourceId} itemCount=${insertCount}`);
   return { insertCount, insertedIds };
@@ -430,17 +399,12 @@ export const allSavedItems = async (
         json_agg(DISTINCT jsonb_build_object('name', c.name))
         FILTER (WHERE c.name IS NOT NULL),
         '[]'::json
-      ) AS categories,
-      COALESCE(
-        json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
-        '[]'::json
-      ) AS tags
+      ) AS categories
     FROM user_item_metadata uim
     JOIN item i ON uim.item_id = i.item_id
     JOIN source s ON i.source_id = s.source_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
-    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE uim.is_save = TRUE
       AND uim.user_id = $1
       ${timeClause}
@@ -491,17 +455,12 @@ export const readItems = async (
         json_agg(DISTINCT jsonb_build_object('name', c.name))
         FILTER (WHERE c.name IS NOT NULL),
         '[]'::json
-      ) AS categories,
-      COALESCE(
-        json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL AND t.tag <> ''),
-        '[]'::json
-      ) AS tags
+      ) AS categories
     FROM user_item_metadata uim
     JOIN item i ON uim.item_id = i.item_id
     JOIN source s ON i.source_id = s.source_id
     LEFT JOIN item_category ic ON i.item_id = ic.item_id
     LEFT JOIN category c ON ic.category_id = c.category_id
-    LEFT JOIN item_tag t ON i.item_id = t.item_id
     WHERE uim.user_id = $1
     AND (uim.read_time IS NOT NULL)
       ${timeClause}
