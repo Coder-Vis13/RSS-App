@@ -7,6 +7,7 @@ import FolderPage from "./pages/FolderPage";
 import { Toaster } from "./components/ui/sonner";
 import Landing from "./pages/landingPage";
 import SourcePage from "./pages/SourcePage";
+import { Analytics } from "@vercel/analytics/react";
 import {
   clearDemoSessionState,
   clearAccessToken,
@@ -52,6 +53,7 @@ export default function Dashboard() {
   return (
     <>
       <Toaster richColors position="top-center" />
+      <Analytics />
       <Routes>
         <Route path="/landing" element={<Landing />} />
 
