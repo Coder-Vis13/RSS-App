@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { SiteShowcase } from "./components/sites";
-import { Button } from "./components/ui/button";
+import { SiteShowcase } from "../components/sites";
+import { Button } from "../components/ui/button";
 import { useEffect, useState } from "react";
 import {
   signIn,
@@ -8,8 +8,8 @@ import {
   signOut,
   getAuthUserId,
   startDemoSession,
-} from "./auth";
-import { Github, Linkedin } from "lucide-react";
+} from "../auth";
+import { Github, Linkedin, LoaderCircle } from "lucide-react";
 
 import {
   SiTypescript,
@@ -28,6 +28,7 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   // const [user, setUser] = useState<any>(null);
   const [name, setName] = useState("");
+  const [isStartingDemo, setIsStartingDemo] = useState(false);
 
   async function handleAuth() {
     try {
@@ -52,10 +53,12 @@ export default function App() {
   }
 
   async function handleDemo() {
+    setIsStartingDemo(true);
     try {
       await startDemoSession();
       window.location.href = "/feed";
     } catch {
+      setIsStartingDemo(false);
       alert("The demo is temporarily unavailable. Please try again.");
     }
   }
@@ -146,8 +149,7 @@ export default function App() {
               transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
               className="mx-auto mt-5 max-w-2xl text-[15px] sm:text-base leading-relaxed text-gray-600"
             >
-              A full-stack feed reader that discovers sources, normalizes
-              articles, and keeps reading state organized.
+              Your favorite sources, their latest content, and your activity — all in one place
             </motion.p>
 
             <motion.div
@@ -158,9 +160,10 @@ export default function App() {
             >
               <Button
                 onClick={handleDemo}
+                disabled={isStartingDemo}
                 className="h-12 rounded-2xl px-7 text-sm font-medium shadow-sm"
               >
-                Launch Demo
+                {isStartingDemo ? "Opening Demo…" : "Launch Demo"}
               </Button>
             </motion.div>
           </div>
@@ -250,7 +253,7 @@ export default function App() {
 
       {/* Final CTA */}
       <section className="mx-auto mt-20 max-w-6xl px-6">
-        <div className="relative overflow-hidden rounded-[40px] bg-(navyblue) px-8 py-20 text-center shadow-2xl">
+        <div className="relative overflow-hidden rounded-[40px] bg-(--navyblue) px-8 py-20 text-center shadow-2xl">
           <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
 
           <div className="relative">
@@ -264,13 +267,11 @@ export default function App() {
             </p>
 
             <Button
-              onClick={() => {
-                setMode("signup");
-                setShowAuthModal(true);
-              }}
+              onClick={handleDemo}
+              disabled={isStartingDemo}
               className="mt-10 h-12 rounded-2xl bg-white px-7 text-(navyblue) hover:bg-white/90"
             >
-              Create Account
+              {isStartingDemo ? "Opening Demo…" : "Try Demo"}
             </Button>
           </div>
         </div>
@@ -310,6 +311,27 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {isStartingDemo && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-(--navyblue)/30 px-5 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex w-full max-w-sm flex-col items-center rounded-3xl border border-white/70 bg-white px-8 py-9 text-center shadow-2xl">
+            <LoaderCircle
+              aria-hidden="true"
+              className="h-10 w-10 animate-spin text-(--navyblue)"
+            />
+            <h2 className="mt-5 text-lg font-semibold text-(--navyblue)">
+              Opening your demo
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Setting up your private reading workspace…
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Authentication Modal */}
       {showAuthModal && (

@@ -5,7 +5,7 @@ import SavedPage from "./pages/SavedPage";
 import ReadPage from "./pages/ReadPage";
 import FolderPage from "./pages/FolderPage";
 import { Toaster } from "./components/ui/sonner";
-import Landing from "./landingPage";
+import Landing from "./pages/landingPage";
 import SourcePage from "./pages/SourcePage";
 import {
   clearDemoSessionState,
