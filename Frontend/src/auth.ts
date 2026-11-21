@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.PROD
+  ? "/api"
+  : import.meta.env.VITE_API_URL;
 const ACCESS_TOKEN_KEY = "accessToken";
 const DEMO_MODE_KEY = "readarchive-demo-mode";
 const DEMO_USER_ID_KEY = "readarchive-demo-user-id";

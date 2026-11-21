@@ -6,7 +6,9 @@ import {
   isDemoMode,
 } from "../auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.PROD
+  ? "/api"
+  : import.meta.env.VITE_API_URL;
 
 
 const api = axios.create({
